@@ -1,6 +1,4 @@
-import inspect
 import logging
-from typing import Iterator, Iterable
 
 from influxdb_client import InfluxDBClient
 

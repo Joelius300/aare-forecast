@@ -16,3 +16,8 @@ keni macht (isches z schwär?). Anyway, ds ganze isch fangs es leers gsteu mit p
 - [SwissMetNet Dataset Description](https://api-datasette.konzept.space/existenz-api/smn_parameters)
 - [BAFU Hydrologie Dataset Description](https://api-datasette.konzept.space/existenz-api/hydro_parameters)
 - [Hydrologische Vorhersagen vom Bund (nüt dopplet mache)](https://www.bafu.admin.ch/bafu/de/home/themen/wasser/fachinformationen/zustand-der-gewaesser/hydrologische-vorhersagen-des-bundes.html)
+
+### Potenzielle Ressourcen
+
+- http://www.watercenter.org/physical-water-quality-parameters/water-temperature/water-temperature-ranges-in-rivers-and-streams/
+- https://storymaps.arcgis.com/stories/ef8b1542a6c0411ba96779b26151e399

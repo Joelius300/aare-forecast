@@ -21,5 +21,6 @@ dev = [
     "ipywidgets>=8.1.5",
     "jupyter>=1.1.1",
     "jupyterlab>=4.3.4",
+    "nbstripout>=0.8.1",
     "ruff>=0.8.4",
 ]

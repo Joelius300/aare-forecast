@@ -10,11 +10,13 @@ logger = logging.getLogger(__name__)
 
 
 def fill_with_hard_limit(
-        df_or_series: Union[pd.DataFrame, pd.Series], limit: int,
-        fill_method='interpolate',
-        columns: Optional[list[str]] = None,
-        add_was_filled=False,
-        **fill_method_kwargs) -> Union[pd.DataFrame, pd.Series]:
+    df_or_series: Union[pd.DataFrame, pd.Series],
+    limit: int,
+    fill_method="interpolate",
+    columns: Optional[list[str]] = None,
+    add_was_filled=False,
+    **fill_method_kwargs,
+) -> Union[pd.DataFrame, pd.Series]:
     # adjusted from https://stackoverflow.com/a/66373000/10883465
     """The fill methods from Pandas such as ``interpolate`` or ``bfill``
     will fill ``limit`` number of NaNs, even if the total number of
@@ -54,14 +56,13 @@ def fill_with_hard_limit(
     grp = (to_interp.notnull() != to_interp.shift().notnull()).cumsum()
 
     # Add columns of ones.
-    grp['ones'] = 1
+    grp["ones"] = 1
 
     # Loop through columns and update the mask.
     for col in columns:
         mask.loc[:, col] = (
-                (grp.groupby(col)['ones'].transform('count') <= limit)
-                | to_interp[col].notnull()
-        )
+            grp.groupby(col)["ones"].transform("count") <= limit
+        ) | to_interp[col].notnull()
 
     # Now, interpolate and use the mask to create NaNs for the larger gaps.
     method = getattr(to_interp[columns], fill_method)
@@ -72,7 +73,7 @@ def fill_with_hard_limit(
         out[c] = interpolated[c]
 
     if add_was_filled:
-        was_filled_mask = (~to_interp.notnull() & out.notnull())
+        was_filled_mask = ~to_interp.notnull() & out.notnull()
         for c in columns:
             out[c + "_filled"] = was_filled_mask[c]
 
@@ -117,6 +118,8 @@ def to_ts(df, freq=None):
         tdf.index.freq = freq
     else:
         if freq != tdf.index.freq:
-            logger.warning(f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'")
+            logger.warning(
+                f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'"
+            )
 
     return TimeSeries.from_dataframe(tdf, freq=tdf.index.freq)

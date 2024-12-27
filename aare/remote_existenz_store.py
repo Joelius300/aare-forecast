@@ -1,6 +1,8 @@
 import logging
+from typing import cast
 
-from influxdb_client import InfluxDBClient
+import pandas as pd
+from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImportUsage]
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ def _chain_equality(
 
     if len(values) == 1 and (isinstance(values[0], list)):
         # unpack list so you don't have to on the caller's side
-        values = values[0]
+        values: list = cast(list, values[0])
 
     q = '"' if wrap_in_quotes else ""
     return "(r) => " + (
@@ -62,7 +64,7 @@ class RemoteExistenzStore:
 
         logger.debug("Executing Flux Query:\n{%s}", query)
 
-        df = self.client.query_api().query_data_frame(query)
+        df = cast(pd.DataFrame, self.client.query_api().query_data_frame(query))
 
         unnecessary_cols = ["result", "table"]
         if not keep_loc and (

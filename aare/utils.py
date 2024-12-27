@@ -1,5 +1,5 @@
 import logging
-from typing import Union, Optional
+from typing import Union, Optional, cast
 
 import pandas as pd
 from darts import TimeSeries
@@ -46,8 +46,8 @@ def fill_with_hard_limit(
     except AttributeError:
         df = df_or_series
 
-    to_interp = df[columns] if columns else df
-    columns = to_interp.columns
+    to_interp = cast(pd.DataFrame, df[columns] if columns else df)
+    columns = list(to_interp.columns)
 
     # Initialize our mask.
     mask = pd.DataFrame(True, index=to_interp.index, columns=to_interp.columns)

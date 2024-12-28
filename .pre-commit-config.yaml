@@ -1,22 +1,22 @@
 repos:
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.5.12
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.13
     hooks:
-      - id: uv-lock
-      - id: uv-export
-  - repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+    -   id: uv-lock
+    -   id: uv-export
+-   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
     rev: v0.6.1
     hooks:
-      - id: pre-commit-update
-  - repo: https://github.com/astral-sh/ruff-pre-commit
+    -   id: pre-commit-update
+-   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
-      - id: ruff
+    -   id: ruff
         args: [--fix]
-      - id: ruff-format
-  - repo: local
+    -   id: ruff-format
+-   repo: local
     hooks:
-      - id: pyright-local
+    -   id: pyright-local
         language: system
         name: pyright-local
         entry: uv run pyright

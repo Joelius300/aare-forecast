@@ -1,0 +1,11 @@
+# values from EDA
+general:
+  frequency: 1h
+  forecast_horizon: 96
+cleanup:
+  low_cutoff: 2.5
+  high_cutoff: 25
+  diff_threshold: 0.6  # 0.995 quantile
+interpolate:
+  linear_gap_bound: 3
+  cubic_gap_bound: 25

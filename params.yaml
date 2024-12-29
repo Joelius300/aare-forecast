@@ -7,5 +7,14 @@ cleanup:
   high_cutoff: 25
   diff_threshold: 0.6  # 0.995 quantile
 interpolate:
+  # depending on how good imputation is,
+  # could lower these a bit.
+  # They work often, but sometimes fail badly.
   linear_gap_bound: 3
   cubic_gap_bound: 25
+training:
+  # 15 years training (9 of them clean)
+  val_split: "2017-01-01"
+  # 4 years validation (3 of them very clean)
+  test_split: "2021-01-01"
+  # 4+ years test (4 of them clean)

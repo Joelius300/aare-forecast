@@ -19,10 +19,16 @@ class InterpolateParams(TypedDict):
     cubic_gap_bound: int
 
 
+class TrainingParams(TypedDict):
+    val_split: str
+    test_split: str
+
+
 class Params(TypedDict):
     general: GeneralParams
     cleanup: CleanupParams
     interpolate: InterpolateParams
+    training: TrainingParams
 
 
 def read_params() -> Params:

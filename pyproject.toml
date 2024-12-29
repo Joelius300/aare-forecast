@@ -13,6 +13,8 @@ dependencies = [
     "pandas>=2.2.3",
     "plotly>=5.24.1",
     "polars>=1.18.0",
+    "pypots>=0.8.1",
+    "scikit-learn>=1.5.2",
     "statsmodels>=0.14.4",
 ]
 

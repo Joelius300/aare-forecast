@@ -1,9 +1,10 @@
-from typing import cast
+from typing import cast, Optional
 
 import numpy as np
 import pandas as pd
 
 from aare.constants import TEMP, TIME
+from aare.params import read_params
 from aare.utils import between, fill_with_hard_limit
 
 
@@ -11,6 +12,13 @@ def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
     # resample to add nan points where data is missing. also removes the trailing data point if 18:00 and 18:55 for example.
     # doing this manually gives a bit more control and avoid having to send this data over the air from the influx server.
     return df.set_index(TIME).resample(freq).first().reset_index(TIME)
+
+
+def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
+    if freq is None:
+        freq = read_params()["general"]["frequency"]
+
+    return _resample(df, freq)
 
 
 def remove_faulty_periods(df: pd.DataFrame) -> pd.DataFrame:
@@ -61,6 +69,14 @@ def _remove_outliers(
     return cast(pd.DataFrame, df[orig_cols])
 
 
+def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
+    params = read_params()["cleanup"]
+
+    return _remove_outliers(
+        df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"]
+    )
+
+
 def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int):
     df = df.copy()
 
@@ -79,3 +95,9 @@ def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int):
     df.loc[df_i[TEMP + "_filled"], "filled"] = "cubic"
 
     return df
+
+
+def interpolate(df: pd.DataFrame) -> pd.DataFrame:
+    params = read_params()["interpolate"]
+
+    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"])

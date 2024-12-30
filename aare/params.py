@@ -19,16 +19,18 @@ class InterpolateParams(TypedDict):
     cubic_gap_bound: int
 
 
-class TrainingParams(TypedDict):
-    val_split: str  # lower bound for validation data
-    test_split: str  # lower bound for test data
+class SplitParams(TypedDict):
+    # these are lower bounds for the respective splits ( train_period = [train_split; val_split[ )
+    train_split: str
+    val_split: str
+    test_split: str  # test data has no upper bound
 
 
 class Params(TypedDict):
     general: GeneralParams
     cleanup: CleanupParams
     interpolate: InterpolateParams
-    training: TrainingParams
+    split: SplitParams
 
 
 def read_params() -> Params:

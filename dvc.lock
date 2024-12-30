@@ -4,9 +4,10 @@ stages:
     cmd: python scripts/fit_scaler.py
     params:
       params.yaml:
-        training.val_split: '2017-01-01'
+        split.train_split: '2001-06-28'
+        split.val_split: '2017-01-01'
     outs:
     - path: data/scaler.pkl
       hash: md5
-      md5: 8a3d51291c762ab36f9f188b33fa3c45
+      md5: 9dd6442ada1df80d4aa1784a6dce0149
       size: 473

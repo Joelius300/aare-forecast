@@ -12,9 +12,10 @@ interpolate:
   # They work often, but sometimes fail badly.
   linear_gap_bound: 3
   cubic_gap_bound: 25
-training:
+split:
   # 15 years training (9 of them clean)
-  val_split: "2017-01-01"
+  train_split: "2001-06-28"
   # 4 years validation (3 of them very clean)
-  test_split: "2021-01-01"
+  val_split: "2017-01-01"
   # 4+ years test (4 of them clean)
+  test_split: "2021-01-01"

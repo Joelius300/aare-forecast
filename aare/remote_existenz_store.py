@@ -61,6 +61,8 @@ class RemoteExistenzStore:
         #   Can get confusing, esp. if you filter up to but excluding 2024, you
         #   will still get a timestamp on 2024-01-01T00:00:00 containing the last
         #   hour of 2023. IT DOES NOT CONTAIN VALUES FROM 2024!
+        # PS. Maybe training data should also be aligned to first of January for consistency.
+        #   But it should be enough to align to the stride used in training and validation (prob daily, so 00:00).
         query = (
             f'from(bucket: "existenzApi")\n'
             f'  |> range(start: {start}, stop: {stop})\n'

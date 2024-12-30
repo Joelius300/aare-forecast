@@ -1,0 +1,7 @@
+stages:
+  fit-scaler:
+    cmd: python scripts/fit_scaler.py
+    params:
+    - training.val_split
+    outs:
+    - data/scaler.pkl

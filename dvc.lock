@@ -1,0 +1,12 @@
+schema: '2.0'
+stages:
+  fit-scaler:
+    cmd: python scripts/fit_scaler.py
+    params:
+      params.yaml:
+        training.val_split: '2017-01-01'
+    outs:
+    - path: data/scaler.pkl
+      hash: md5
+      md5: 8a3d51291c762ab36f9f188b33fa3c45
+      size: 473

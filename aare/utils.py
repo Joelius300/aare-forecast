@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Union, Optional, cast
 
 import pandas as pd
@@ -7,6 +8,8 @@ from darts import TimeSeries
 from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
+
+DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
 
 
 def fill_with_hard_limit(

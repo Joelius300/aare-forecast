@@ -20,8 +20,8 @@ class InterpolateParams(TypedDict):
 
 
 class TrainingParams(TypedDict):
-    val_split: str
-    test_split: str
+    val_split: str  # lower bound for validation data
+    test_split: str  # lower bound for test data
 
 
 class Params(TypedDict):

@@ -41,7 +41,7 @@ class RemoteExistenzStore:
         period: str | tuple[str, str],
         locations: str | int | list[str | int],
         fields: str | list[str] = "temperature",
-        agg_freq="1h",
+        agg_freq="1h",  # could also read from params
         agg_func="mean",
         agg_create_empty=False,
         keep_loc=False,

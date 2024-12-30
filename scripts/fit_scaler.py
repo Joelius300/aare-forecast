@@ -1,15 +1,14 @@
 import logging
-import pickle
 
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 from aare.AareDataset import AareDataset
 from aare.constants import TEMP
+from aare.normalization import store_scaler
 from aare.params import read_params
 from aare.preparation import resample, remove_faulty_periods, remove_outliers
 from aare.remote_existenz_store import RemoteExistenzStore
-from aare.utils import DATA_FOLDER
 
 
 logger = logging.getLogger(__name__)
@@ -33,12 +32,6 @@ def train_scaler(train: pd.DataFrame):
     scaler.fit(X)
 
     return scaler
-
-
-def store_scaler(scaler: StandardScaler):
-    # could also the text-based version from AICH/normalization.py
-    with open(DATA_FOLDER / "scaler.pkl", "wb") as file:
-        pickle.dump(scaler, file)
 
 
 def main():

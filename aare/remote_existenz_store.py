@@ -51,6 +51,16 @@ class RemoteExistenzStore:
         start = period if isinstance(period, str) else period[0]
         stop = "now()" if isinstance(period, str) else period[1]
 
+        # NOTE: aggregateWindow 1h on 12:00 will take the values from
+        #   11:00 until 12:00 and combine them into a single value
+        #   with timestamp ** 12:00 **. This means that filtering from
+        #   00:00 to xxxx will result in the first entry being
+        #   01:00 (aggregate of the values between 00:00 and 01:00).
+        #   This might be important because the first entry the model sees
+        #   will be 01:00, but it contains values since 00:00 so it's correct.
+        #   Can get confusing, esp. if you filter up to but excluding 2024, you
+        #   will still get a timestamp on 2024-01-01T00:00:00 containing the last
+        #   hour of 2023. IT DOES NOT CONTAIN VALUES FROM 2024!
         query = (
             f'from(bucket: "existenzApi")\n'
             f'  |> range(start: {start}, stop: {stop})\n'

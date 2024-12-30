@@ -77,7 +77,9 @@ def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int):
+def _interpolate(
+    df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int, drop_filled: bool
+):
     df = df.copy()
 
     df_i = fill_with_hard_limit(
@@ -94,10 +96,16 @@ def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int):
     df[TEMP] = df_i[TEMP]
     df.loc[df_i[TEMP + "_filled"], "filled"] = "cubic"
 
+    if drop_filled:
+        # still populating first for debugging purposed
+        df = df.drop("filled", axis="columns")
+
     return df
 
 
-def interpolate(df: pd.DataFrame) -> pd.DataFrame:
+def interpolate(df: pd.DataFrame, drop_filled=False) -> pd.DataFrame:
     params = read_params()["interpolate"]
 
-    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"])
+    return _interpolate(
+        df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled
+    )

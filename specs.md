@@ -20,6 +20,7 @@ They can be adjusted if experimentation suggests to or there are technical limit
 
 - Resolution: 1h
 - Horizon: 4 days = 96 hours (roughly the same as the existing discharge forecast)
+- Forecasts are made once a day at midnight, so models don't need to be able to start forecasting from 3pm.
 - Probabilistic forecast if possible (BAFU uses 25 and 75 quantiles)
 
 ## Evaluation

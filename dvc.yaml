@@ -6,3 +6,19 @@ stages:
       - split.val_split
     outs:
     - data/scaler.pkl
+  establish-baselines:
+    cmd: python scripts/establish_baselines.py
+    params:
+      - general.forecast_horizon
+      - split.val_split
+      - split.test_split
+      - validation.stride
+      - validation.lookback_hours
+    outs:
+      - data/last_predictions/LOCF.pkl
+      - data/last_predictions/SNAIVE.pkl
+      - data/last_predictions/MEAN.pkl
+    metrics:
+      - data/metrics/LOCF.json
+      - data/metrics/SNAIVE.json
+      - data/metrics/MEAN.json

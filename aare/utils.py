@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from typing import Union, Optional, cast
 
+import numpy as np
 import pandas as pd
 from darts import TimeSeries
 
@@ -125,4 +126,8 @@ def to_ts(df, freq=None):
                 f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'"
             )
 
-    return TimeSeries.from_dataframe(tdf, freq=tdf.index.freq)
+    ts = TimeSeries.from_dataframe(tdf, freq=tdf.index.freq)
+    # darts only supports 32 and 64 sadly. No need for high 64 precision.
+    ts = ts.astype(np.float32)  # pyright: ignore [reportArgumentType]
+
+    return ts

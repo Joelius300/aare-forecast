@@ -11,3 +11,37 @@ stages:
       hash: md5
       md5: 9dd6442ada1df80d4aa1784a6dce0149
       size: 473
+  establish-baselines:
+    cmd: python scripts/establish_baselines.py
+    params:
+      params.yaml:
+        general.forecast_horizon: 96
+        split.test_split: '2021-01-01'
+        split.val_split: '2017-01-01'
+        validation.lookback_hours: 24
+        validation.stride: 24
+    outs:
+    - path: data/last_predictions/LOCF.pkl
+      hash: md5
+      md5: 9d422e4924b02c5da05dbdb2a521a3a3
+      size: 6669
+    - path: data/last_predictions/MEAN.pkl
+      hash: md5
+      md5: 01563e496f8804cdf04a763f6bff503d
+      size: 6669
+    - path: data/last_predictions/SNAIVE.pkl
+      hash: md5
+      md5: 0a342566402f50cbefb99829233074ad
+      size: 6669
+    - path: data/metrics/LOCF.json
+      hash: md5
+      md5: 8469ae7b7d9c9adb19225c4ed728f22f
+      size: 55
+    - path: data/metrics/MEAN.json
+      hash: md5
+      md5: d0ba22927c52c5a3df6482368cb03d55
+      size: 54
+    - path: data/metrics/SNAIVE.json
+      hash: md5
+      md5: b80b3c9344a0a0d27598c6ebfc76fc21
+      size: 55

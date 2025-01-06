@@ -4,7 +4,7 @@ import dvc.api
 
 
 class GeneralParams(TypedDict):
-    frequency: str
+    frequency: str  # this is used everywhere and integrated so tightly, that it cannot simply be changed
     forecast_horizon: int
 
 
@@ -26,11 +26,17 @@ class SplitParams(TypedDict):
     test_split: str  # test data has no upper bound
 
 
+class ValidationParams(TypedDict):
+    stride: int
+    lookback_hours: int
+
+
 class Params(TypedDict):
     general: GeneralParams
     cleanup: CleanupParams
     interpolate: InterpolateParams
     split: SplitParams
+    validation: ValidationParams
 
 
 def read_params() -> Params:

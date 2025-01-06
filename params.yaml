@@ -19,3 +19,7 @@ split:
   val_split: "2017-01-01"
   # 4+ years test (4 of them clean)
   test_split: "2021-01-01"
+validation:
+  stride: 24  # one eval per day
+  # how many previous hours should be included when storing forecasts. NOT THE SAME AS INPUT_CHUNK_SIZE.
+  lookback_hours: 24

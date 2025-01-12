@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.5.18
+    rev: 0.5.20
     hooks:
     -   id: uv-lock
     -   id: uv-export
@@ -9,7 +9,7 @@ repos:
     hooks:
     -   id: pre-commit-update
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.1
+    rev: v0.9.2
     hooks:
     -   id: ruff
         args: [--fix]
@@ -22,3 +22,7 @@ repos:
         entry: uv run pyright
         types: [python, pyi]
         pass_filenames: false
+-   repo: https://github.com/iterative/dvc
+    rev: 3.59.0
+    hooks:
+    -   id: dvc-pre-commit

@@ -16,12 +16,9 @@ from aare.preparation import (
     remove_outliers,
     interpolate,
 )
-from aare.utils import to_ts, DATA_FOLDER
+from aare.utils import to_ts, METRICS_FOLDER, LAST_PREDICTIONS_FOLDER
 
 logger = logging.getLogger(__name__)
-
-METRICS_FOLDER = DATA_FOLDER / "metrics"
-LAST_PREDICTIONS_FOLDER = DATA_FOLDER / "last_predictions"
 
 
 def prepare_data(dataset: AareDataset) -> TimeSeries:

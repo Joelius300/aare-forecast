@@ -31,3 +31,14 @@ class Forecast:
         """Calculate and store the metrics for this instance. Also returns them for convenience."""
         self.metrics = Metrics.from_series(self.actual, self.prediction)
         return self.metrics
+
+    def plot(self, title: str):
+        axes = self.actual.plot(label="actual")
+        self.prediction.plot(label="prediction", ax=axes)
+        axes.set_xlabel("Time")
+        axes.set_ylabel("Temperature [°C]")
+
+        if self.metrics is not None:
+            axes.set_title(f"{title} [{self.metrics}]")
+
+        return axes

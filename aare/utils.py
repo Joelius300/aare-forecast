@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
 
+METRICS_FOLDER = DATA_FOLDER / "metrics"
+LAST_PREDICTIONS_FOLDER = DATA_FOLDER / "last_predictions"
+
 
 def fill_with_hard_limit(
     df_or_series: Union[pd.DataFrame, pd.Series],

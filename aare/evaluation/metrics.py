@@ -14,6 +14,9 @@ class Metrics:
     mae: float
     rmse: float
 
+    def __repr__(self):
+        return f"MAE: {self.mae:.3f} / RMSE: {self.rmse:.3f}"
+
     @classmethod
     def from_series(cls, actual: TimeSeries, prediction: TimeSeries):
         """Returns a fully calculated set of metrics for a ground truth and forecast."""

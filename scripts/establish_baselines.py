@@ -39,7 +39,7 @@ def main():
     params = read_params()
     horizon = params["general"]["forecast_horizon"]
     stride = params["validation"]["stride"]
-    lookback_hours = params["validation"]["lookback_hours"]
+    min_lookback_hours = params["validation"]["min_lookback_hours"]
     val = prepare_data(dataset)
     val_subs = extract_subseries(val)
 
@@ -58,6 +58,7 @@ def main():
 
     for name, model in models.items():
         metrics, last_prediction = evaluate_model(model, val_subs, stride, horizon)
+        lookback_hours = max(model.input_chunk_length, min_lookback_hours)
         last_forecast = Forecast(val, last_prediction, lookback_hours)
 
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:

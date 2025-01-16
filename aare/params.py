@@ -28,7 +28,7 @@ class SplitParams(TypedDict):
 
 class ValidationParams(TypedDict):
     stride: int
-    lookback_hours: int
+    min_lookback_hours: int
 
 
 class Params(TypedDict):

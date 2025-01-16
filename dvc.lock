@@ -18,7 +18,7 @@ stages:
         general.forecast_horizon: 96
         split.test_split: '2021-01-01'
         split.val_split: '2017-01-01'
-        validation.lookback_hours: 24
+        validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/last_forecasts/LOCF.pkl
@@ -27,8 +27,8 @@ stages:
       size: 6836
     - path: data/last_forecasts/MEAN.pkl
       hash: md5
-      md5: adadb786449d87a90832e581ab832204
-      size: 6836
+      md5: d504279953495081c5824d29ae910c6d
+      size: 9720
     - path: data/last_forecasts/SNAIVE.pkl
       hash: md5
       md5: 6c2847899defa90232007a891f24536f

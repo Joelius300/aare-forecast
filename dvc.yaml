@@ -13,7 +13,7 @@ stages:
       - split.val_split
       - split.test_split
       - validation.stride
-      - validation.lookback_hours
+      - validation.min_lookback_hours
     outs:
       - data/last_forecasts/LOCF.pkl
       - data/last_forecasts/SNAIVE.pkl

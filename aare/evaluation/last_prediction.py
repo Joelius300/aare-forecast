@@ -26,6 +26,4 @@ def get_last_prediction(
     actual = all_data[pred_start - lookback : last_forecast.end_time()]
     metrics = calc_metrics(actual, last_forecast) if add_metrics else None
 
-    return LastPrediction(
-        actual=actual, prediction=last_forecast, lookback=lookback, metrics=metrics
-    )
+    return LastPrediction(actual=actual, prediction=last_forecast, lookback=lookback, metrics=metrics)

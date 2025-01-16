@@ -7,9 +7,7 @@ from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImpo
 logger = logging.getLogger(__name__)
 
 
-def _chain_equality(
-    column: str, *values: str | int | list, separator="or", wrap_in_quotes=True
-):
+def _chain_equality(column: str, *values: str | int | list, separator="or", wrap_in_quotes=True):
     """Returns a predicate function where a column is tested against one or more values with equality (==)."""
     # using contains(value: r["loc"], set: ["2135", "2030"]) has muuuuch worse performance
     if values is None or len(values) == 0:
@@ -20,9 +18,7 @@ def _chain_equality(
         values: list = cast(list, values[0])
 
     q = '"' if wrap_in_quotes else ""
-    return "(r) => " + (
-        f" {separator} ".join([f'r["{column}"] == {q}{value}{q}' for value in values])
-    )
+    return "(r) => " + (f" {separator} ".join([f'r["{column}"] == {q}{value}{q}' for value in values]))
 
 
 class RemoteExistenzStore:
@@ -65,11 +61,11 @@ class RemoteExistenzStore:
         #   But it should be enough to align to the stride used in training and validation (prob daily, so 00:00).
         query = (
             f'from(bucket: "existenzApi")\n'
-            f'  |> range(start: {start}, stop: {stop})\n'
-            f'  |> filter(fn: {_chain_equality("_measurement", "hydro")})\n'
-            f'  |> filter(fn: {_chain_equality("_field", fields)})\n'
-            f'  |> filter(fn: {_chain_equality("loc", locations)})\n'
-            f'  |> aggregateWindow(every: {agg_freq}, fn: {agg_func}, createEmpty: {str(agg_create_empty).lower()})\n'
+            f"  |> range(start: {start}, stop: {stop})\n"
+            f"  |> filter(fn: {_chain_equality('_measurement', 'hydro')})\n"
+            f"  |> filter(fn: {_chain_equality('_field', fields)})\n"
+            f"  |> filter(fn: {_chain_equality('loc', locations)})\n"
+            f"  |> aggregateWindow(every: {agg_freq}, fn: {agg_func}, createEmpty: {str(agg_create_empty).lower()})\n"
             f'  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")\n'
             f'  |> drop(columns: ["_start", "result", "_stop", "table", "_measurement"])'
         )
@@ -79,11 +75,7 @@ class RemoteExistenzStore:
         df = cast(pd.DataFrame, self.client.query_api().query_data_frame(query))
 
         unnecessary_cols = ["result", "table"]
-        if not keep_loc and (
-            isinstance(locations, int)
-            or isinstance(locations, str)
-            or len(locations) == 1
-        ):
+        if not keep_loc and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1):
             unnecessary_cols.append("loc")
 
         return df.drop(unnecessary_cols, axis=1)

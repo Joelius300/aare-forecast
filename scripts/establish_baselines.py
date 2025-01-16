@@ -53,9 +53,7 @@ def main():
         # daily seasonality
         "SNAIVE": GlobalNaiveSeasonal(input_chunk_length=24, output_chunk_length=1),
         # weekly mean
-        "MEAN": GlobalNaiveAggregate(
-            input_chunk_length=7 * 24, output_chunk_length=horizon
-        ),
+        "MEAN": GlobalNaiveAggregate(input_chunk_length=7 * 24, output_chunk_length=horizon),
     }
 
     METRICS_FOLDER.mkdir(exist_ok=True)
@@ -68,9 +66,7 @@ def main():
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
             json.dump(metrics, metrics_file)
 
-        with open(
-            LAST_PREDICTIONS_FOLDER / f"{name}.pkl", "wb"
-        ) as past_prediction_file:
+        with open(LAST_PREDICTIONS_FOLDER / f"{name}.pkl", "wb") as past_prediction_file:
             pickle.dump(last_prediction, past_prediction_file)
 
 

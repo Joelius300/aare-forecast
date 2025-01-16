@@ -13,9 +13,6 @@ def calc_metrics(actual: TimeSeries, prediction: TimeSeries):
     """Returns a fully populated instance of Metrics."""
     to_eval = dict(mae=mae, rmse=rmse)
 
-    metrics = {
-        key: cast(float, metric(actual, prediction))
-        for (key, metric) in to_eval.items()
-    }
+    metrics = {key: cast(float, metric(actual, prediction)) for (key, metric) in to_eval.items()}
 
     return cast(Metrics, metrics)

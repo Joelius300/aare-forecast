@@ -64,9 +64,7 @@ def fill_with_hard_limit(
 
     # Loop through columns and update the mask.
     for col in columns:
-        mask.loc[:, col] = (
-            grp.groupby(col)["ones"].transform("count") <= limit
-        ) | to_interp[col].notnull()
+        mask.loc[:, col] = (grp.groupby(col)["ones"].transform("count") <= limit) | to_interp[col].notnull()
 
     # Now, interpolate and use the mask to create NaNs for the larger gaps.
     method = getattr(to_interp[columns], fill_method)
@@ -122,9 +120,7 @@ def to_ts(df, freq=None):
         tdf.index.freq = freq
     else:
         if freq != tdf.index.freq:
-            logger.warning(
-                f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'"
-            )
+            logger.warning(f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'")
 
     ts = TimeSeries.from_dataframe(tdf, freq=tdf.index.freq)
     # darts only supports 32 and 64 sadly. No need for high 64 precision.

@@ -29,9 +29,7 @@ def remove_faulty_periods(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _remove_outliers(
-    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float
-) -> pd.DataFrame:
+def _remove_outliers(df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float) -> pd.DataFrame:
     df = df.copy()
     orig_cols = df.columns
 
@@ -49,20 +47,17 @@ def _remove_outliers(
 
     # variant 1a
     df.loc[
-        (df["temp_diff_to_prev"].isna() | (df["temp_diff_to_prev"] == 0))
-        & (df["temp_diff_to_next"] > diff_threshold),
+        (df["temp_diff_to_prev"].isna() | (df["temp_diff_to_prev"] == 0)) & (df["temp_diff_to_next"] > diff_threshold),
         TEMP,
     ] = np.nan
     # variant 1b
     df.loc[
-        (df["temp_diff_to_next"].isna() | (df["temp_diff_to_next"] == 0))
-        & (df["temp_diff_to_prev"] > diff_threshold),
+        (df["temp_diff_to_next"].isna() | (df["temp_diff_to_next"] == 0)) & (df["temp_diff_to_prev"] > diff_threshold),
         TEMP,
     ] = np.nan
     # variant 2
     df.loc[
-        (df["temp_diff_to_prev"] > diff_threshold)
-        & (df["temp_diff_to_next"] > diff_threshold),
+        (df["temp_diff_to_prev"] > diff_threshold) & (df["temp_diff_to_next"] > diff_threshold),
         TEMP,
     ] = np.nan
 
@@ -72,27 +67,17 @@ def _remove_outliers(
 def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
     params = read_params()["cleanup"]
 
-    return _remove_outliers(
-        df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"]
-    )
+    return _remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"])
 
 
-def _interpolate(
-    df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int, drop_filled: bool
-):
+def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int, drop_filled: bool):
     df = df.copy()
 
-    df_i = fill_with_hard_limit(
-        df, limit=linear_gap_bound, columns=[TEMP], add_was_filled=True
-    )
+    df_i = fill_with_hard_limit(df, limit=linear_gap_bound, columns=[TEMP], add_was_filled=True)
     df[TEMP] = df_i[TEMP]
-    df["filled"] = cast(pd.Series, df_i[TEMP + "_filled"]).map(
-        {False: "none", True: "linear"}
-    )
+    df["filled"] = cast(pd.Series, df_i[TEMP + "_filled"]).map({False: "none", True: "linear"})
 
-    df_i = fill_with_hard_limit(
-        df, method="cubic", limit=cubic_gap_bound, columns=[TEMP], add_was_filled=True
-    )
+    df_i = fill_with_hard_limit(df, method="cubic", limit=cubic_gap_bound, columns=[TEMP], add_was_filled=True)
     df[TEMP] = df_i[TEMP]
     df.loc[df_i[TEMP + "_filled"], "filled"] = "cubic"
 
@@ -106,6 +91,4 @@ def _interpolate(
 def interpolate(df: pd.DataFrame, drop_filled=False) -> pd.DataFrame:
     params = read_params()["interpolate"]
 
-    return _interpolate(
-        df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled
-    )
+    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled)

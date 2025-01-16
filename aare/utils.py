@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
-LAST_PREDICTIONS_FOLDER = DATA_FOLDER / "last_predictions"
+LAST_FORECASTS_FOLDER = DATA_FOLDER / "last_forecasts"
 
 
 def fill_with_hard_limit(

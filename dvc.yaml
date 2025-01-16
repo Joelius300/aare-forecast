@@ -15,9 +15,9 @@ stages:
       - validation.stride
       - validation.lookback_hours
     outs:
-      - data/last_predictions/LOCF.pkl
-      - data/last_predictions/SNAIVE.pkl
-      - data/last_predictions/MEAN.pkl
+      - data/last_forecasts/LOCF.pkl
+      - data/last_forecasts/SNAIVE.pkl
+      - data/last_forecasts/MEAN.pkl
     metrics:
       - data/metrics/LOCF.json
       - data/metrics/SNAIVE.json

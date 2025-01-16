@@ -16,7 +16,7 @@ from aare.preparation import (
     remove_outliers,
     interpolate,
 )
-from aare.utils import to_ts, METRICS_FOLDER, LAST_PREDICTIONS_FOLDER
+from aare.utils import to_ts, METRICS_FOLDER, LAST_FORECASTS_FOLDER
 
 logger = logging.getLogger(__name__)
 
@@ -54,17 +54,17 @@ def main():
     }
 
     METRICS_FOLDER.mkdir(exist_ok=True)
-    LAST_PREDICTIONS_FOLDER.mkdir(exist_ok=True)
+    LAST_FORECASTS_FOLDER.mkdir(exist_ok=True)
 
     for name, model in models.items():
         metrics, last_prediction = evaluate_model(model, val_subs, stride, horizon)
-        last_prediction = Forecast(val, last_prediction, lookback_hours)
+        last_forecast = Forecast(val, last_prediction, lookback_hours)
 
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
             json.dump(metrics.to_dict(), metrics_file)
 
-        with open(LAST_PREDICTIONS_FOLDER / f"{name}.pkl", "wb") as past_prediction_file:
-            pickle.dump(last_prediction, past_prediction_file)
+        with open(LAST_FORECASTS_FOLDER / f"{name}.pkl", "wb") as last_forecast_file:
+            pickle.dump(last_forecast, last_forecast_file)
 
 
 if __name__ == "__main__":

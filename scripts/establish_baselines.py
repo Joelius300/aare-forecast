@@ -8,7 +8,7 @@ from darts.models import GlobalNaiveSeasonal, GlobalNaiveAggregate
 from darts.utils.missing_values import extract_subseries
 
 from aare.AareDataset import AareDataset
-from aare.evaluation import evaluate_model, get_last_prediction
+from aare.evaluation import evaluate_model, Forecast
 from aare.params import read_params
 from aare.preparation import (
     resample,
@@ -60,11 +60,11 @@ def main():
     LAST_PREDICTIONS_FOLDER.mkdir(exist_ok=True)
 
     for name, model in models.items():
-        metrics, last_forecast = evaluate_model(model, val_subs, stride, horizon)
-        last_prediction = get_last_prediction(val, last_forecast, lookback_hours)
+        metrics, last_prediction = evaluate_model(model, val_subs, stride, horizon)
+        last_prediction = Forecast(val, last_prediction, lookback_hours)
 
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
-            json.dump(metrics, metrics_file)
+            json.dump(metrics.to_dict(), metrics_file)
 
         with open(LAST_PREDICTIONS_FOLDER / f"{name}.pkl", "wb") as past_prediction_file:
             pickle.dump(last_prediction, past_prediction_file)

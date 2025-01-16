@@ -17,7 +17,7 @@ def evaluate_model(
 
     Global Naive Models are "trained" first to give them knowledge about the dimensions etc.
 
-    Returns the aggregated metrics and the last forecast the model made.
+    Returns the aggregated metrics and the last prediction the model made.
     """
     if isinstance(model, _GlobalNaiveModel):
         # only takes the components etc. global naive don't care about the values
@@ -40,6 +40,6 @@ def evaluate_model(
     metrics = np.mean(backtest, axis=0)
     metrics = Metrics(mae=float(metrics[0]), rmse=float(metrics[1]))
 
-    last_forecast = historical_forecasts[-1][-1]
+    last_prediction = historical_forecasts[-1][-1]
 
-    return metrics, last_forecast
+    return metrics, last_prediction

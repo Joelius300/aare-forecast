@@ -35,12 +35,12 @@ stages:
       size: 6836
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: 8469ae7b7d9c9adb19225c4ed728f22f
+      md5: edb8a10c1f46059ef33e2500cc590476
       size: 55
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: d0ba22927c52c5a3df6482368cb03d55
-      size: 54
+      md5: 644d00a4ec778abd536a96a7a59d12b3
+      size: 55
     - path: data/metrics/SNAIVE.json
       hash: md5
       md5: b80b3c9344a0a0d27598c6ebfc76fc21

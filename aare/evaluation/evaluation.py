@@ -37,8 +37,8 @@ def evaluate_model(
 
     backtest = model.backtest(val, historical_forecasts=historical_forecasts, metric=[mae, rmse])
 
-    metrics = np.mean(backtest, axis=0)
-    metrics = Metrics(mae=float(metrics[0]), rmse=float(metrics[1]))
+    metrics = np.mean(backtest, axis=0, dtype=float)
+    metrics = Metrics(mae=metrics[0], rmse=metrics[1])
 
     last_prediction = historical_forecasts[-1][-1]
 

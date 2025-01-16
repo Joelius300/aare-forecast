@@ -23,16 +23,16 @@ stages:
     outs:
     - path: data/last_predictions/LOCF.pkl
       hash: md5
-      md5: 9d422e4924b02c5da05dbdb2a521a3a3
-      size: 6669
+      md5: ad9c8c69afc939fb3b1b9f463c4e2a27
+      size: 6750
     - path: data/last_predictions/MEAN.pkl
       hash: md5
-      md5: 01563e496f8804cdf04a763f6bff503d
-      size: 6669
+      md5: e8407140e6b9e2a224df45689bb24d04
+      size: 6750
     - path: data/last_predictions/SNAIVE.pkl
       hash: md5
-      md5: 0a342566402f50cbefb99829233074ad
-      size: 6669
+      md5: 10a14c9c1c77d026950d0e698950785e
+      size: 6750
     - path: data/metrics/LOCF.json
       hash: md5
       md5: 8469ae7b7d9c9adb19225c4ed728f22f

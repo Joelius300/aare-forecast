@@ -39,6 +39,8 @@ class Forecast:
         axes.set_ylabel("Temperature [°C]")
 
         if self.metrics is not None:
-            axes.set_title(f"{title} [{self.metrics}]")
+            title += f" [{self.metrics}]"
+
+        axes.set_title(title)
 
         return axes

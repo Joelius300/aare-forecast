@@ -1,13 +1,13 @@
 # Aare Forecasting
 
 I bi vou bidr das [momentan z viu AI-Hype ume isch Chrigu](https://ai.aare.guru/) aber weisch wi geil we dr Aare Guru
-scho ä Wuche im vorus chli wüsst wi warm d aare de isch u wiviu wasser si het?
+scho ä Wuche im vorus chli wüsst wi warm d Aare de isch u wiviu Wasser si de het?
 
-Implementiert isch no nüt wück aber ha dänkt i fa mau a.
+Implementiert isch no nid viu aber ha dänkt i fa mau a.
 
 Interessanterwiis gits scho ä Vorhersag zum Wasserabfluss (d Wassermängi im Aare.guru) vom Bund, i nime a di isch
 scho sehr guet. Zur Temperatur gits schiinbar keni, ds wär auso ä Challenge, aber mä cha o hingerfrage wieso dr Bund
-keni macht (isches z schwär? äuä eher eifach belanglos fr si). Anyway, ds ganze isch no zimlech leer u het fangs paar baselines.
+keni macht (isches z schwär? äuä eher eifach belanglos fr si). Zur Azeig und o zur Vorhersag chönntme das auso direkt bruche.
 
 ## Links
 
@@ -26,4 +26,4 @@ keni macht (isches z schwär? äuä eher eifach belanglos fr si). Anyway, ds gan
 
 AGPL-3.0
 
-(für aare.guru fände mr sicher ä Lösig)
+(für aare.guru fände mr sicher ä gueti Lösig)

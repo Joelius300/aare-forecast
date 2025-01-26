@@ -17,6 +17,9 @@ class Metrics:
     def __repr__(self):
         return f"MAE: {self.mae:.3f} / RMSE: {self.rmse:.3f}"
 
+    def to_dict(self) -> dict[str, float]:
+        return asdict(self)
+
     @classmethod
     def from_series(cls, actual: TimeSeries, prediction: TimeSeries):
         """Returns a fully calculated set of metrics for a ground truth and forecast."""
@@ -24,5 +27,6 @@ class Metrics:
 
         return Metrics(**metrics)
 
-    def to_dict(self) -> dict[str, float]:
-        return asdict(self)
+    @classmethod
+    def from_dict(cls, value: dict[str, float]):
+        return Metrics(**value)

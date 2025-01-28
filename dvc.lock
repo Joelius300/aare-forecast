@@ -45,3 +45,21 @@ stages:
       hash: md5
       md5: b80b3c9344a0a0d27598c6ebfc76fc21
       size: 55
+  timesfm-baseline:
+    cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
+    params:
+      params.yaml:
+        general.forecast_horizon: 96
+        split.test_split: '2021-01-01'
+        split.val_split: '2017-01-01'
+        validation.min_lookback_hours: 24
+        validation.stride: 24
+    outs:
+    - path: data/last_forecasts/TIMESFM.pkl
+      hash: md5
+      md5: a658ea58c33a3da78549e44535e16865
+      size: 16622
+    - path: data/metrics/TIMESFM.json
+      hash: md5
+      md5: 25d5467bcd23fdbf6fcd4f92efbbe4cb
+      size: 55

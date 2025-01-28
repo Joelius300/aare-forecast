@@ -5,7 +5,7 @@ stages:
       - split.train_split
       - split.val_split
     outs:
-    - data/scaler.pkl
+      - data/scaler.pkl
   establish-baselines:
     cmd: python scripts/establish_baselines.py
     params:
@@ -22,3 +22,15 @@ stages:
       - data/metrics/LOCF.json
       - data/metrics/SNAIVE.json
       - data/metrics/MEAN.json
+  timesfm-baseline:
+    cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
+    params:
+      - general.forecast_horizon
+      - split.val_split
+      - split.test_split
+      - validation.stride
+      - validation.min_lookback_hours
+    outs:
+      - data/last_forecasts/TIMESFM.pkl
+    metrics:
+      - data/metrics/TIMESFM.json

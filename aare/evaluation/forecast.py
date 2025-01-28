@@ -14,6 +14,7 @@ class Forecast:
     lookback: Timedelta
     metrics: Optional[Metrics]
 
+    # todo allow passing in metrics directly
     def __init__(self, all_data: TimeSeries, prediction: TimeSeries, lookback_hours: int, add_metrics=True):
         """
         Pulls the actual data out of all_data according to the period of the forecast plus some lookback period.

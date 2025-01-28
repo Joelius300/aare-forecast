@@ -23,6 +23,8 @@ class TimesFmDarts(GlobalForecastingModel):
         self.input_chunk_length = 32  # cannot be changed for pre-trained
         self.forecast_horizon = forecast_horizon
         self._output_chunk_length = 128  # forecast_horizon,  # default is 128, not sure if this works with the weights
+        # self.window_size  <- hparam
+        # self.version = 200m or 500m -> has implications i.e. for context length etc.
 
         self.tfm = timesfm.TimesFm(
             hparams=timesfm.TimesFmHparams(
@@ -103,7 +105,7 @@ class TimesFmDarts(GlobalForecastingModel):
         # as seconds[?], minutes, days, business days and microseconds are (everything up to daily).
         # we won't ever forecast anything below daily frequency anyway, so this should be fine.
         # ps. there seems to be a bug with ms, would need to use L. see freq_map.
-        forecast = self.tfm.forecast_on_df(df, freq="h")
+        forecast = self.tfm.forecast_on_df(df, freq="h", verbose=verbose)
         forecast = forecast[["ds", "unique_id", "timesfm"]]  # drop quantiles
         forecast = forecast.pivot(index="ds", columns="unique_id", values="timesfm")
         forecast = forecast.reset_index(names=TIME)  # rename ds (index) to _time (column)
@@ -139,8 +141,7 @@ class TimesFmDarts(GlobalForecastingModel):
         int,
         Optional[int],
     ]:
-        raise ValueError("MUST BOTHER WITH EXTREME LAGS :(")
-        # return (-context_len, ?, None, None, None, None, 0, None)
+        return -self.context_length, self._output_chunk_length - 1, None, None, None, None, 0, None
 
     @property
     def _model_encoder_settings(

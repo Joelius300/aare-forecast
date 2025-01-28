@@ -8,15 +8,15 @@
 #     "timesfm[torch]",
 # ]
 # ///
+import json
 import logging
-from typing import cast
+import pickle
 
 from darts import TimeSeries
-from darts.metrics import mae, rmse
 from darts.utils.missing_values import extract_subseries
-from matplotlib import pyplot as plt
 
 from aare.AareDataset import AareDataset
+from aare.evaluation import evaluate_model, Forecast
 from aare.params import GeneralParams
 from aare.params import read_params
 from aare.preparation import (
@@ -25,7 +25,7 @@ from aare.preparation import (
     remove_outliers,
     interpolate,
 )
-from aare.utils import to_ts
+from aare.utils import to_ts, METRICS_FOLDER, LAST_FORECASTS_FOLDER
 from aare.wrappers.timesfm import TimesFmDarts
 
 
@@ -49,28 +49,24 @@ def prepare_data(dataset: AareDataset) -> TimeSeries:
 def main():
     dataset = AareDataset.from_conf()
     params = read_params()
-
-    val = prepare_data(dataset)
-    ts = extract_subseries(val)[-1]
-
-    print(ts)
-    print(type(ts))
-
     horizon = params["general"]["forecast_horizon"]
-    tfm = TimesFmDarts(horizon)
+    stride = params["validation"]["stride"]
+    min_lookback_hours = params["validation"]["min_lookback_hours"]
+    val = prepare_data(dataset)
+    val_subs = extract_subseries(val)
 
-    ts, actual = ts.split_before(len(ts) - horizon)
-    pred = cast(TimeSeries, tfm.predict(series=ts))
+    model = TimesFmDarts(horizon)
 
-    print(pred)
-    print(type(pred))
+    metrics, last_prediction = evaluate_model(model, val_subs, stride, horizon)
+    lookback_hours = max(model.context_length, min_lookback_hours)
+    last_forecast = Forecast(val, last_prediction, lookback_hours)
 
-    print(f"Metrics: MAE={mae(actual, pred):.2f} | RMSE={rmse(actual, pred):.2f}")
+    name = "TIMESFM"
+    with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
+        json.dump(metrics.to_dict(), metrics_file)
 
-    ax = ts[-tfm.context_length :].plot(label="context")
-    actual.plot(label="actual", ax=ax)
-    pred.plot(label="pred", ax=ax)
-    plt.savefig("timesfm-test.png")
+    with open(LAST_FORECASTS_FOLDER / f"{name}.pkl", "wb") as last_forecast_file:
+        pickle.dump(last_forecast, last_forecast_file)
 
 
 if __name__ == "__main__":

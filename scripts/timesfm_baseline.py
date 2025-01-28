@@ -10,7 +10,6 @@
 # ///
 import logging
 
-import timesfm
 from darts import TimeSeries
 from darts.utils.missing_values import extract_subseries
 
@@ -28,19 +27,7 @@ from aare.wrappers.timesfm import TimesFmDarts
 
 
 def load_model(params: GeneralParams):
-    return timesfm.TimesFm(
-        hparams=timesfm.TimesFmHparams(
-            backend="gpu",
-            per_core_batch_size=32,
-            horizon_len=params["forecast_horizon"],
-            input_patch_len=32,  # cannot be changed
-            context_len=6 * 32,
-            # even though we don't want quantiles, the model weights
-            # contain quantiles heads and must be loaded if we want
-            # to use the pre-trained one, apparently.
-        ),
-        checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch"),
-    )
+    return
 
 
 def prepare_data(dataset: AareDataset) -> TimeSeries:
@@ -63,9 +50,11 @@ def main():
     val = prepare_data(dataset)
     ts = extract_subseries(val)[-1]
 
-    tfm = load_model(params["general"])
-    d_tfm = TimesFmDarts(tfm)
-    pred = d_tfm.predict(tfm.horizon_len, ts)
+    print(ts)
+    print(type(ts))
+
+    tfm = TimesFmDarts(params["general"]["forecast_horizon"])
+    pred = tfm.predict(series=ts)
 
     print(pred)
     print(type(pred))

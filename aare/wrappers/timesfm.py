@@ -2,6 +2,7 @@ from typing import Optional, Union, Sequence
 
 import pandas as pd
 import timesfm
+import torch.cuda
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 
@@ -12,15 +13,38 @@ from aare.utils import to_ts
 class TimesFmDarts(GlobalForecastingModel):
     def __init__(
         self,
-        tfm: timesfm.TimesFm,  # TODO instantiate here
-        # input_chunk_length: int,
+        # context_length: int,
+        forecast_horizon: int,
     ):
         super().__init__()
-        self.tfm = tfm
-        # self.input_chunk_length = input_chunk_length
+
+        # todo make readonly properties
+        self.context_length = 512  # default it was trained on. equiv to 21.3 days.
+        self.input_chunk_length = 32  # cannot be changed for pre-trained
+        self.forecast_horizon = forecast_horizon
+        self._output_chunk_length = 128  # forecast_horizon,  # default is 128, not sure if this works with the weights
+
+        self.tfm = timesfm.TimesFm(
+            hparams=timesfm.TimesFmHparams(
+                backend="gpu" if torch.cuda.is_available() else "cpu",
+                per_core_batch_size=32,
+                horizon_len=forecast_horizon,
+                output_patch_len=self._output_chunk_length,
+                input_patch_len=self.input_chunk_length,
+                context_len=self.context_length,
+                # even though we don't want quantiles, the model weights
+                # contain quantiles heads and must be loaded if we want
+                # to use the pre-trained one, apparently.
+            ),
+            checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch"),
+        )
 
         # no need to call fit or to store any info on the dimensions etc.
         self._fit_called = True
+
+    @property
+    def output_chunk_length(self) -> Optional[int]:
+        return self._output_chunk_length
 
     def fit(
         self,
@@ -40,7 +64,7 @@ class TimesFmDarts(GlobalForecastingModel):
 
     def predict(
         self,
-        n: int,
+        n: Optional[int] = None,
         series: Optional[Union[TimeSeries, Sequence[TimeSeries]]] = None,
         past_covariates: Optional[Union[TimeSeries, Sequence[TimeSeries]]] = None,
         future_covariates: Optional[Union[TimeSeries, Sequence[TimeSeries]]] = None,
@@ -52,8 +76,13 @@ class TimesFmDarts(GlobalForecastingModel):
         if past_covariates is not None or future_covariates is not None:
             raise ValueError("Covariates are not supported atm")
 
+        if n is not None and n != self.forecast_horizon:
+            raise ValueError(
+                f"The forecast horizon must always be the same (specified {self.forecast_horizon} at init)"
+            )
+
         super().predict(
-            n,
+            self.forecast_horizon,
             series,
             past_covariates,
             future_covariates,
@@ -64,6 +93,7 @@ class TimesFmDarts(GlobalForecastingModel):
         )
 
         if series is None or not isinstance(series, TimeSeries):
+            # todo allow multiple series if this is used by historical_forecast
             raise ValueError("must provide a single series to predict on")
 
         df = pd.DataFrame(index=series.time_index, data=series.values(), columns=series.columns)
@@ -71,7 +101,9 @@ class TimesFmDarts(GlobalForecastingModel):
 
         # hard-code hourly frequency here, which is mapped to the same high-frequency settings
         # as seconds[?], minutes, days, business days and microseconds are (everything up to daily).
-        forecast = self.tfm.forecast_on_df(df, freq="H")
+        # we won't ever forecast anything below daily frequency anyway, so this should be fine.
+        # ps. there seems to be a bug with ms, would need to use L. see freq_map.
+        forecast = self.tfm.forecast_on_df(df, freq="h")
         forecast = forecast[["ds", "unique_id", "timesfm"]]  # drop quantiles
         forecast = forecast.pivot(index="ds", columns="unique_id", values="timesfm")
         forecast = forecast.reset_index(names=TIME)  # rename ds (index) to _time (column)

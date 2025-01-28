@@ -57,9 +57,9 @@ stages:
     outs:
     - path: data/last_forecasts/TIMESFM.pkl
       hash: md5
-      md5: a658ea58c33a3da78549e44535e16865
+      md5: 4c1c544be0758675c93f0fc31010f656
       size: 16622
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 25d5467bcd23fdbf6fcd4f92efbbe4cb
+      md5: 6c9e870237fcd599a908cfa67d0f9171
       size: 55

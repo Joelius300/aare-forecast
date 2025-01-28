@@ -5,6 +5,7 @@ from typing import Union, Optional, cast
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
+from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 
 from aare.constants import TIME
 
@@ -130,3 +131,13 @@ def to_ts(df, freq=None):
     ts = ts.astype(np.float32)  # pyright: ignore [reportArgumentType]
 
     return ts
+
+
+def get_context_len(model: GlobalForecastingModel):
+    if hasattr(model, "context_length"):
+        return model.context_length  # pyright: ignore [reportAttributeAccessIssue]
+
+    if hasattr(model, "input_chunk_length"):
+        return model.input_chunk_length  # pyright: ignore [reportAttributeAccessIssue]
+
+    raise ValueError("Could not determine context length for the provided model.")

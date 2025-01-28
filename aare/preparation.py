@@ -2,10 +2,11 @@ from typing import cast, Optional
 
 import numpy as np
 import pandas as pd
+from darts import TimeSeries
 
 from aare.constants import TEMP, TIME
 from aare.params import read_params
-from aare.utils import between, fill_with_hard_limit
+from aare.utils import between, fill_with_hard_limit, to_ts
 
 
 def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
@@ -92,3 +93,18 @@ def interpolate(df: pd.DataFrame, drop_filled=False) -> pd.DataFrame:
     params = read_params()["interpolate"]
 
     return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled)
+
+
+def prepare_ts(raw: pd.DataFrame) -> TimeSeries:
+    """
+    Run all the preparation steps on the raw data and return a clean TimeSeries.
+
+    WARNING: Might still contain gaps and must be split with extract_subseries.
+    """
+    ts = resample(raw)
+    ts = remove_faulty_periods(ts)
+    ts = remove_outliers(ts)
+    ts = interpolate(ts, drop_filled=True)
+    ts = to_ts(ts)
+
+    return ts

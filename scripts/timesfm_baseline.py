@@ -9,9 +9,12 @@
 # ]
 # ///
 import logging
+from typing import cast
 
 from darts import TimeSeries
+from darts.metrics import mae, rmse
 from darts.utils.missing_values import extract_subseries
+from matplotlib import pyplot as plt
 
 from aare.AareDataset import AareDataset
 from aare.params import GeneralParams
@@ -53,11 +56,21 @@ def main():
     print(ts)
     print(type(ts))
 
-    tfm = TimesFmDarts(params["general"]["forecast_horizon"])
-    pred = tfm.predict(series=ts)
+    horizon = params["general"]["forecast_horizon"]
+    tfm = TimesFmDarts(horizon)
+
+    ts, actual = ts.split_before(len(ts) - horizon)
+    pred = cast(TimeSeries, tfm.predict(series=ts))
 
     print(pred)
     print(type(pred))
+
+    print(f"Metrics: MAE={mae(actual, pred):.2f} | RMSE={rmse(actual, pred):.2f}")
+
+    ax = ts[-tfm.context_length :].plot(label="context")
+    actual.plot(label="actual", ax=ax)
+    pred.plot(label="pred", ax=ax)
+    plt.savefig("timesfm-test.png")
 
 
 if __name__ == "__main__":

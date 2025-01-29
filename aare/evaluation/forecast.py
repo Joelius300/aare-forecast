@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import cast, Optional
 
+import matplotlib.axes
 from darts import TimeSeries
 from pandas import Timedelta, Timestamp
 
@@ -14,8 +15,14 @@ class Forecast:
     lookback: Timedelta
     metrics: Optional[Metrics]
 
-    # todo allow passing in metrics directly
-    def __init__(self, all_data: TimeSeries, prediction: TimeSeries, lookback_hours: int, add_metrics=True):
+    def __init__(
+        self,
+        all_data: TimeSeries,
+        prediction: TimeSeries,
+        lookback_hours: int,
+        metrics: Optional[Metrics] = None,
+        add_metrics=True,
+    ):
         """
         Pulls the actual data out of all_data according to the period of the forecast plus some lookback period.
         Optionally calculates metrics for this specific forecast period.
@@ -25,7 +32,8 @@ class Forecast:
         pred_start = cast(Timestamp, prediction.start_time())
         self.actual = all_data[pred_start - self.lookback : prediction.end_time()]
         self.prediction = prediction
-        if add_metrics:
+        self.metrics = metrics
+        if add_metrics and metrics is None:
             self.calc_metrics()
 
     def calc_metrics(self):
@@ -33,15 +41,15 @@ class Forecast:
         self.metrics = Metrics.from_series(self.actual, self.prediction)
         return self.metrics
 
-    def plot(self, title: str):
-        axes = self.actual.plot(label="actual")
-        self.prediction.plot(label="prediction", ax=axes)
-        axes.set_xlabel("Time")
-        axes.set_ylabel("Temperature [°C]")
+    def plot(self, title: str, ax: Optional[matplotlib.axes.Axes] = None):
+        ax = self.actual.plot(label="actual", ax=ax)
+        self.prediction.plot(label="prediction", ax=ax)
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Temperature [°C]")
 
         if self.metrics is not None:
             title += f" [{self.metrics}]"
 
-        axes.set_title(title)
+        ax.set_title(title)
 
-        return axes
+        return ax

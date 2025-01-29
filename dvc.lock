@@ -21,30 +21,30 @@ stages:
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
-    - path: data/last_forecasts/LOCF.pkl
+    - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: e23bd2ff5a01748de3974c8d79e78025
-      size: 6836
-    - path: data/last_forecasts/MEAN.pkl
+      md5: 0f10dd1eeacdc509ccec0292684025e2
+      size: 18166
+    - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: d504279953495081c5824d29ae910c6d
-      size: 9720
-    - path: data/last_forecasts/SNAIVE.pkl
+      md5: 68cc27987d0faf3db733c45591963e79
+      size: 26818
+    - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 6c2847899defa90232007a891f24536f
-      size: 6836
+      md5: e256faa7d4021bdc131630192a0579f1
+      size: 18166
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: edb8a10c1f46059ef33e2500cc590476
-      size: 55
+      md5: ab059e4d5b5e5cf7b2fee4c8a0b4af3b
+      size: 118
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 644d00a4ec778abd536a96a7a59d12b3
-      size: 55
+      md5: efb00ecd35171071371b2e6068494d1f
+      size: 118
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: b80b3c9344a0a0d27598c6ebfc76fc21
-      size: 55
+      md5: 84bdf6bab9b4985732a012fd17300423
+      size: 118
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -55,11 +55,11 @@ stages:
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
-    - path: data/last_forecasts/TIMESFM.pkl
+    - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 4c1c544be0758675c93f0fc31010f656
-      size: 16622
+      md5: b397a6a4e837ce347551d4eb73bf7023
+      size: 47563
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 6c9e870237fcd599a908cfa67d0f9171
-      size: 55
+      md5: db9cc6d1e95447765999ba0bc403bfa6
+      size: 118

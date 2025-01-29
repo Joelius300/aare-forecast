@@ -35,7 +35,7 @@ def evaluate_model(
     # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
     historical_forecasts = cast(
         list[list[TimeSeries]],
-        # todo ensure that it starts at the right point and all runs get the same context length
+        # (most likely) uses extreme_lags to find where to start forecasting
         model.historical_forecasts(
             val,
             stride=stride,

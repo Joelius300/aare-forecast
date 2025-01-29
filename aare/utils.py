@@ -133,11 +133,21 @@ def to_ts(df, freq=None):
     return ts
 
 
-def get_context_len(model: GlobalForecastingModel):
+def get_context_len(model: GlobalForecastingModel) -> int:
+    extreme_lags = model.extreme_lags
+    abs_min_target_lag = abs(extreme_lags[0]) if extreme_lags[0] is not None else None
     if hasattr(model, "context_length"):
-        return model.context_length  # pyright: ignore [reportAttributeAccessIssue]
+        context_len = model.context_length  # pyright: ignore [reportAttributeAccessIssue]
+    elif hasattr(model, "input_chunk_length"):
+        context_len = model.input_chunk_length  # pyright: ignore [reportAttributeAccessIssue]
+    else:
+        context_len = abs_min_target_lag
 
-    if hasattr(model, "input_chunk_length"):
-        return model.input_chunk_length  # pyright: ignore [reportAttributeAccessIssue]
+    if context_len is None:
+        raise ValueError("Could not determine context_len of model")
 
-    raise ValueError("Could not determine context length for the provided model.")
+    assert abs_min_target_lag is None or context_len == abs_min_target_lag, (
+        "Context Length must be indicated by extreme_lags[0]"
+    )
+
+    return context_len

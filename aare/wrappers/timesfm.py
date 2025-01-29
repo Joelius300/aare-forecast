@@ -95,7 +95,7 @@ class TimesFmDarts(GlobalForecastingModel):
         )
 
         if series is None or not isinstance(series, TimeSeries):
-            # todo allow multiple series if this is used by historical_forecast
+            # historical_forecast only every provides a single one, probably no need to do multiple (but possible)
             raise ValueError("must provide a single series to predict on")
 
         df = pd.DataFrame(index=series.time_index, data=series.values(), columns=series.columns)
@@ -104,7 +104,7 @@ class TimesFmDarts(GlobalForecastingModel):
         # hard-code hourly frequency here, which is mapped to the same high-frequency settings
         # as seconds[?], minutes, days, business days and microseconds are (everything up to daily).
         # we won't ever forecast anything below daily frequency anyway, so this should be fine.
-        # ps. there seems to be a bug with ms, would need to use L. see freq_map.
+        # ps. there might be a bug with ms, would need to use L. see freq_map.
         forecast = self.tfm.forecast_on_df(df, freq="h", verbose=verbose)
         forecast = forecast[["ds", "unique_id", "timesfm"]]  # drop quantiles
         forecast = forecast.pivot(index="ds", columns="unique_id", values="timesfm")

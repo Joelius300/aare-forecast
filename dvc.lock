@@ -35,15 +35,15 @@ stages:
       size: 18166
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: ab059e4d5b5e5cf7b2fee4c8a0b4af3b
+      md5: 3e1d8de357539f4f5f06b964606f4e4a
       size: 118
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: efb00ecd35171071371b2e6068494d1f
+      md5: 6c773db05d346855a04d5e4b5c97d86d
       size: 118
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 84bdf6bab9b4985732a012fd17300423
+      md5: 360bc59ab57386f47d91a340e4ff8a25
       size: 118
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
@@ -61,5 +61,5 @@ stages:
       size: 47563
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: db9cc6d1e95447765999ba0bc403bfa6
+      md5: 31306c1405438b472aca23c7c6602818
       size: 118

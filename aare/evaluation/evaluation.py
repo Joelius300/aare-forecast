@@ -63,10 +63,10 @@ def evaluate_model(
     worst_index, best_index = worst_index[0], best_index[0]  # MAE as decisive metric
     # TODO could check and warn if MAE and RMSE have different best/worst
 
-    metrics_mean = np.mean(backtest_flat, axis=0, dtype=float)
+    metrics_median = np.median(backtest_flat, axis=0).astype(float)
     metrics_std = np.std(backtest_flat, axis=0, dtype=float)
-    assert metrics_mean.shape == (2,) and metrics_std.shape == (2,), "metric reduction is faulty"
-    metrics = Metrics(mae=metrics_mean[0], rmse=metrics_mean[1], mae_std=metrics_std[0], rmse_std=metrics_std[1])
+    assert metrics_median.shape == (2,) and metrics_std.shape == (2,), "metric reduction is faulty"
+    metrics = Metrics(mae=metrics_median[0], rmse=metrics_median[1], mae_std=metrics_std[0], rmse_std=metrics_std[1])
 
     return (
         metrics,

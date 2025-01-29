@@ -13,13 +13,23 @@ class Metrics:
     METRICS = dict(mae=mae, rmse=rmse)
 
     mae: float
+    """
+    The mean absolute error of all the points on the forecast.
+    
+    If these are the aggregate metrics for many forecast, it's the MEDIAN of all those MAE.
+    """
     rmse: float
+    """
+    The root mean squared error of all the points on the forecast.
+
+    If these are the aggregate metrics for many forecast, it's the MEDIAN of all those RMSE.
+    """
 
     # Currently only std of many different forecasts, NOT std for the different point-errors within a forecast
     mae_std: Optional[float] = None
-    """STD of MAE, if this is an aggregated metric over many forecasts"""
+    """STD of MAE, if this is an aggregated metric over many forecasts."""
     rmse_std: Optional[float] = None
-    """STD of RMSE, if this is an aggregated metric over many forecasts"""
+    """STD of RMSE, if this is an aggregated metric over many forecasts."""
 
     def __repr__(self):
         return (

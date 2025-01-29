@@ -22,10 +22,11 @@ class TimesFmDarts(GlobalForecastingModel):
         self.context_length = 512  # default it was trained on. equiv to 21.3 days.
         self.input_chunk_length = 32  # cannot be changed for pre-trained
         self.forecast_horizon = forecast_horizon
-        self._output_chunk_length = 128  # forecast_horizon,  # default is 128, not sure if this works with the weights
+        self._output_chunk_length = 128  # cannot be changed for pre-trained
         # self.window_size  <- hparam
         # self.version = 200m or 500m -> has implications i.e. for context length etc.
 
+        # TODO experiment with 200m and 500m model, and with window_size, but I don't think that does any good.
         self.tfm = timesfm.TimesFm(
             hparams=timesfm.TimesFmHparams(
                 backend="gpu" if torch.cuda.is_available() else "cpu",

@@ -9,6 +9,8 @@ Interessanterwiis gits scho ä Vorhersag zum Wasserabfluss (d Wassermängi im Aa
 scho sehr guet. Zur Temperatur gits schiinbar keni, ds wär auso ä Challenge, aber mä cha o hingerfrage wieso dr Bund
 keni macht (isches z schwär? äuä eher eifach belanglos fr si). Zur Azeig und o zur Vorhersag chönntme das auso direkt bruche.
 
+**Logoidee**: Wätterfrosch wo uf sire Leitere steit aus wärs ä Schiffsusguck und id witi luegt während er mit sim Glas d Aare ab tribt
+
 ## Links
 
 - [Aare.guru API Description](https://aareguru.existenz.ch/)

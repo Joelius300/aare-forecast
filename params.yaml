@@ -24,4 +24,4 @@ validation:
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.
   min_lookback_hours: 24
 timesfm:
-  version: 500m
+  version: 200m  # although 500m results in lower STD, the overall MAE is higher than 200m

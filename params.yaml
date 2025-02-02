@@ -24,4 +24,4 @@ validation:
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.
   min_lookback_hours: 24
 timesfm:
-  version: 200m
+  version: 500m

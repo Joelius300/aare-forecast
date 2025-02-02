@@ -52,15 +52,15 @@ stages:
         general.forecast_horizon: 96
         split.test_split: '2021-01-01'
         split.val_split: '2017-01-01'
-        timesfm.version: 200m
+        timesfm.version: 500m
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: b397a6a4e837ce347551d4eb73bf7023
-      size: 47563
+      md5: d474ec54b9501c5b1c0066fe00bc54be
+      size: 139732
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 31306c1405438b472aca23c7c6602818
-      size: 118
+      md5: 4e906f616065a861c39b1d826d9c6dbd
+      size: 117

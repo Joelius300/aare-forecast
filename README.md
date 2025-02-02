@@ -1,6 +1,6 @@
 # Aare Forecasting
 
-I bi vou bidr das [momentan z viu AI-Hype ume isch Chrigu](https://ai.aare.guru/) aber weisch wi geil we dr Aare Guru
+I bi vou binech das [momentan z viu AI-Hype ume isch](https://ai.aare.guru/) aber weisch wi geil we dr Aare Guru
 scho ä Wuche im vorus chli wüsst wi warm d Aare de isch u wiviu Wasser si de het?
 
 Implementiert isch no nid viu aber ha dänkt i fa mau a.
@@ -10,6 +10,22 @@ scho sehr guet. Zur Temperatur gits schiinbar keni, ds wär auso ä Challenge, a
 keni macht (isches z schwär? äuä eher eifach belanglos fr si). Zur Azeig und o zur Vorhersag chönntme das auso direkt bruche.
 
 **Logoidee**: Wätterfrosch wo uf sire Leitere steit aus wärs ä Schiffsusguck und id witi luegt während er mit sim Glas d Aare ab tribt
+
+## Setup
+
+Runs best with [uv](https://docs.astral.sh/uv/) and relies heavily on [DVC](https://dvc.org/).
+
+```bash
+uv venv
+. .venv/bin/activate
+```
+
+To run the pipelines, do this (from root).
+
+```bash
+export PYTHONPATH="$PWD"
+dvc repro
+```
 
 ## Links
 

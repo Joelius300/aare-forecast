@@ -1,3 +1,4 @@
+import enum
 from typing import Optional, Union, Sequence
 
 import pandas as pd
@@ -11,20 +12,20 @@ from aare.utils import to_ts
 
 
 class TimesFmDarts(GlobalForecastingModel):
+    class Version(enum.StrEnum):
+        M200 = "200m"
+        M500 = "500m"
+
     def __init__(
         self,
-        # context_length: int,
         forecast_horizon: int,
+        version=Version.M200,
     ):
         super().__init__()
 
+        self.model_version = version
         # todo make readonly properties
-        self.context_length = 512  # default it was trained on. equiv to 21.3 days.
-        self.input_chunk_length = 32  # cannot be changed for pre-trained
         self.forecast_horizon = forecast_horizon
-        self._output_chunk_length = 128  # cannot be changed for pre-trained
-        # self.window_size  <- hparam
-        # self.version = 200m or 500m -> has implications i.e. for context length etc.
 
         # TODO experiment with 200m and 500m model, and with window_size, but I don't think that does any good.
         self.tfm = timesfm.TimesFm(
@@ -32,22 +33,54 @@ class TimesFmDarts(GlobalForecastingModel):
                 backend="gpu" if torch.cuda.is_available() else "cpu",
                 per_core_batch_size=32,
                 horizon_len=forecast_horizon,
-                output_patch_len=self._output_chunk_length,
+                output_patch_len=self.output_chunk_length,
                 input_patch_len=self.input_chunk_length,
                 context_len=self.context_length,
+                num_layers=self.num_layers,
+                use_positional_embedding=self.use_positional_embedding,
                 # even though we don't want quantiles, the model weights
                 # contain quantiles heads and must be loaded if we want
                 # to use the pre-trained one, apparently.
             ),
-            checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id="google/timesfm-1.0-200m-pytorch"),
+            checkpoint=timesfm.TimesFmCheckpoint(huggingface_repo_id=self.model_identifier),
         )
 
         # no need to call fit or to store any info on the dimensions etc.
         self._fit_called = True
 
     @property
-    def output_chunk_length(self) -> Optional[int]:
-        return self._output_chunk_length
+    def model_identifier(self):
+        return (
+            "google/timesfm-1.0-200m-pytorch"
+            if self.model_version == self.Version.M200
+            else "google/timesfm-2.0-500m-pytorch"
+        )
+
+    @property
+    def output_chunk_length(self) -> int:
+        # cannot be changed for pre-trained
+        return 128
+
+    @property
+    def input_chunk_length(self) -> int:
+        # cannot be changed for pre-trained
+        return 32
+
+    @property
+    def context_length(self):
+        # default the pre-trained were trained on
+        # 512 is equiv to 21.3 days. 2048 to 85.3 days.
+        return 512 if self.model_version == self.Version.M200 else 2048
+
+    @property
+    def num_layers(self):
+        # cannot be changed for pre-trained
+        return 20 if self.model_version == self.Version.M200 else 50
+
+    @property
+    def use_positional_embedding(self):
+        # cannot be changed for pre-trained
+        return self.model_version == self.Version.M200
 
     def fit(
         self,
@@ -142,7 +175,7 @@ class TimesFmDarts(GlobalForecastingModel):
         int,
         Optional[int],
     ]:
-        return -self.context_length, self._output_chunk_length - 1, None, None, None, None, 0, None
+        return -self.context_length, self.output_chunk_length - 1, None, None, None, None, 0, None
 
     @property
     def _model_encoder_settings(

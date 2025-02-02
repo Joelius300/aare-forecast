@@ -52,6 +52,7 @@ stages:
         general.forecast_horizon: 96
         split.test_split: '2021-01-01'
         split.val_split: '2017-01-01'
+        timesfm.version: 200m
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:

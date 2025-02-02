@@ -1,4 +1,4 @@
-from typing import TypedDict, cast
+from typing import TypedDict, cast, Literal
 
 import dvc.api
 
@@ -31,12 +31,17 @@ class ValidationParams(TypedDict):
     min_lookback_hours: int
 
 
+class TimesfmParams(TypedDict):
+    version: Literal["200m", "500m"]
+
+
 class Params(TypedDict):
     general: GeneralParams
     cleanup: CleanupParams
     interpolate: InterpolateParams
     split: SplitParams
     validation: ValidationParams
+    timesfm: TimesfmParams
 
 
 def read_params() -> Params:

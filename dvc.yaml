@@ -30,6 +30,7 @@ stages:
       - split.test_split
       - validation.stride
       - validation.min_lookback_hours
+      - timesfm.version
     outs:
       - data/forecast_samples/TIMESFM.pkl
     metrics:

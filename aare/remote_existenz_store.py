@@ -1,8 +1,12 @@
 import logging
+from dataclasses import dataclass
+from functools import reduce
 from typing import cast
 
 import pandas as pd
 from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImportUsage]
+
+from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,48 @@ def _chain_equality(column: str, *values: str | int | list, separator="or", wrap
     return "(r) => " + (f" {separator} ".join([f'r["{column}"] == {q}{value}{q}' for value in values]))
 
 
+@dataclass
+class FieldRequest:
+    """
+    A request for a field from the InfluxDB. Has a string rep:
+
+    hydro/temperature:mean_1h
+
+    smn/rr:sum_1d
+    """
+
+    measurement: str
+    field: str
+    freq: str
+    agg_fn: str
+    # TODO add location with @
+    # Add location alias BERN for LOC_BERN and LOC_BERN_SMN, depending on measurement
+    # also THUN -> LOC_THUN? etc. not sure what other locations we will want
+
+    # ma: Optional[str] = None
+
+    def __str__(self):
+        return f"{self.measurement}/{self.field}:{self.agg_fn}_{self.freq}"
+
+    @property
+    def name(self):
+        return f"{self.measurement}_{self.field}"
+
+    @classmethod
+    def from_str(cls, value: str):
+        meas_field, agg_freq = value.split(":")
+        measurement, field = meas_field.split("/")
+        agg_fn, freq = agg_freq.split("_")
+
+        return FieldRequest(measurement, field, freq, agg_fn)
+
+
+PERIOD = str | tuple[str, str]
+LOCATIONS = str | int | list[str | int]
+
+
+# TODO column names should be the same as field.name, maybe field_loc
+# TODO combine LOC also into column name when pivoting (or additional pivot?)
 class RemoteExistenzStore:
     def __init__(self, timeout=60_000, debug=False):
         self.client = InfluxDBClient(
@@ -32,10 +78,71 @@ class RemoteExistenzStore:
             timeout=timeout,
         )
 
-    def query_hydro(
+    def _base_query(
         self,
         period: str | tuple[str, str],
         locations: str | int | list[str | int],
+    ):
+        start = period if isinstance(period, str) else period[0]
+        stop = "now()" if isinstance(period, str) else period[1]
+
+        return f"""
+baseData = () =>
+    from(bucket: "existenzApi")
+        |> range(start: {start}, stop: {stop})
+        |> filter(fn: {_chain_equality("loc", locations)})
+
+getField = (tables=<-, measurement, field, agg_fn, freq=1h) =>
+    tables
+        |> filter(fn: (r) => r._measurement == measurement and r._field == field)
+        |> aggregateWindow(fn: agg_fn, every: freq)
+    
+postProc = (tables=<-) =>
+    tables
+        |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+        |> drop(columns: ["_start", "result", "_stop", "table", "_measurement"])
+
+"""
+
+    def _ma(self, period: str):
+        return f"|> timedMovingAverage(every: freq, period: {period})"
+
+    def _query_fields(
+        self,
+        period: PERIOD,
+        locations: LOCATIONS,
+        fields: list[FieldRequest],
+    ):
+        query = self._base_query(period, locations)
+        for field in fields:
+            query += f'{field.name} = baseData() |> getField(measurement: "{field.measurement}", field: "{field.field}", agg_fn: {field.agg_fn}, freq: {field.freq})\n'
+
+        query += "\n"
+        query += f"union(tables: [{', '.join((field.name for field in fields))}]) |> postProc()"
+
+        return query
+
+    def _query(
+        self,
+        query: str,
+        keep_loc: bool,
+        locations: LOCATIONS,
+    ):
+        logger.debug("Executing Flux Query:\n{%s}", query)
+        df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
+
+        unnecessary_cols = ["result", "table"]
+        if not keep_loc and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1):
+            unnecessary_cols.append("loc")
+
+        df = reduce(lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df)
+
+        return df.drop(unnecessary_cols, axis=1)
+
+    def query_hydro(
+        self,
+        period: PERIOD,
+        locations: LOCATIONS,
         fields: str | list[str] = "temperature",
         agg_freq="1h",  # could also read from params
         agg_func="mean",
@@ -70,12 +177,16 @@ class RemoteExistenzStore:
             f'  |> drop(columns: ["_start", "result", "_stop", "table", "_measurement"])'
         )
 
-        logger.debug("Executing Flux Query:\n{%s}", query)
+        return self._query(query, keep_loc, locations)
 
-        df = cast(pd.DataFrame, self.client.query_api().query_data_frame(query))
+    def query(
+        self,
+        period: PERIOD,
+        locations: LOCATIONS,
+        fields: str | list[str],
+        keep_loc=False,
+    ):
+        requests = [FieldRequest.from_str(field) for field in fields]
+        query = self._query_fields(period, locations, requests)
 
-        unnecessary_cols = ["result", "table"]
-        if not keep_loc and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1):
-            unnecessary_cols.append("loc")
-
-        return df.drop(unnecessary_cols, axis=1)
+        return self._query(query, keep_loc, locations)

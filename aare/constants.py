@@ -1,6 +1,7 @@
 # Location codes
 LOC_BERN = 2135
 LOC_THUN = 2030
+LOC_BERN_SMN = "BER"
 
 # Column names
 TIME = "_time"

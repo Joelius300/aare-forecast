@@ -5,12 +5,12 @@ repos:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.5.26
+    rev: 0.5.29
     hooks:
     -   id: uv-lock
     -   id: uv-export
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.4
+    rev: v0.9.5
     hooks:
     -   id: ruff
         args: [--fix]

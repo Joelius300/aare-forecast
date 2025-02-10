@@ -86,8 +86,7 @@ class RemoteExistenzStore:
         start = period if isinstance(period, str) else period[0]
         stop = "now()" if isinstance(period, str) else period[1]
 
-        return f"""
-baseData = () =>
+        return f"""baseData = () =>
     from(bucket: "existenzApi")
         |> range(start: {start}, stop: {stop})
         |> filter(fn: {_chain_equality("loc", locations)})
@@ -95,11 +94,11 @@ baseData = () =>
 getField = (tables=<-, measurement, field, agg_fn, freq=1h) =>
     tables
         |> filter(fn: (r) => r._measurement == measurement and r._field == field)
-        |> aggregateWindow(fn: agg_fn, every: freq)
+        |> aggregateWindow(fn: agg_fn, every: freq, createEmpty: false)
     
 postProc = (tables=<-) =>
     tables
-        |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+        |> pivot(rowKey: ["_time"], columnKey: ["_field", "loc"], valueColumn: "_value")
         |> drop(columns: ["_start", "result", "_stop", "table", "_measurement"])
 
 """
@@ -115,10 +114,13 @@ postProc = (tables=<-) =>
     ):
         query = self._base_query(period, locations)
         for field in fields:
-            query += f'{field.name} = baseData() |> getField(measurement: "{field.measurement}", field: "{field.field}", agg_fn: {field.agg_fn}, freq: {field.freq})\n'
-
-        query += "\n"
-        query += f"union(tables: [{', '.join((field.name for field in fields))}]) |> postProc()"
+            query += (
+                f"{field.name} = baseData() "
+                f'|> getField(measurement: "{field.measurement}", field: "{field.field}",'
+                f" agg_fn: {field.agg_fn}, freq: {field.freq})"
+                f'|> postProc() |> yield(name: "{field.name}")\n'
+            )
+        # TODO does yield have significant negative performance implications compared to union?
 
         return query
 
@@ -130,12 +132,20 @@ postProc = (tables=<-) =>
     ):
         logger.debug("Executing Flux Query:\n{%s}", query)
         df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
+        cols = df.columns if isinstance(df, pd.DataFrame) else df[0].columns
 
         unnecessary_cols = ["result", "table"]
-        if not keep_loc and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1):
+        if (
+            not keep_loc
+            and "loc" in cols
+            and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1)
+        ):
             unnecessary_cols.append("loc")
 
-        df = reduce(lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df)
+        if isinstance(df, list):
+            df = reduce(
+                lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df
+            )
 
         return df.drop(unnecessary_cols, axis=1)
 

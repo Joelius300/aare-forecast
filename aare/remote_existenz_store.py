@@ -1,12 +1,12 @@
 import logging
-from dataclasses import dataclass
 from functools import reduce
-from typing import cast
+from typing import cast, Literal, Optional
 
 import pandas as pd
 from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImportUsage]
 
 from aare.constants import TIME
+from aare.locations import translate_location
 
 logger = logging.getLogger(__name__)
 
@@ -25,48 +25,78 @@ def _chain_equality(column: str, *values: str | int | list, separator="or", wrap
     return "(r) => " + (f" {separator} ".join([f'r["{column}"] == {q}{value}{q}' for value in values]))
 
 
-@dataclass
 class FieldRequest:
     """
     A request for a field from the InfluxDB. Has a string rep:
 
-    hydro/temperature:mean_1h
+    hydro/temperature:mean_1h@bern
 
-    smn/rr:sum_1d
+    smn/rr:sum_1d@thun
     """
 
-    measurement: str
-    field: str
-    freq: str
-    agg_fn: str
-    # TODO add location with @
-    # Add location alias BERN for LOC_BERN and LOC_BERN_SMN, depending on measurement
-    # also THUN -> LOC_THUN? etc. not sure what other locations we will want
-
-    # ma: Optional[str] = None
+    def __init__(
+        self,
+        measurement: str,
+        field: str,
+        freq: str,
+        agg_fn: str,
+        location: str | int,
+    ):
+        self.measurement = measurement
+        self.field = field
+        self.freq = freq
+        self.agg_fn = agg_fn
+        self.location_orig = location
+        assert measurement in ["hydro", "smn"], f"Invalid measurement: '{measurement}'"
+        self.location = translate_location(location, cast(Literal["hydro", "smn"], measurement))
+        # ma: Optional[str] = None
 
     def __str__(self):
-        return f"{self.measurement}/{self.field}:{self.agg_fn}_{self.freq}"
+        return f"{self.measurement}/{self.field}:{self.agg_fn}_{self.freq}@{self.location_orig}"
+
+    def __repr__(self):
+        return f"FieldRequest{{{self}}}"
+
+    def __key(self):
+        return self.measurement, self.field, self.freq, self.agg_fn, self.location
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other):
+        if isinstance(other, FieldRequest):
+            return self.__key() == other.__key()
+        return NotImplemented
 
     @property
     def name(self):
-        return f"{self.measurement}_{self.field}"
+        # need to update if this leads to collisions
+        return f"{self.field}_{self.location_orig}"
+        # return re.sub(r"[-@/:]", "_", str(self))
 
     @classmethod
     def from_str(cls, value: str):
         meas_field, agg_freq = value.split(":")
         measurement, field = meas_field.split("/")
-        agg_fn, freq = agg_freq.split("_")
+        agg_fn, freq_loc = agg_freq.split("_")
+        freq, loc = freq_loc.split("@")
 
-        return FieldRequest(measurement, field, freq, agg_fn)
+        return FieldRequest(measurement, field, freq, agg_fn, loc)
 
 
 PERIOD = str | tuple[str, str]
-LOCATIONS = str | int | list[str | int]
+LOCATIONS = str | int | list[str | int] | None
 
 
-# TODO column names should be the same as field.name, maybe field_loc
-# TODO combine LOC also into column name when pivoting (or additional pivot?)
+def _rename_col_after_pivot(df: pd.DataFrame, fields: Optional[list[FieldRequest]]):
+    # pivoting is done on field and loc, so the result will always contain only that. must manually rename.
+    if fields is None:
+        return df
+
+    mapper = {f"{field.field}_{field.location}": field.name for field in fields}
+    return df.rename(mapper, axis="columns", errors="raise")
+
+
 class RemoteExistenzStore:
     def __init__(self, timeout=60_000, debug=False):
         self.client = InfluxDBClient(
@@ -80,22 +110,24 @@ class RemoteExistenzStore:
 
     def _base_query(
         self,
-        period: str | tuple[str, str],
-        locations: str | int | list[str | int],
+        period: PERIOD,
+        locations: LOCATIONS,
     ):
         start = period if isinstance(period, str) else period[0]
         stop = "now()" if isinstance(period, str) else period[1]
 
+        loc_filter = "" if not locations else f"|> filter(fn: {_chain_equality('loc', locations)})"
+
         return f"""baseData = () =>
     from(bucket: "existenzApi")
         |> range(start: {start}, stop: {stop})
-        |> filter(fn: {_chain_equality("loc", locations)})
+        {loc_filter}
 
-getField = (tables=<-, measurement, field, agg_fn, freq=1h) =>
+getField = (tables=<-, measurement, field, agg_fn, loc, freq=1h) =>
     tables
-        |> filter(fn: (r) => r._measurement == measurement and r._field == field)
+        |> filter(fn: (r) => r._measurement == measurement and r._field == field and r.loc == loc)
         |> aggregateWindow(fn: agg_fn, every: freq, createEmpty: false)
-    
+
 postProc = (tables=<-) =>
     tables
         |> pivot(rowKey: ["_time"], columnKey: ["_field", "loc"], valueColumn: "_value")
@@ -109,15 +141,15 @@ postProc = (tables=<-) =>
     def _query_fields(
         self,
         period: PERIOD,
-        locations: LOCATIONS,
         fields: list[FieldRequest],
+        locations: LOCATIONS = None,
     ):
         query = self._base_query(period, locations)
         for field in fields:
             query += (
                 f"{field.name} = baseData() "
                 f'|> getField(measurement: "{field.measurement}", field: "{field.field}",'
-                f" agg_fn: {field.agg_fn}, freq: {field.freq})"
+                f' loc: "{field.location}", agg_fn: {field.agg_fn}, freq: {field.freq}) '
                 f'|> postProc() |> yield(name: "{field.name}")\n'
             )
         # TODO does yield have significant negative performance implications compared to union?
@@ -128,7 +160,8 @@ postProc = (tables=<-) =>
         self,
         query: str,
         keep_loc: bool,
-        locations: LOCATIONS,
+        locations: LOCATIONS = None,
+        fields: list[FieldRequest] | None = None,
     ):
         logger.debug("Executing Flux Query:\n{%s}", query)
         df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
@@ -138,7 +171,7 @@ postProc = (tables=<-) =>
         if (
             not keep_loc
             and "loc" in cols
-            and (isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1)
+            and (locations is None or isinstance(locations, int) or isinstance(locations, str) or len(locations) == 1)
         ):
             unnecessary_cols.append("loc")
 
@@ -147,12 +180,12 @@ postProc = (tables=<-) =>
                 lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df
             )
 
-        return df.drop(unnecessary_cols, axis=1)
+        return _rename_col_after_pivot(df.drop(unnecessary_cols, axis=1), fields)
 
     def query_hydro(
         self,
         period: PERIOD,
-        locations: LOCATIONS,
+        locations: str | int | list[str | int],
         fields: str | list[str] = "temperature",
         agg_freq="1h",  # could also read from params
         agg_func="mean",
@@ -192,11 +225,12 @@ postProc = (tables=<-) =>
     def query(
         self,
         period: PERIOD,
-        locations: LOCATIONS,
         fields: str | list[str],
         keep_loc=False,
     ):
+        if isinstance(fields, str):
+            fields = [fields]
         requests = [FieldRequest.from_str(field) for field in fields]
-        query = self._query_fields(period, locations, requests)
+        query = self._query_fields(period, requests)
 
-        return self._query(query, keep_loc, locations)
+        return self._query(query, keep_loc, fields=requests)

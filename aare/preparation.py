@@ -71,16 +71,30 @@ def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
     return _remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"])
 
 
-def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int, drop_filled: bool):
+def _interpolate(
+    df: pd.DataFrame,
+    linear_gap_bound: int,
+    cubic_gap_bound: int,
+    drop_filled: bool,
+    columns: str | list[str] | None = TEMP,
+):
     df = df.copy()
+    if columns is None:
+        columns = list(df.columns)
+    elif isinstance(columns, str):
+        columns = [columns]
 
-    df_i = fill_with_hard_limit(df, limit=linear_gap_bound, columns=[TEMP], add_was_filled=True)
-    df[TEMP] = df_i[TEMP]
-    df["filled"] = cast(pd.Series, df_i[TEMP + "_filled"]).map({False: "none", True: "linear"})
+    # we NEVER want to interpolate the time
+    if TIME in columns:
+        columns.remove(TIME)
 
-    df_i = fill_with_hard_limit(df, method="cubic", limit=cubic_gap_bound, columns=[TEMP], add_was_filled=True)
-    df[TEMP] = df_i[TEMP]
-    df.loc[df_i[TEMP + "_filled"], "filled"] = "cubic"
+    col_filled = [c + "_filled" for c in columns]
+    df_i = fill_with_hard_limit(df, limit=linear_gap_bound, columns=columns, add_was_filled=True)
+    df[columns] = df_i[columns]
+    df["filled"] = cast(pd.Series, df_i[col_filled].any(axis=1, bool_only=True)).map({False: "none", True: "linear"})
+    df_i = fill_with_hard_limit(df, method="cubic", limit=cubic_gap_bound, columns=columns, add_was_filled=True)
+    df[columns] = df_i[columns]
+    df.loc[df_i[col_filled].any(axis=1, bool_only=True), "filled"] = "cubic"
 
     if drop_filled:
         # still populating first for debugging purposed
@@ -89,10 +103,17 @@ def _interpolate(df: pd.DataFrame, linear_gap_bound: int, cubic_gap_bound: int, 
     return df
 
 
-def interpolate(df: pd.DataFrame, drop_filled=False) -> pd.DataFrame:
+def interpolate(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | None = TEMP) -> pd.DataFrame:
+    """
+    Interpolate the temperature column according to the configured options, or more columns.
+    Set columns to None for all columns, otherwise it will only to 'temperature'.
+
+    WARNING: The options used are tuned for the water temperature and nothing else. Using it for other variables
+    might result in misleading data!!!
+    """
     params = read_params()["interpolate"]
 
-    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled)
+    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
 
 
 def prepare_ts(raw: pd.DataFrame) -> TimeSeries:

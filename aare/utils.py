@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Union, Optional, cast
+from typing import Union, Optional, cast, overload
 
 import numpy as np
 import pandas as pd
@@ -15,6 +15,30 @@ DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"
+
+
+@overload
+def fill_with_hard_limit(
+    df_or_series: pd.DataFrame,
+    limit: int,
+    fill_method="interpolate",
+    columns: Optional[list[str]] = None,
+    add_was_filled=False,
+    **fill_method_kwargs,
+) -> pd.DataFrame:
+    pass
+
+
+@overload
+def fill_with_hard_limit(
+    df_or_series: pd.Series,
+    limit: int,
+    fill_method="interpolate",
+    columns: Optional[list[str]] = None,
+    add_was_filled=False,
+    **fill_method_kwargs,
+) -> pd.Series:
+    pass
 
 
 def fill_with_hard_limit(
@@ -99,17 +123,29 @@ def between(df, from_, to_):
     return (df.index >= from_) & (df.index < to_)
 
 
-def to_ts(df, freq=None):
+def ensure_frame(df: pd.DataFrame | pd.Series) -> pd.DataFrame:
+    if isinstance(df, pd.Series):
+        return df.to_frame()
+    return df
+
+
+def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]] = None) -> TimeSeries:
     """
     Transforms a dataframe into a darts TimeSeries using the predefined TIME column (or index).
     Remove all time zone information.
 
     Can optionally pass a frequency, otherwise it will try to infer.
     """
-    if TIME in df.columns:
+    tdf: pd.DataFrame
+    if isinstance(df, pd.Series):
+        tdf = df.to_frame()
+    elif TIME in df.columns:
         tdf = df.set_index(TIME)
     else:
         tdf = df
+
+    if col:
+        tdf = ensure_frame(tdf[col])
 
     # turn it into timezone-naive timestamps because that's what darts wants.
     # all the data is in UTC anyway, so a conversion is necessary on display no matter what.
@@ -134,6 +170,7 @@ def to_ts(df, freq=None):
 
 
 def get_context_len(model: GlobalForecastingModel) -> int:
+    # written before I realized that extreme_lags[0] should equal the context length, but now incorporated
     extreme_lags = model.extreme_lags
     abs_min_target_lag = abs(extreme_lags[0]) if extreme_lags[0] is not None else None
     if hasattr(model, "context_length"):

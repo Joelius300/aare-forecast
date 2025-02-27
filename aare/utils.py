@@ -147,22 +147,26 @@ def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]
     if col:
         tdf = ensure_frame(tdf[col])
 
+    assert isinstance(tdf.index, pd.DatetimeIndex), "Index should now be a time index"
+    index = cast(pd.DatetimeIndex, tdf.index)
     # turn it into timezone-naive timestamps because that's what darts wants.
     # all the data is in UTC anyway, so a conversion is necessary on display no matter what.
-    tdf.index = tdf.index.tz_localize(None)
+    index = index.tz_localize(None)
 
-    if tdf.index.freq is None:
+    if index.freq is None:
         if freq is None:
-            inf_freq = pd.infer_freq(tdf.index)
+            inf_freq = pd.infer_freq(index)
             if inf_freq is None:
                 raise ValueError("Could not infer frequency from data.")
             freq = inf_freq
-        tdf.index.freq = freq
+        index.freq = freq
     else:
-        if freq != tdf.index.freq:
-            logger.warning(f"Explicitly passed freq '{freq}', but series already has frequency '{tdf.index.freq}'")
+        if freq != index.freq:
+            logger.warning(f"Explicitly passed freq '{freq}', but series already has frequency '{index.freq}'")
 
-    ts = TimeSeries.from_dataframe(tdf, freq=tdf.index.freq)
+    tdf.index = index
+
+    ts = TimeSeries.from_dataframe(tdf, freq=cast(str | int, index.freq))
     # darts only supports 32 and 64 sadly. No need for high 64 precision.
     ts = ts.astype(np.float32)  # pyright: ignore [reportArgumentType]
 

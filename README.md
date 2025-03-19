@@ -44,4 +44,4 @@ dvc repro
 
 AGPL-3.0
 
-(für aare.guru fände mr sicher ä gueti Lösig)
+(für aare.guru fände mr sicher ä gueti Lösig, i mache ds hie houptsächläch füre Spass u fänds riise geil 's i aare.guru z integriere wes de ändlech fr öppis isch)

@@ -32,6 +32,8 @@ def _evaluate_model(
     # TODO implement parallelization. Esp. for CPU bound models, you could easily spin up multiple processes to
     # to speed up the predictions. Maybe there's even a smart scheduling option to use the length of the subseries
     # as weight basically (you would want the longest running ones to start first).
+    # Also, don't parallelize if the model supports_optimized_historical_forecasts or whatever,
+    # then it would waste time probably? at least warn the user that the config is prob bad.
     if isinstance(model, _GlobalNaiveModel):
         # only takes the components etc. global naive don't care about the values
         model.fit(val[0])

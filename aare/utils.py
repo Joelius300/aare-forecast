@@ -5,7 +5,7 @@ from typing import Union, Optional, cast, overload
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
-from darts.models.forecasting.forecasting_model import GlobalForecastingModel
+from darts.models.forecasting.forecasting_model import ForecastingModel
 
 from aare.constants import TIME
 
@@ -173,7 +173,7 @@ def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]
     return ts
 
 
-def get_context_len(model: GlobalForecastingModel) -> int:
+def get_context_len(model: ForecastingModel) -> int:
     # written before I realized that extreme_lags[0] should equal the context length, but now incorporated
     extreme_lags = model.extreme_lags
     abs_min_target_lag = abs(extreme_lags[0]) if extreme_lags[0] is not None else None

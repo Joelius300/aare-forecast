@@ -40,6 +40,9 @@ dvc repro
 - http://www.watercenter.org/physical-water-quality-parameters/water-temperature/water-temperature-ranges-in-rivers-and-streams/
 - https://storymaps.arcgis.com/stories/ef8b1542a6c0411ba96779b26151e399
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC5994338/
+- https://agupubs.onlinelibrary.wiley.com/doi/10.1029/98WR01877
+- https://hess.copernicus.org/articles/25/2951/2021/
+- https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1365-2427.2006.01597.x
 
 ## Lizenz
 

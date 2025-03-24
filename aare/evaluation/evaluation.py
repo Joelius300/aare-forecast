@@ -22,18 +22,21 @@ from aare.utils import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER, get_context_len
 def _evaluate_model(
     model: ForecastingModel, val: list[TimeSeries], horizon: int, stride: int, *, metric: Literal["MAE", "RMSE"] = "MAE"
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
-    """
-    Evaluates a forecasting model on multiple validation series with a specified stride and forecast horizon.
-
-    Global Naive Models are "trained" first to give them knowledge about the dimensions etc.
-
-    Returns the aggregated metrics as well as the last, best and worst prediction the model made (decided by MAE).
-    """
     # TODO implement parallelization. Esp. for CPU bound models, you could easily spin up multiple processes to
     # to speed up the predictions. Maybe there's even a smart scheduling option to use the length of the subseries
     # as weight basically (you would want the longest running ones to start first).
     # Also, don't parallelize if the model supports_optimized_historical_forecasts or whatever,
     # then it would waste time probably? at least warn the user that the config is prob bad.
+
+    if not model.supports_transferrable_series_prediction:
+        raise ValueError("Cannot evaluate a model which doesn't support transferrable prediction.")
+
+    # could break in any release since it's not public api
+    if not model._supports_non_retrainable_historical_forecasts:
+        # currently (24.03) the only models that support transferrable series prediction but not
+        # non-retrainable historical forecasts are local ensemble models IIRC.
+        raise ValueError("Cannot evaluate a model which doesn't support non-retrainable historical forecasts.")
+
     if isinstance(model, _GlobalNaiveModel):
         # only takes the components etc. global naive don't care about the values
         model.fit(val[0])

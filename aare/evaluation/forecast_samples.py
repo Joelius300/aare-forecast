@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from matplotlib import pyplot as plt
+
 from aare.evaluation.forecast import Forecast
 
 
@@ -17,3 +19,12 @@ class ForecastSamples:
     """Forecast with the minimum MAE of a set of forecasts (usually all of validation)."""
     worst_forecast: Forecast
     """Forecast with the maximum MAE of a set of forecasts (usually all of validation)."""
+
+    def plot(self, title: str):
+        fig, axes = plt.subplot_mosaic("AA;BC")
+
+        self.last_forecast.plot(title + " (last)", ax=axes["A"])
+        self.best_forecast.plot(title + " (best)", ax=axes["B"])
+        self.worst_forecast.plot(title + " (worst)", ax=axes["C"])
+
+        return fig

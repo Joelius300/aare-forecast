@@ -22,7 +22,7 @@ class ARIMAFix(ARIMA):
             return super().extreme_lags
 
         p, d, q = self.order
-        if self.seasonal_order:
+        if self.seasonal_order and not self.seasonal_order == (0, 0, 0, 0):
             raise NotImplementedError("Seasonal ARIMA not supported for fixed extreme_lags yet")
 
         if isinstance(p, Sequence):

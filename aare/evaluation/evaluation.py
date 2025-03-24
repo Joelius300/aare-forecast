@@ -1,5 +1,7 @@
 import json
+import logging
 import pickle
+from concurrent.futures.process import ProcessPoolExecutor
 from typing import cast, Mapping, Literal, Optional
 
 import numpy as np
@@ -18,15 +20,20 @@ from aare.params import ValidationParams
 from aare.preparation import prepare_ts
 from aare.utils import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER, get_context_len
 
+logger = logging.getLogger(__name__)
+
 
 def _evaluate_model(
-    model: ForecastingModel, val: list[TimeSeries], horizon: int, stride: int, *, metric: Literal["MAE", "RMSE"] = "MAE"
+    model: ForecastingModel,
+    val: list[TimeSeries],
+    horizon: int,
+    stride: int,
+    metric: Literal["MAE", "RMSE"] = "MAE",
+    parallel: bool | int | Literal["auto"] = False,
+    verbose=False,
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
-    # TODO implement parallelization. Esp. for CPU bound models, you could easily spin up multiple processes to
-    # to speed up the predictions. Maybe there's even a smart scheduling option to use the length of the subseries
-    # as weight basically (you would want the longest running ones to start first).
-    # Also, don't parallelize if the model supports_optimized_historical_forecasts or whatever,
-    # then it would waste time probably? at least warn the user that the config is prob bad.
+    if len(val) == 0:
+        raise ValueError("Must pass at least one validation series")
 
     if not model.supports_transferrable_series_prediction:
         raise ValueError("Cannot evaluate a model which doesn't support transferrable prediction.")
@@ -37,23 +44,16 @@ def _evaluate_model(
         # non-retrainable historical forecasts are local ensemble models IIRC.
         raise ValueError("Cannot evaluate a model which doesn't support non-retrainable historical forecasts.")
 
+    parallel = _validate_parallel(parallel, model, val)
+
     if isinstance(model, _GlobalNaiveModel):
         # only takes the components etc. global naive don't care about the values
         model.fit(val[0])
 
-    # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
-    historical_forecasts = cast(
-        list[list[TimeSeries]],
-        # (most likely) uses extreme_lags to find where to start forecasting
-        model.historical_forecasts(
-            val,
-            stride=stride,
-            forecast_horizon=horizon,
-            last_points_only=False,
-            retrain=False,
-        ),
-    )
+    # simulate historical forecasts (without retraining!)
+    historical_forecasts = _historical_forecasts_parallel(model, val, stride, horizon, parallel, verbose)
 
+    # run metric calculations on all those forecasts
     backtest = cast(
         list[np.ndarray],
         model.backtest(val, historical_forecasts=historical_forecasts, metric=[mae, rmse], reduction=None),
@@ -87,6 +87,87 @@ def _evaluate_model(
     )
 
 
+def _historical_forecasts_parallel(
+    model: ForecastingModel, val: list[TimeSeries], stride: int, horizon: int, parallel: bool | int, verbose: bool
+) -> list[list[TimeSeries]]:
+    if not parallel:
+        return cast(
+            list[list[TimeSeries]],
+            # (most likely) uses extreme_lags to find where to start forecasting
+            # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
+            model.historical_forecasts(
+                val,  # passing multiple ts so we get multiple sets of forecasts back
+                stride=stride,
+                forecast_horizon=horizon,
+                last_points_only=False,
+                retrain=False,
+            ),
+        )
+
+    # keep track of the index so order can be reconstructed
+    val_idx = list(enumerate(val))
+    # longest series first
+    prioritized = sorted(val_idx, key=lambda i_ts: len(i_ts[1]), reverse=True)
+    logger.debug(f"Creating historical forecasts for [{', '.join((str(len(i_ts[1])) for i_ts in prioritized))}]")
+
+    with ProcessPoolExecutor(max_workers=None if parallel is True else parallel) as pool:
+        hf = pool.map(
+            _parallel_forecast_step,
+            prioritized,
+            [model] * len(prioritized),
+            [stride] * len(prioritized),
+            [horizon] * len(prioritized),
+        )
+
+        hf = list(hf)  # makes it easier and the overhead is nothing
+        # restore original order
+        return [i_ts[1] for i_ts in sorted(hf, key=lambda iv: iv[0])]
+
+
+def _parallel_forecast_step(i_ts: tuple[int, TimeSeries], model: ForecastingModel, stride: int, horizon: int):
+    i, ts = i_ts
+    forecasts = model.historical_forecasts(
+        ts,  # passing now a single ts -> get a single set of forecasts
+        stride=stride,
+        forecast_horizon=horizon,
+        last_points_only=False,
+        retrain=False,
+        verbose=False,  # no need in another process
+    )
+
+    return i, cast(list[TimeSeries], forecasts)
+
+
+def _validate_parallel(parallel: bool | int | Literal["auto"], model: ForecastingModel, val: list) -> bool | int:
+    # Thank you, Python, you did it again... bool is a subclass of int OMFG
+    if parallel == "auto":
+        # not sure if this is a good heuristic, but probably not too bad for us
+        parallel = False if model.supports_optimized_historical_forecasts else True
+    elif parallel is False:
+        if not model.supports_optimized_historical_forecasts and len(val) > 1:
+            logger.warning(
+                "Model does not support optimized historical forecasts and you're evaluating multiple "
+                "validation series; you might benefit from parallelized evaluation."
+            )
+    elif parallel is True or type(parallel) is int:
+        if model.supports_optimized_historical_forecasts:
+            logger.warning(
+                "Model already supports optimized forecasts, unclear if parallelization improves performance"
+            )
+        if len(val) == 1:
+            logger.warning("Only evaluating on a single validation slice, parallelization does not make sense.")
+            parallel = False
+        if type(parallel) is int and parallel < 2:
+            raise ValueError("Parallelization must be of degree 2 or higher")
+    else:
+        raise ValueError(f"Invalid option for parallel: {parallel}")
+
+    # now parallel can only be True, False or an int > 2
+    assert type(parallel) in (bool, int), "parallel is something other than bool or int?!"
+
+    return cast(bool | int, parallel)
+
+
 def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries,
@@ -94,8 +175,10 @@ def evaluate_model(
     stride=24,
     min_lookback_hours=-1,
     *,
-    metric: Literal["MAE", "RMSE"] = "MAE",
     val_subs: Optional[list[TimeSeries]] = None,
+    metric: Literal["MAE", "RMSE"] = "MAE",
+    parallel: bool | int | Literal["auto"] = False,
+    verbose=False,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -104,6 +187,9 @@ def evaluate_model(
 
     Global Naive Models are "trained" first to give them knowledge about the dimensions etc. all other models are
     expected to be trained/fitted already.
+
+    Allows for parallelization, but beware that it will replicate the model on multiple processes, so it has to be
+    pickleable, and it will multiply memory usage.
 
     Returns the aggregated metrics as well as the last, best and worst prediction
     the model made (decided by MAE or whatever you specify).
@@ -116,7 +202,7 @@ def evaluate_model(
         (last_prediction, last_prediction_m),
         (best_prediction, best_prediction_m),
         (worst_prediction, worst_prediction_m),
-    ) = _evaluate_model(model, val_subs, horizon, stride, metric=metric)
+    ) = _evaluate_model(model, val_subs, horizon, stride, metric=metric, parallel=parallel, verbose=verbose)
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
     last_forecast = Forecast(val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m))

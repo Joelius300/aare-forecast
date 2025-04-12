@@ -2,3 +2,7 @@
 /SNAIVE.json
 /MEAN.json
 /TIMESFM.json
+/ARIMA_simple.json
+/ARIMA_time.json
+/ARIMA_time-tt_fc.json
+/ARIMA_tt_fc.json

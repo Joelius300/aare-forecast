@@ -1,0 +1,5 @@
+outs:
+- md5: 6b6e21d4b6772f3efd1f5dfb1193e56c
+  size: 19821
+  hash: md5
+  path: ARIMA_time.pkl

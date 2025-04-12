@@ -1,0 +1,5 @@
+outs:
+- md5: 9d0a959b2075397ae5674036f6bae0c0
+  size: 19990
+  hash: md5
+  path: ARIMA_time-tt_fc.pkl

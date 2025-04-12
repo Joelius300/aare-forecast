@@ -1,0 +1,5 @@
+outs:
+- md5: bdba4dc091b32d6aa8d8a1e236cdd341
+  size: 118
+  hash: md5
+  path: ARIMA_simple.json

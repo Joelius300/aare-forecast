@@ -1,0 +1,5 @@
+outs:
+- md5: bcefcce710454cbfd917d6e3812ebc54
+  size: 118
+  hash: md5
+  path: ARIMA_tt_fc.json

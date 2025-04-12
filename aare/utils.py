@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Union, Optional, cast, overload
+from typing import Union, Optional, cast, overload, Callable
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ def fill_with_hard_limit(
 def fill_with_hard_limit(
     df_or_series: Union[pd.DataFrame, pd.Series],
     limit: int,
-    fill_method="interpolate",
+    fill_method: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
     columns: Optional[list[str]] = None,
     add_was_filled=False,
     **fill_method_kwargs,
@@ -64,7 +64,7 @@ def fill_with_hard_limit(
         occurrences of more consecutive NaNs than ``limit`` will have no
         filling performed.
     :param fill_method: Filling method to use, e.g. 'interpolate',
-        'bfill', etc.
+        'bfill', etc. or a lambda taking 'limit' and potential fill_kwargs.
     :param columns: Which columns so fill. Defaults to all.
     :param fill_method_kwargs: Keyword arguments to pass to the
         fill_method, in addition to the given limit.
@@ -95,8 +95,13 @@ def fill_with_hard_limit(
         mask.loc[:, col] = (grp.groupby(col)["ones"].transform("count") <= limit) | to_interp[col].notnull()
 
     # Now, interpolate and use the mask to create NaNs for the larger gaps.
-    method = getattr(to_interp[columns], fill_method)
-    interpolated = method(limit=limit, **fill_method_kwargs)[mask]
+    if isinstance(fill_method, str):
+        method = getattr(to_interp, fill_method)
+        interpolated = method(limit=limit, **fill_method_kwargs)[mask]
+    else:
+        # ignore because kwargs aren't supported for Callable
+        # noinspection PyArgumentList
+        interpolated = fill_method(to_interp, limit, **fill_method_kwargs)[mask]
 
     out = df.copy()
     for c in columns:

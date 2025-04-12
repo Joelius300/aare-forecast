@@ -31,6 +31,9 @@ def _evaluate_model(
     metric: Literal["MAE", "RMSE"] = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
+    future_cov: TimeSeries | None = None,
+    # TODO need to see if we can just always pass the whole future covariate, even if we then pass multiple slices
+    # of the train data, or if we also need to slice up the future cov.
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
@@ -51,7 +54,9 @@ def _evaluate_model(
         model.fit(val[0])
 
     # simulate historical forecasts (without retraining!)
-    historical_forecasts = _historical_forecasts_parallel(model, val, stride, horizon, parallel, verbose)
+    historical_forecasts = _historical_forecasts_parallel(
+        model, val, stride, horizon, parallel, verbose, future_cov=future_cov
+    )
 
     # run metric calculations on all those forecasts
     backtest = cast(
@@ -88,7 +93,14 @@ def _evaluate_model(
 
 
 def _historical_forecasts_parallel(
-    model: ForecastingModel, val: list[TimeSeries], stride: int, horizon: int, parallel: bool | int, verbose: bool
+    model: ForecastingModel,
+    val: list[TimeSeries],
+    stride: int,
+    horizon: int,
+    parallel: bool | int,
+    verbose: bool,
+    *,
+    future_cov: TimeSeries | None = None,
 ) -> list[list[TimeSeries]]:
     if not parallel:
         return cast(
@@ -97,6 +109,7 @@ def _historical_forecasts_parallel(
             # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
             model.historical_forecasts(
                 val,  # passing multiple ts so we get multiple sets of forecasts back
+                future_covariates=future_cov,
                 stride=stride,
                 forecast_horizon=horizon,
                 last_points_only=False,
@@ -117,6 +130,7 @@ def _historical_forecasts_parallel(
             [model] * len(prioritized),
             [stride] * len(prioritized),
             [horizon] * len(prioritized),
+            [future_cov] * len(prioritized),
         )
 
         hf = list(hf)  # makes it easier and the overhead is nothing
@@ -124,10 +138,13 @@ def _historical_forecasts_parallel(
         return [i_ts[1] for i_ts in sorted(hf, key=lambda iv: iv[0])]
 
 
-def _parallel_forecast_step(i_ts: tuple[int, TimeSeries], model: ForecastingModel, stride: int, horizon: int):
+def _parallel_forecast_step(
+    i_ts: tuple[int, TimeSeries], model: ForecastingModel, stride: int, horizon: int, future_cov: TimeSeries | None
+):
     i, ts = i_ts
     forecasts = model.historical_forecasts(
         ts,  # passing now a single ts -> get a single set of forecasts
+        future_covariates=future_cov,
         stride=stride,
         forecast_horizon=horizon,
         last_points_only=False,
@@ -179,11 +196,15 @@ def evaluate_model(
     metric: Literal["MAE", "RMSE"] = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
+    future_cov: TimeSeries | None = None,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
     The series will be split on all gaps where a NaN is present in any component using extract_subseries.
     If you already have it ready or want to avoid that, pass val_subs.
+
+    The covariates don't need to be sliced exactly, it will use the overlap of the val_subs with the covariates.
+    If the future_cov has gaps, make sure that you pass val_subs with only subs where the future_cov has complete data.
 
     Global Naive Models are "trained" first to give them knowledge about the dimensions etc. all other models are
     expected to be trained/fitted already.
@@ -195,6 +216,8 @@ def evaluate_model(
     the model made (decided by MAE or whatever you specify).
     """
     if not val_subs:
+        # TODO you would probably want to combine it with all the covariates, then take the subseries, and turn
+        # it back into a list of just target series with ts[TEMP].
         val_subs = extract_subseries(val, mode="any")
 
     (
@@ -202,7 +225,9 @@ def evaluate_model(
         (last_prediction, last_prediction_m),
         (best_prediction, best_prediction_m),
         (worst_prediction, worst_prediction_m),
-    ) = _evaluate_model(model, val_subs, horizon, stride, metric=metric, parallel=parallel, verbose=verbose)
+    ) = _evaluate_model(
+        model, val_subs, horizon, stride, metric=metric, parallel=parallel, verbose=verbose, future_cov=future_cov
+    )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
     last_forecast = Forecast(val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m))

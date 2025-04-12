@@ -1,0 +1,5 @@
+outs:
+- md5: ad3547e2bd4cd751d4695652013eeb4f
+  size: 118
+  hash: md5
+  path: ARIMA_time-tt_fc.json

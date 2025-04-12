@@ -1,0 +1,5 @@
+outs:
+- md5: 41b30aff77a786698d4d2eea66b5fcbb
+  size: 19990
+  hash: md5
+  path: ARIMA_simple.pkl

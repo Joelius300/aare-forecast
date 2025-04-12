@@ -1,0 +1,5 @@
+outs:
+- md5: c057987df5353801fbf6b8c643347b4d
+  size: 19990
+  hash: md5
+  path: ARIMA_tt_fc.pkl

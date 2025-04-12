@@ -2,3 +2,7 @@
 /SNAIVE.pkl
 /MEAN.pkl
 /TIMESFM.pkl
+/ARIMA_simple.pkl
+/ARIMA_time.pkl
+/ARIMA_time-tt_fc.pkl
+/ARIMA_tt_fc.pkl

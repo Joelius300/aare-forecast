@@ -1,0 +1,5 @@
+outs:
+- md5: b00f95004e21573a6d81ebfb71c05271
+  size: 118
+  hash: md5
+  path: ARIMA_time.json

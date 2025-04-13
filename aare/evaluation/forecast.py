@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import cast, Optional
+from typing import cast, Optional, Sequence
 
 import matplotlib.axes
 from darts import TimeSeries
@@ -23,7 +23,7 @@ class Forecast:
         lookback_hours: int,
         metrics: Optional[Metrics] = None,
         add_metrics=True,
-        future_cov: TimeSeries | None = None,
+        future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
     ):
         """
         Pulls the actual data out of all_data according to the period of the forecast plus some lookback period.
@@ -33,7 +33,19 @@ class Forecast:
         self.lookback = cast(Timedelta, Timedelta(hours=lookback_hours))  # cannot be NaT
         pred_start = cast(Timestamp, prediction.start_time())
         self.actual = actual_full[pred_start - self.lookback : prediction.end_time()]
-        self.future_cov = future_cov.slice_intersect(self.actual) if future_cov is not None else None
+
+        if future_cov is None:
+            self.future_cov = None
+        else:
+            if not isinstance(future_cov, TimeSeries):
+                assert isinstance(future_cov, Sequence), (
+                    "future_cov is something other than None, TimeSeries or Sequence"
+                )
+                future_cov = next(
+                    ts for ts in future_cov if self.actual.start_time() in ts and self.actual.end_time() in ts
+                )
+            self.future_cov = future_cov.slice_intersect(self.actual)
+
         self.prediction = prediction
         self.metrics = metrics
         if add_metrics and metrics is None:

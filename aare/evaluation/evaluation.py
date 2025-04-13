@@ -2,7 +2,7 @@ import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
-from typing import cast, Mapping, Literal, Optional, Sequence
+from typing import Literal, Mapping, Optional, Sequence, cast
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.metrics import Metrics
 from aare.params import ValidationParams
 from aare.preparation import prepare_ts
-from aare.utils import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER, get_context_len
+from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +28,11 @@ def _evaluate_model(
     val: list[TimeSeries],
     horizon: int,
     stride: int,
-    metric: Literal["MAE", "RMSE"] = "MAE",
-    parallel: bool | int | Literal["auto"] = False,
-    verbose=False,
-    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
-    # TODO need to see if we can just always pass the whole future covariate, even if we then pass multiple slices
-    # of the train data, or if we also need to slice up the future cov.
+    metric: Literal["MAE", "RMSE"],
+    parallel: bool | int | Literal["auto"],
+    verbose: bool,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None,
+    num_samples: int,
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
@@ -55,7 +54,7 @@ def _evaluate_model(
 
     # simulate historical forecasts (without retraining!)
     historical_forecasts = _historical_forecasts_parallel(
-        model, val, stride, horizon, parallel, verbose, future_cov=future_cov
+        model, val, stride, horizon, parallel, verbose, future_cov, num_samples
     )
 
     # run metric calculations on all those forecasts
@@ -99,8 +98,8 @@ def _historical_forecasts_parallel(
     horizon: int,
     parallel: bool | int,
     verbose: bool,
-    *,
-    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None,
+    num_samples: int,
 ) -> list[list[TimeSeries]]:
     if (
         future_cov is not None
@@ -109,6 +108,8 @@ def _historical_forecasts_parallel(
         and len(future_cov) != len(val)
     ):
         raise ValueError("When passing future_cov as a list, it must have the same number of entries as val")
+
+    actual_num_samples = num_samples if model.supports_probabilistic_prediction else 1
 
     if not parallel:
         return cast(
@@ -123,6 +124,7 @@ def _historical_forecasts_parallel(
                 forecast_horizon=horizon,
                 last_points_only=False,
                 retrain=False,
+                num_samples=actual_num_samples,
                 verbose=verbose,  # seemingly only for retraining, so probably useless
             ),
         )
@@ -150,6 +152,7 @@ def _historical_forecasts_parallel(
             [model] * len(prioritized),
             [stride] * len(prioritized),
             [horizon] * len(prioritized),
+            [actual_num_samples] * len(prioritized),
             future_covs,
         )
 
@@ -159,7 +162,12 @@ def _historical_forecasts_parallel(
 
 
 def _parallel_forecast_step(
-    i_ts: tuple[int, TimeSeries], model: ForecastingModel, stride: int, horizon: int, future_cov: TimeSeries | None
+    i_ts: tuple[int, TimeSeries],
+    model: ForecastingModel,
+    stride: int,
+    horizon: int,
+    num_samples: int,
+    future_cov: TimeSeries | None,
 ):
     assert future_cov is None or isinstance(future_cov, TimeSeries), "Invalid type of future_cov"
     i, ts = i_ts
@@ -170,6 +178,7 @@ def _parallel_forecast_step(
         forecast_horizon=horizon,
         last_points_only=False,
         retrain=False,
+        num_samples=num_samples,
         verbose=False,  # no need in another process
     )
 
@@ -218,6 +227,7 @@ def evaluate_model(
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
+    num_samples=128,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -247,13 +257,28 @@ def evaluate_model(
         (best_prediction, best_prediction_m),
         (worst_prediction, worst_prediction_m),
     ) = _evaluate_model(
-        model, val_subs, horizon, stride, metric=metric, parallel=parallel, verbose=verbose, future_cov=future_cov
+        model,
+        val_subs,
+        horizon,
+        stride,
+        metric=metric,
+        parallel=parallel,
+        verbose=verbose,
+        future_cov=future_cov,
+        num_samples=num_samples,
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
-    last_forecast = Forecast(val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m))
-    best_forecast = Forecast(val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m))
-    worst_forecast = Forecast(val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m))
+    last_forecast = Forecast(
+        val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
+    )
+    best_forecast = Forecast(
+        val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
+    )
+    worst_forecast = Forecast(
+        val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
+    )
+
     sample = ForecastSamples(last_forecast, best_forecast, worst_forecast)
 
     return metrics, sample

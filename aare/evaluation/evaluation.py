@@ -2,7 +2,7 @@ import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
-from typing import cast, Mapping, Literal, Optional
+from typing import cast, Mapping, Literal, Optional, Sequence
 
 import numpy as np
 import torch
@@ -31,7 +31,7 @@ def _evaluate_model(
     metric: Literal["MAE", "RMSE"] = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
-    future_cov: TimeSeries | None = None,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
     # TODO need to see if we can just always pass the whole future covariate, even if we then pass multiple slices
     # of the train data, or if we also need to slice up the future cov.
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
@@ -100,8 +100,16 @@ def _historical_forecasts_parallel(
     parallel: bool | int,
     verbose: bool,
     *,
-    future_cov: TimeSeries | None = None,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
 ) -> list[list[TimeSeries]]:
+    if (
+        future_cov is not None
+        and not isinstance(future_cov, TimeSeries)
+        and isinstance(future_cov, Sequence)
+        and len(future_cov) != len(val)
+    ):
+        raise ValueError("When passing future_cov as a list, it must have the same number of entries as val")
+
     if not parallel:
         return cast(
             list[list[TimeSeries]],
@@ -109,11 +117,13 @@ def _historical_forecasts_parallel(
             # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
             model.historical_forecasts(
                 val,  # passing multiple ts so we get multiple sets of forecasts back
+                # future_covariates can handle slices like val but also just a big chunk with the relevant data
                 future_covariates=future_cov,
                 stride=stride,
                 forecast_horizon=horizon,
                 last_points_only=False,
                 retrain=False,
+                verbose=verbose,  # seemingly only for retraining, so probably useless
             ),
         )
 
@@ -121,6 +131,16 @@ def _historical_forecasts_parallel(
     val_idx = list(enumerate(val))
     # longest series first
     prioritized = sorted(val_idx, key=lambda i_ts: len(i_ts[1]), reverse=True)
+
+    # prepare covariates for both split and unified series
+    if future_cov is None or isinstance(future_cov, TimeSeries):
+        future_covs = [future_cov] * len(prioritized)
+    else:
+        assert isinstance(future_cov, Sequence), "future_cov is not a sequence?!"
+        future_covs = []
+        for i, _ in prioritized:
+            future_covs.append(future_cov[i])
+
     logger.debug(f"Creating historical forecasts for [{', '.join((str(len(i_ts[1])) for i_ts in prioritized))}]")
 
     with ProcessPoolExecutor(max_workers=None if parallel is True else parallel) as pool:
@@ -130,7 +150,7 @@ def _historical_forecasts_parallel(
             [model] * len(prioritized),
             [stride] * len(prioritized),
             [horizon] * len(prioritized),
-            [future_cov] * len(prioritized),
+            future_covs,
         )
 
         hf = list(hf)  # makes it easier and the overhead is nothing
@@ -141,10 +161,11 @@ def _historical_forecasts_parallel(
 def _parallel_forecast_step(
     i_ts: tuple[int, TimeSeries], model: ForecastingModel, stride: int, horizon: int, future_cov: TimeSeries | None
 ):
+    assert future_cov is None or isinstance(future_cov, TimeSeries), "Invalid type of future_cov"
     i, ts = i_ts
     forecasts = model.historical_forecasts(
         ts,  # passing now a single ts -> get a single set of forecasts
-        future_covariates=future_cov,
+        future_covariates=future_cov,  # must now be a single series
         stride=stride,
         forecast_horizon=horizon,
         last_points_only=False,
@@ -196,7 +217,7 @@ def evaluate_model(
     metric: Literal["MAE", "RMSE"] = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
-    future_cov: TimeSeries | None = None,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.

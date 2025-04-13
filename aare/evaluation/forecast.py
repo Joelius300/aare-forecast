@@ -50,7 +50,7 @@ class Forecast:
         ax.set_xlabel("Time")
         ax.set_ylabel("Temperature [°C]")
 
-        if with_covariates:
+        if with_covariates and self.future_cov is not None:
             self.future_cov.plot(label="fc", ax=ax)
 
         if self.metrics is not None:

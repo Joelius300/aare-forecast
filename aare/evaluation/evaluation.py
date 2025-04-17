@@ -2,11 +2,13 @@ import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
-from typing import Literal, Mapping, Optional, Sequence, cast
+from typing import Literal, Mapping, Optional, Sequence, cast, TypedDict, NotRequired
 
 import numpy as np
 import torch
 from darts import TimeSeries
+from darts.dataprocessing import Pipeline
+from darts.dataprocessing.transformers import BaseDataTransformer
 from darts.metrics import mae, rmse
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.global_baseline_models import _GlobalNaiveModel
@@ -23,6 +25,14 @@ from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
 logger = logging.getLogger(__name__)
 
 
+class DataTransformers(TypedDict):
+    """Typing for the data_transformers argument of the historical_forecast (backtest) function."""
+
+    series: NotRequired[BaseDataTransformer | Pipeline]
+    past_covariates: NotRequired[BaseDataTransformer | Pipeline]
+    future_covariates: NotRequired[BaseDataTransformer | Pipeline]
+
+
 def _evaluate_model(
     model: ForecastingModel,
     val: list[TimeSeries],
@@ -33,6 +43,7 @@ def _evaluate_model(
     verbose: bool,
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
+    data_transformers: Optional[DataTransformers],
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
@@ -54,7 +65,7 @@ def _evaluate_model(
 
     # simulate historical forecasts (without retraining!)
     historical_forecasts = _historical_forecasts_parallel(
-        model, val, stride, horizon, parallel, verbose, future_cov, num_samples
+        model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers
     )
 
     # run metric calculations on all those forecasts
@@ -100,6 +111,7 @@ def _historical_forecasts_parallel(
     verbose: bool,
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
+    data_transformers: Optional[DataTransformers],
 ) -> list[list[TimeSeries]]:
     if (
         future_cov is not None
@@ -126,6 +138,7 @@ def _historical_forecasts_parallel(
                 retrain=False,
                 num_samples=actual_num_samples,
                 verbose=verbose,  # seemingly only for retraining, so probably useless
+                data_transformers=data_transformers,
             ),
         )
 
@@ -154,6 +167,7 @@ def _historical_forecasts_parallel(
             [horizon] * len(prioritized),
             [actual_num_samples] * len(prioritized),
             future_covs,
+            [data_transformers] * len(prioritized),
         )
 
         hf = list(hf)  # makes it easier and the overhead is nothing
@@ -168,6 +182,7 @@ def _parallel_forecast_step(
     horizon: int,
     num_samples: int,
     future_cov: TimeSeries | None,
+    data_transformers: Optional[DataTransformers],
 ):
     assert future_cov is None or isinstance(future_cov, TimeSeries), "Invalid type of future_cov"
     i, ts = i_ts
@@ -180,6 +195,7 @@ def _parallel_forecast_step(
         retrain=False,
         num_samples=num_samples,
         verbose=False,  # no need in another process
+        data_transformers=data_transformers,
     )
 
     return i, cast(list[TimeSeries], forecasts)
@@ -228,6 +244,7 @@ def evaluate_model(
     verbose=False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
     num_samples=128,
+    data_transformers: Optional[DataTransformers] = None,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -266,6 +283,7 @@ def evaluate_model(
         verbose=verbose,
         future_cov=future_cov,
         num_samples=num_samples,
+        data_transformers=data_transformers,
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 

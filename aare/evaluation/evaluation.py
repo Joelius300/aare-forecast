@@ -233,7 +233,8 @@ def _validate_parallel(parallel: bool | int | Literal["auto"], model: Forecastin
 
 def evaluate_model(
     model: ForecastingModel,
-    val: TimeSeries,
+    # TODO can/should probably be removed; we only want/need one val, future_cov, etc. param each
+    val: TimeSeries | None,
     horizon: int,
     stride=24,
     min_lookback_hours=-1,
@@ -263,10 +264,24 @@ def evaluate_model(
     Returns the aggregated metrics as well as the last, best and worst prediction
     the model made (decided by MAE or whatever you specify).
     """
-    if not val_subs:
-        # TODO you would probably want to combine it with all the covariates, then take the subseries, and turn
-        # it back into a list of just target series with ts[TEMP].
-        val_subs = extract_subseries(val, mode="any")
+    # TODO clean up this mess!!
+    if val is None:
+        if val_subs is None:
+            raise ValueError("Must provide val_subs (or val)")
+    elif not val_subs:
+        if not isinstance(val, TimeSeries):
+            logger.warning("Should really fix this val and val_subs thing here :)")
+            assert isinstance(val, list), "otherwise wtf"
+            val_subs = val
+        else:
+            if future_cov is not None:
+                logger.warning("Passed future_cov but not val_subs, so splits will most likely be incompatible!")
+
+            # TODO you would probably want to combine it with all the covariates, then take the subseries, and turn
+            # it back into a list of just target series with ts[TEMP].
+            # Actually, let's do that outside of this function for better control. The thing I meant is now in FeatureSet.
+            val_subs = extract_subseries(val, mode="any")
+        # TODO rather remove the entire val parameter
 
     (
         metrics,
@@ -287,14 +302,15 @@ def evaluate_model(
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
+    v = val_subs if val_subs is not None else val
     last_forecast = Forecast(
-        val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
+        v, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
     )
     best_forecast = Forecast(
-        val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
+        v, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
     )
     worst_forecast = Forecast(
-        val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
+        v, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
     )
 
     sample = ForecastSamples(last_forecast, best_forecast, worst_forecast)

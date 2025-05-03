@@ -54,6 +54,7 @@ class FeatureSet:
         data = retain_period_common_to_all(data)
         data = darts.concatenate(data, axis="component")
         data = extract_subseries(data, mode="any")
+        data = [sub for sub in data if len(sub) > 0]  # wild that this is needed
 
         # then reconstruct the splits
         targets = [part[[f.name for f in self._targets]] for part in data]

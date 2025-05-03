@@ -8,6 +8,22 @@ from pandas import Timedelta, Timestamp
 from aare.evaluation.metrics import Metrics
 
 
+def _find_section(
+    ts: TimeSeries | Sequence[TimeSeries] | None, start: Timestamp, end: Timestamp, none_ok=True
+) -> Optional[TimeSeries]:
+    if ts is None:
+        if none_ok:
+            return None
+
+        raise ValueError("ts must not be None if none_ok is False")
+
+    if not isinstance(ts, TimeSeries):
+        assert isinstance(ts, Sequence), "ts is something other than None, TimeSeries or Sequence"
+        ts = next(s for s in ts if start in s and end in s)
+
+    return ts[start:end]
+
+
 @dataclass
 class Forecast:
     actual: TimeSeries
@@ -18,7 +34,7 @@ class Forecast:
 
     def __init__(
         self,
-        actual_full: TimeSeries,
+        actual_full: TimeSeries | Sequence[TimeSeries],
         prediction: TimeSeries,
         lookback_hours: int,
         metrics: Optional[Metrics] = None,
@@ -32,19 +48,11 @@ class Forecast:
         assert lookback_hours >= 0, "lookback_hours must be positive"
         self.lookback = cast(Timedelta, Timedelta(hours=lookback_hours))  # cannot be NaT
         pred_start = cast(Timestamp, prediction.start_time())
-        self.actual = actual_full[pred_start - self.lookback : prediction.end_time()]
+        start, end = pred_start - self.lookback, prediction.end_time()
+        assert isinstance(end, Timestamp), "Passed prediction TimeSeries with range index?!"
 
-        if future_cov is None:
-            self.future_cov = None
-        else:
-            if not isinstance(future_cov, TimeSeries):
-                assert isinstance(future_cov, Sequence), (
-                    "future_cov is something other than None, TimeSeries or Sequence"
-                )
-                future_cov = next(
-                    ts for ts in future_cov if self.actual.start_time() in ts and self.actual.end_time() in ts
-                )
-            self.future_cov = future_cov.slice_intersect(self.actual)
+        self.actual = cast(TimeSeries, _find_section(actual_full, start, end, none_ok=False))
+        self.future_cov = _find_section(future_cov, start, end)
 
         self.prediction = prediction
         self.metrics = metrics

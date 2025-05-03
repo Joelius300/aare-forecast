@@ -48,12 +48,12 @@ def _evaluate_model(
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
 
-    if not model.supports_transferrable_series_prediction:
-        raise ValueError("Cannot evaluate a model which doesn't support transferrable prediction.")
+    if not model.supports_transferable_series_prediction:
+        raise ValueError("Cannot evaluate a model which doesn't support transferable prediction.")
 
     # could break in any release since it's not public api
     if not model._supports_non_retrainable_historical_forecasts:
-        # currently (24.03) the only models that support transferrable series prediction but not
+        # currently (24.03) the only models that support transferable series prediction but not
         # non-retrainable historical forecasts are local ensemble models IIRC.
         raise ValueError("Cannot evaluate a model which doesn't support non-retrainable historical forecasts.")
 

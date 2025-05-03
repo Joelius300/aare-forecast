@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10,<3.12"
 # dependencies = [
-#     "darts==0.32.0",
+#     "darts==0.35.0",
 #     "dvc",
 #     "influxdb-client",
 #     "pandas",

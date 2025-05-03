@@ -1,3 +1,8 @@
+"""
+OUTDATED: We want to use the darts scaler and need a flexible way to handle a) different time spans / splits and b)
+different feature sets, so retraining the scaler just before training might be better anyway.
+"""
+
 import logging
 
 import pandas as pd

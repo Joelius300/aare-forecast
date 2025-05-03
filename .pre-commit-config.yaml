@@ -1,16 +1,16 @@
 repos:
 -   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-    rev: v0.6.1
+    rev: v0.7.0
     hooks:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.6.14
+    rev: 0.7.2
     hooks:
     -   id: uv-lock
     -   id: uv-export
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.6
+    rev: v0.11.8
     hooks:
     -   id: ruff
         args: [--fix]

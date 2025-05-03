@@ -1,3 +1,5 @@
+# TODO: This module will need a big refactor, since this was just for the temperature feature and we want
+#  to transition to the feature class without breaking all the old notebooks etc.
 from typing import cast, Optional
 
 import numpy as np
@@ -30,12 +32,14 @@ def remove_faulty_periods(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _remove_outliers(df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float) -> pd.DataFrame:
+def _remove_outliers(
+    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float, col=TEMP
+) -> pd.DataFrame:
     df = df.copy()
     orig_cols = df.columns
 
     # eliminate all data points outside valid bound
-    df.loc[(df[TEMP] <= low_cutoff) | (df[TEMP] >= high_cutoff), TEMP] = np.nan
+    df.loc[(df[col] <= low_cutoff) | (df[col] >= high_cutoff), col] = np.nan
 
     # One variant of outlier is at the start and end of measurement, so [NaN, outlier, normal measurement, ...] or reverse.
     # This is a common pattern in industry sensor data measurements at least from my experience.
@@ -43,32 +47,32 @@ def _remove_outliers(df: pd.DataFrame, low_cutoff: float, high_cutoff: float, di
     # Another is a random drop or spike so [normal, outlier, normal]. These have both diffs above threshold.
     # All of these variants appear in the data (see EDA).
 
-    df["temp_diff_to_prev"] = df[TEMP].diff().abs()
-    df["temp_diff_to_next"] = df[TEMP].diff(-1).abs()
+    df["_diff_to_prev"] = df[col].diff().abs()
+    df["_diff_to_next"] = df[col].diff(-1).abs()
 
     # variant 1a
     df.loc[
-        (df["temp_diff_to_prev"].isna() | (df["temp_diff_to_prev"] == 0)) & (df["temp_diff_to_next"] > diff_threshold),
-        TEMP,
+        (df["_diff_to_prev"].isna() | (df["_diff_to_prev"] == 0)) & (df["_diff_to_next"] > diff_threshold),
+        col,
     ] = np.nan
     # variant 1b
     df.loc[
-        (df["temp_diff_to_next"].isna() | (df["temp_diff_to_next"] == 0)) & (df["temp_diff_to_prev"] > diff_threshold),
-        TEMP,
+        (df["_diff_to_next"].isna() | (df["_diff_to_next"] == 0)) & (df["_diff_to_prev"] > diff_threshold),
+        col,
     ] = np.nan
     # variant 2
     df.loc[
-        (df["temp_diff_to_prev"] > diff_threshold) & (df["temp_diff_to_next"] > diff_threshold),
-        TEMP,
+        (df["_diff_to_prev"] > diff_threshold) & (df["_diff_to_next"] > diff_threshold),
+        col,
     ] = np.nan
 
     return cast(pd.DataFrame, df[orig_cols])
 
 
-def remove_outliers(df: pd.DataFrame) -> pd.DataFrame:
+def remove_outliers(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
     params = read_params()["cleanup"]
 
-    return _remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"])
+    return _remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col)
 
 
 def _interpolate(

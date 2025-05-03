@@ -4,6 +4,12 @@ from aare.remote_existenz_store import RemoteExistenzStore
 
 
 class AareDataset:
+    # TODO: Expand this with features, so you can give it a feature set
+    #  and fetching train/val will query that from the remote store, prepare
+    #  the data according to the features and extract all the subseries given
+    #  the intersection of all the features (none of them can be null).
+    #  Must create a legacy aare dataset.
+    #  Or actually just create a FeatureSet and do all the new things there.w
     def __init__(
         self,
         store: RemoteExistenzStore,

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterable
 from functools import reduce
 from typing import cast, Literal, Optional
 
@@ -225,12 +226,13 @@ postProc = (tables=<-) =>
     def query(
         self,
         period: PERIOD,
-        fields: str | list[str],
+        fields: str | Iterable[str | FieldRequest],
         keep_loc=False,
     ):
-        if isinstance(fields, str):
+        if isinstance(fields, str) or isinstance(fields, FieldRequest):
             fields = [fields]
-        requests = [FieldRequest.from_str(field) for field in fields]
+
+        requests = [field if isinstance(field, FieldRequest) else FieldRequest.from_str(field) for field in fields]
         query = self._query_fields(period, requests)
 
         return self._query(query, keep_loc, fields=requests)

@@ -2,7 +2,7 @@ import logging
 
 from darts.models import GlobalNaiveSeasonal, GlobalNaiveAggregate
 
-from aare.evaluation.evaluation import evaluation_pipeline
+from aare.evaluation.evaluation import evaluation_pipeline_uni
 from aare.params import read_params
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ def main():
         "MEAN": GlobalNaiveAggregate(input_chunk_length=7 * 24, output_chunk_length=horizon),
     }
 
-    evaluation_pipeline(models, horizon, params["validation"])
+    evaluation_pipeline_uni(models, horizon, params["validation"])
 
 
 if __name__ == "__main__":

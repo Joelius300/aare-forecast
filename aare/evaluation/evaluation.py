@@ -233,13 +233,11 @@ def _validate_parallel(parallel: bool | int | Literal["auto"], model: Forecastin
 
 def evaluate_model(
     model: ForecastingModel,
-    # TODO can/should probably be removed; we only want/need one val, future_cov, etc. param each
-    val: TimeSeries | None,
+    val: TimeSeries | list[TimeSeries],
     horizon: int,
     stride=24,
     min_lookback_hours=-1,
     *,
-    val_subs: Optional[list[TimeSeries]] = None,
     metric: Literal["MAE", "RMSE"] = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
@@ -249,8 +247,7 @@ def evaluate_model(
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
-    The series will be split on all gaps where a NaN is present in any component using extract_subseries.
-    If you already have it ready or want to avoid that, pass val_subs.
+    Pass a list of subseries without NaNs. If passing a single series, it will be split using extract_subseries.
 
     The covariates don't need to be sliced exactly, it will use the overlap of the val_subs with the covariates.
     If the future_cov has gaps, make sure that you pass val_subs with only subs where the future_cov has complete data.
@@ -264,24 +261,14 @@ def evaluate_model(
     Returns the aggregated metrics as well as the last, best and worst prediction
     the model made (decided by MAE or whatever you specify).
     """
-    # TODO clean up this mess!!
-    if val is None:
-        if val_subs is None:
-            raise ValueError("Must provide val_subs (or val)")
-    elif not val_subs:
-        if not isinstance(val, TimeSeries):
-            logger.warning("Should really fix this val and val_subs thing here :)")
-            assert isinstance(val, list), "otherwise wtf"
-            val_subs = val
-        else:
-            if future_cov is not None:
-                logger.warning("Passed future_cov but not val_subs, so splits will most likely be incompatible!")
+    if isinstance(val, TimeSeries):
+        if future_cov is not None:
+            logger.warning("Passed future_cov but not val_subs, so splits will most likely be incompatible!")
 
-            # TODO you would probably want to combine it with all the covariates, then take the subseries, and turn
-            # it back into a list of just target series with ts[TEMP].
-            # Actually, let's do that outside of this function for better control. The thing I meant is now in FeatureSet.
-            val_subs = extract_subseries(val, mode="any")
-        # TODO rather remove the entire val parameter
+        val_subs = extract_subseries(val, mode="any")
+    else:
+        assert isinstance(val, list), "val must be a list or a TimeSeries"
+        val_subs = val
 
     (
         metrics,
@@ -302,15 +289,14 @@ def evaluate_model(
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
-    v = val_subs if val_subs is not None else val
     last_forecast = Forecast(
-        v, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
+        val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
     )
     best_forecast = Forecast(
-        v, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
+        val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
     )
     worst_forecast = Forecast(
-        v, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
+        val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
     )
 
     sample = ForecastSamples(last_forecast, best_forecast, worst_forecast)
@@ -318,7 +304,7 @@ def evaluate_model(
     return metrics, sample
 
 
-def evaluation_pipeline(
+def evaluation_pipeline_uni(
     models: Mapping[str, ForecastingModel], forecast_horizon: int, validation_params: ValidationParams
 ) -> None:
     """Evaluate all specified models on the validation data and write the results to the pre-defined folders."""
@@ -335,7 +321,7 @@ def evaluation_pipeline(
     FORECAST_SAMPLES_FOLDER.mkdir(exist_ok=True)
 
     for name, model in models.items():
-        metrics, sample = evaluate_model(model, val, forecast_horizon, stride, min_lookback_hours, val_subs=val_subs)
+        metrics, sample = evaluate_model(model, val_subs, forecast_horizon, stride, min_lookback_hours)
 
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
             json.dump(metrics.to_dict(), metrics_file)

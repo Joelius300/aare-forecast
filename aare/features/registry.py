@@ -8,7 +8,8 @@ from aare.features.water_temp_bern import WaterTempBern
 FEATURES = {
     "temp_bern": WaterTempBern(),
     "tt_bern": AirTempBern(),
-    "tt_bern_log": TransformedFeature(AirTempBern(), "_log", Mapper(np.log)),
-    "tt_bern_sqrt": TransformedFeature(AirTempBern(), "_sqrt", lambda x: x**0.5),
+    # must ensure that none of the transformations can result in NaN, Inf or anything of the sorts
+    "tt_bern_log": TransformedFeature(AirTempBern(), "_log", Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1))),
     "tt_bern_cube": TransformedFeature(AirTempBern(), "_cube", lambda x: x**3),
+    "tt_bern_sqrt": TransformedFeature(AirTempBern(), "_sqrt", Mapper(lambda x: np.sign(x) * abs(x) ** 0.5)),
 }

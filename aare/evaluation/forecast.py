@@ -64,14 +64,17 @@ class Forecast:
         self.metrics = Metrics.from_series(self.actual, self.prediction)
         return self.metrics
 
-    def plot(self, title: str, ax: Optional[matplotlib.axes.Axes] = None, with_covariates=False):
+    def plot(self, title: str, ax: Optional[matplotlib.axes.Axes] = None, with_covariates: bool | list[str] = False):
         ax = self.actual.plot(label="actual", ax=ax)
         self.prediction.plot(label="prediction", ax=ax)
         ax.set_xlabel("Time")
         ax.set_ylabel("Temperature [°C]")
 
         if with_covariates and self.future_cov is not None:
-            self.future_cov.plot(label="fc", ax=ax)
+            fc = self.future_cov
+            if isinstance(with_covariates, list):
+                fc = fc[with_covariates]
+            fc.plot(label="fc", ax=ax)
 
         if self.metrics is not None:
             title += f" [{self.metrics}]"

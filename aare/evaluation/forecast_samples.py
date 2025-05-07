@@ -20,7 +20,7 @@ class ForecastSamples:
     worst_forecast: Forecast
     """Forecast with the maximum MAE of a set of forecasts (usually all of validation)."""
 
-    def plot(self, title: str, with_covariates=False):
+    def plot(self, title: str, with_covariates: bool | list[str] = False):
         fig, axes = plt.subplot_mosaic("AA;BC")
 
         self.last_forecast.plot(title + " (last)", ax=axes["A"], with_covariates=with_covariates)

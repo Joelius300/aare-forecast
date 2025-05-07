@@ -14,6 +14,7 @@ class TransformedFeature(Feature):
         super().__init__(base_feature.name + suffix, base_feature.required_fields)
         self.base_feature = base_feature
         self._transformer = transformer
+        self._suffix = suffix
 
     def _apply_transformation(self, ts: TimeSeries) -> TimeSeries:
         if isinstance(self._transformer, Mapper):
@@ -28,4 +29,7 @@ class TransformedFeature(Feature):
         ts = self.base_feature.transform(df)
         transformed = self._apply_transformation(ts)
 
-        return transformed
+        comp = transformed.components
+        renamed = transformed.with_columns_renamed(comp.tolist(), (comp + self._suffix).tolist())
+
+        return renamed

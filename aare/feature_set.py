@@ -38,7 +38,7 @@ class FeatureSet:
 
     @property
     def _all_fields(self):
-        return (field for feature in self._all_features for field in feature.required_fields)
+        return list(set(field for feature in self._all_features for field in feature.required_fields))
 
     def _fetch_all(self, period: str | tuple[str, str]) -> pd.DataFrame:
         return self._store.query(period, self._all_fields)

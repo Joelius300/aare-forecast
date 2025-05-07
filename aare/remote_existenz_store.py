@@ -99,6 +99,8 @@ def _rename_col_after_pivot(df: pd.DataFrame, fields: Optional[list[FieldRequest
 
 
 class RemoteExistenzStore:
+    """Client for fetching data from the remote aare.guru InfluxDB database."""
+
     def __init__(self, timeout=60_000, debug=False):
         self.client = InfluxDBClient(
             url="https://influx.konzept.space/",

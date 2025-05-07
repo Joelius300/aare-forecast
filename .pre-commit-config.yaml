@@ -24,6 +24,6 @@ repos:
         types: [python, pyi]
         pass_filenames: false
 -   repo: https://github.com/iterative/dvc
-    rev: 3.59.1
+    rev: 3.59.2
     hooks:
     -   id: dvc-pre-commit

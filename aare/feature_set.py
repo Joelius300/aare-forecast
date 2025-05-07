@@ -7,7 +7,7 @@ from darts.utils.ts_utils import retain_period_common_to_all
 
 import pandas as pd
 
-from aare.features.feature import Feature
+from aare.features.base.feature import Feature
 from aare.params import SplitParams
 from aare.preparation import resample
 from aare.remote_existenz_store import RemoteExistenzStore

@@ -13,12 +13,13 @@ interpolate:
   linear_gap_bound: 3
   cubic_gap_bound: 25
 split:
-  # 15 years training (9 of them clean)
-  train_split: "2001-06-28"
-  # 4 years validation (3 of them very clean)
-  val_split: "2017-01-01"
-  # 4+ years test (4 of them clean)
-  test_split: "2021-01-01"
+  # 12 years in total (2013-2025)
+  train_split: "2013-09-01"
+  # 8 years training
+  val_split: "2021-09-01"
+  # ~2.5 years validation
+  test_split: "2024-01-01"
+  # 1.5+ years test
 validation:
   stride: 24  # one eval per day
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.

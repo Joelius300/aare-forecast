@@ -4,63 +4,63 @@ stages:
     cmd: python scripts/fit_scaler.py
     params:
       params.yaml:
-        split.train_split: '2001-06-28'
-        split.val_split: '2017-01-01'
+        split.train_split: '2013-09-01'
+        split.val_split: '2021-09-01'
     outs:
     - path: data/scaler.pkl
       hash: md5
-      md5: 04ae393096eb85b17d4d380aac7f927b
+      md5: 5e8c3f99d18b55eb14ab1208b4d2ca99
       size: 474
   establish-baselines:
     cmd: python scripts/establish_baselines.py
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2021-01-01'
-        split.val_split: '2017-01-01'
+        split.test_split: '2024-01-01'
+        split.val_split: '2021-09-01'
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: 033b7593d3c8041213e0cd502ace5f4c
+      md5: 80c87d0b8594c8438f87ee3dbfd165d7
       size: 18208
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: 7eaf5d799e3018119b5e18bb1ed5c890
-      size: 26854
+      md5: c1e095ee0348bdb9de8bf7c77fb79711
+      size: 26860
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 7038321f1978cb7743f93397a9c789e5
-      size: 18208
+      md5: 8a55ca12722c94d817d742f2d800adbf
+      size: 18202
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: 3e1d8de357539f4f5f06b964606f4e4a
+      md5: abafbfd6e2363d88aafd9b16ed7b0ea8
       size: 118
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 6c773db05d346855a04d5e4b5c97d86d
+      md5: 264556392fcddf22ee76bc9759d4f336
       size: 118
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 360bc59ab57386f47d91a340e4ff8a25
-      size: 118
+      md5: 237647f9b69445d056c076b724bccedc
+      size: 116
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2021-01-01'
-        split.val_split: '2017-01-01'
+        split.test_split: '2024-01-01'
+        split.val_split: '2021-09-01'
         timesfm.version: 200m
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: e9fdb63352ee98d1c29ca4a31bcf101c
+      md5: cf7a49c40adf4caf42378f609e53c282
       size: 47754
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 31306c1405438b472aca23c7c6602818
-      size: 118
+      md5: 4cee123b6c00b81d2111212140906cfe
+      size: 119

@@ -17,6 +17,11 @@ METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"
 
 
+def _median_filler(df: pd.DataFrame, limit: int):
+    n = limit + 1
+    return df.rolling(window=n, min_periods=1, center=True).median()
+
+
 @overload
 def fill_with_hard_limit(
     df_or_series: pd.DataFrame,
@@ -54,7 +59,7 @@ def fill_with_hard_limit(
     will fill ``limit`` number of NaNs, even if the total number of
     consecutive NaNs is larger than ``limit``. This function instead
     does not fill any data when the number of consecutive NaNs
-    is > ``limit``.
+    is > ``limit``. ``median`` is also supported.
 
     Adapted from: https://stackoverflow.com/a/30538371/11052174
 
@@ -73,10 +78,11 @@ def fill_with_hard_limit(
         to the given inputs.
     """
     # Keep things simple, ensure we have a DataFrame.
-    try:
+    if isinstance(df_or_series, pd.Series):
         df = df_or_series.to_frame()
-    except AttributeError:
+    else:
         df = df_or_series
+    assert isinstance(df, pd.DataFrame), "df isn't a DataFrame after check?!"
 
     to_interp = cast(pd.DataFrame, df[columns] if columns else df)
     columns = list(to_interp.columns)
@@ -92,21 +98,32 @@ def fill_with_hard_limit(
 
     # Loop through columns and update the mask.
     for col in columns:
-        mask.loc[:, col] = (grp.groupby(col)["ones"].transform("count") <= limit) | to_interp[col].notnull()
+        grp_counts = grp.groupby(col)["ones"].transform("count")
+        # (grp_counts <= limit) returns a mask for all parts that are shorter or equal to the specified limit.
+        # Note that the "parts" are separated at places where it switches from nan to non-nan or vice versa, but
+        # the mask includes all parts that are this short, which may contain only nan or no nans at all.
+        # To make sure the mask only contains the groups that consist of nans, combine it with to_interp[col].isna().
+        # When using combine_first, it wouldn't matter because it only takes values from the interpolated df if the
+        # value in the original df is nan (which is obviously only the case in the short parts consisting only of nans).
+        mask.loc[:, col] = (grp_counts <= limit) & to_interp[col].isna()
 
-    # Now, interpolate and use the mask to create NaNs for the larger gaps.
-    if isinstance(fill_method, str):
+    if fill_method == "median":  # custom moving median implementation
+        interpolated = _median_filler(to_interp, limit=limit)
+    elif isinstance(fill_method, str):
         method = getattr(to_interp, fill_method)
-        interpolated = method(limit=limit, **fill_method_kwargs)[mask]
+        interpolated = method(limit=limit, **fill_method_kwargs)
     else:
         # ignore because kwargs aren't supported for Callable
         # noinspection PyArgumentList
-        interpolated = fill_method(to_interp, limit, **fill_method_kwargs)[mask]
+        interpolated = fill_method(to_interp, limit, **fill_method_kwargs)
 
-    out = df.copy()
-    for c in columns:
-        out[c] = interpolated[c]
+    # only take those parts that were from NaN-only sections shorter than the specified limit
+    interpolated = interpolated[mask]
 
+    # put the filled values in the short missing sections of the original
+    out = df.combine_first(cast(pd.DataFrame, interpolated))
+
+    # add extra columns to show which values were filled in
     if add_was_filled:
         was_filled_mask = ~to_interp.notnull() & out.notnull()
         for c in columns:

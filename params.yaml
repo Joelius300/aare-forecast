@@ -17,9 +17,9 @@ split:
   train_split: "2013-09-01"
   # 8 years training
   val_split: "2021-09-01"
-  # ~2.5 years validation
-  test_split: "2024-01-01"
-  # 1.5+ years test
+  # 2 years validation; summer is harder to predict (higher variance), val should not be winter-biased
+  test_split: "2023-09-01"
+  # 1.6+ years test -> expected to eval at ~2y
 validation:
   stride: 24  # one eval per day
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.

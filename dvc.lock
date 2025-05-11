@@ -16,41 +16,41 @@ stages:
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2024-01-01'
+        split.test_split: '2023-09-01'
         split.val_split: '2021-09-01'
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: 80c87d0b8594c8438f87ee3dbfd165d7
-      size: 18208
+      md5: 1d6e24492cdf2f6c1b978cde35461249
+      size: 18151
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: c1e095ee0348bdb9de8bf7c77fb79711
-      size: 26860
+      md5: d10b4520d1c66b9d0a66f71a439f87e7
+      size: 24228
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 8a55ca12722c94d817d742f2d800adbf
-      size: 18202
+      md5: 6c2c2718bf0f4525fbd9ec9cf9832a5b
+      size: 18151
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: abafbfd6e2363d88aafd9b16ed7b0ea8
+      md5: ed1baf95d5c461f74663fa8604dfc47a
       size: 118
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 264556392fcddf22ee76bc9759d4f336
+      md5: deb923ced9722f0ce854f3432511128c
       size: 118
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 237647f9b69445d056c076b724bccedc
-      size: 116
+      md5: a8532a4e6b88891c0a306e391a9cdd41
+      size: 118
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2024-01-01'
+        split.test_split: '2023-09-01'
         split.val_split: '2021-09-01'
         timesfm.version: 200m
         validation.min_lookback_hours: 24
@@ -58,9 +58,9 @@ stages:
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: cf7a49c40adf4caf42378f609e53c282
-      size: 47754
+      md5: fe608811205be19e4331656a667e04bd
+      size: 47706
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 4cee123b6c00b81d2111212140906cfe
-      size: 119
+      md5: 3d9b95e5b616ef98019db37e10f0e966
+      size: 116

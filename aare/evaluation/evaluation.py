@@ -84,19 +84,22 @@ def _evaluate_model(
     backtest_flat = np.concatenate(backtest, axis=0)
     historical_forecasts_flat = [ts for ll in historical_forecasts for ts in ll]
 
-    worst_index, best_index = np.argmax(backtest_flat, axis=0), np.argmin(backtest_flat, axis=0)
-    assert worst_index.shape == (2,) and best_index.shape == (2,), "worst, best index reduction is faulty"
-    worst_index, best_index = worst_index[metric_i], best_index[metric_i]
-    # TODO could check and warn if MAE and RMSE result in different best/worst
-
     metrics_median = np.median(backtest_flat, axis=0).astype(float)
     metrics_std = np.std(backtest_flat, axis=0, dtype=float)
     assert metrics_median.shape == (2,) and metrics_std.shape == (2,), "metric reduction is faulty"
     metrics = Metrics(mae=metrics_median[0], rmse=metrics_median[1], mae_std=metrics_std[0], rmse_std=metrics_std[1])
 
+    worst_index, best_index = np.argmax(backtest_flat, axis=0), np.argmin(backtest_flat, axis=0)
+    most_avg_index = np.argmin(np.abs(backtest_flat - metrics_median), axis=0)
+    assert worst_index.shape == (2,) and best_index.shape == (2,) and most_avg_index.shape == (2,), (
+        "worst, best, most_avg index reduction is faulty"
+    )
+    worst_index, best_index, most_avg_index = worst_index[metric_i], best_index[metric_i], most_avg_index[metric_i]
+    # TODO could check and warn if MAE and RMSE result in different best/worst
+
     return (
         metrics,
-        (historical_forecasts_flat[-1], backtest_flat[-1]),
+        (historical_forecasts_flat[most_avg_index], backtest_flat[most_avg_index]),
         (historical_forecasts_flat[best_index], backtest_flat[best_index]),
         (historical_forecasts_flat[worst_index], backtest_flat[worst_index]),
     )
@@ -258,7 +261,7 @@ def evaluate_model(
     Allows for parallelization, but beware that it will replicate the model on multiple processes, so it has to be
     pickleable, and it will multiply memory usage.
 
-    Returns the aggregated metrics as well as the last, best and worst prediction
+    Returns the aggregated metrics as well as the most average, best and worst prediction
     the model made (decided by MAE or whatever you specify).
     """
     if isinstance(val, TimeSeries):
@@ -272,7 +275,7 @@ def evaluate_model(
 
     (
         metrics,
-        (last_prediction, last_prediction_m),
+        (most_avg_prediction, most_avg_prediction_m),
         (best_prediction, best_prediction_m),
         (worst_prediction, worst_prediction_m),
     ) = _evaluate_model(
@@ -289,8 +292,8 @@ def evaluate_model(
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
-    last_forecast = Forecast(
-        val, last_prediction, lookback_hours, Metrics.from_ndarray(last_prediction_m), future_cov=future_cov
+    most_avg_forecast = Forecast(
+        val, most_avg_prediction, lookback_hours, Metrics.from_ndarray(most_avg_prediction_m), future_cov=future_cov
     )
     best_forecast = Forecast(
         val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
@@ -299,7 +302,7 @@ def evaluate_model(
         val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
     )
 
-    sample = ForecastSamples(last_forecast, best_forecast, worst_forecast)
+    sample = ForecastSamples(most_avg_forecast, best_forecast, worst_forecast)
 
     return metrics, sample
 

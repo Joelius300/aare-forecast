@@ -1,15 +1,16 @@
 # Aare Forecasting
 
 I bi vou binech das [momentan z viu AI-Hype ume isch](https://ai.aare.guru/) aber weisch wi geil we dr Aare Guru
-scho ä Wuche im vorus chli wüsst wi warm d Aare de isch u wiviu Wasser si de het?
+scho paar Täg im vorus ungfähr wüsst wi warm d Aare de isch u wiviu Wasser si de het?
+
+**Namensidee:** Aare Oraku \
+**Logoidee**: Wätterfrosch wo uf sire Leitere steit und id witi luegt aus wärs ä Schiffsusguck während er mit sim Glas d Aare ab tribt <- di Idee hani vorem Name gha
 
 Implementiert isch no nid viu aber ha dänkt i fa mau a.
 
 Interessanterwiis gits scho ä Vorhersag zum Wasserabfluss (d Wassermängi im Aare.guru) vom Bund, i nime a di isch
-scho sehr guet. Zur Temperatur gits schiinbar keni, ds wär auso ä Challenge, aber mä cha o hingerfrage wieso dr Bund
-keni macht (isches z schwär? äuä eher eifach belanglos fr si). Zur Azeig und o zur Vorhersag chönntme das auso direkt bruche.
-
-**Logoidee**: Wätterfrosch wo uf sire Leitere steit und id witi luegt aus wärs ä Schiffsusguck während er mit sim Glas d Aare ab tribt
+scho sehr guet u chönnt direkt verwendet werde. Übrig blibt auso d Temperaturvorhersag, wo vermuetlech eifacher isch
+aus d Abflussvorhersag, drum probiere mrs eis.
 
 ## Setup
 
@@ -20,20 +21,23 @@ uv venv
 source .venv/bin/activate
 ```
 
-To run the pipelines, do this (from root).
+To run the pipelines, do this (from the project root).
 
 ```bash
 export PYTHONPATH="$PWD"
 dvc repro
 ```
 
-## Links
+## Quellen & Links
+
+D Date chöme vom [aare.guru](https://aare.guru) säuber oder vom [BAFU](https://www.hydrodaten.admin.ch/),
+aggregiert im wahnsinnig tolle Archiv vom [Bureau für digitale Existenz](https://bureau.existenz.ch/).
 
 - [Aare.guru API Description](https://aareguru.existenz.ch/)
 - [InfluxDB Access ❤️](https://api.existenz.ch/#influx)
 - [SwissMetNet Dataset Description](https://api-datasette.konzept.space/existenz-api/smn_parameters)
 - [BAFU Hydrologie Dataset Description](https://api-datasette.konzept.space/existenz-api/hydro_parameters)
-- [Hydrologische Vorhersagen vom Bund (nüt dopplet mache)](https://www.bafu.admin.ch/bafu/de/home/themen/wasser/fachinformationen/zustand-der-gewaesser/hydrologische-vorhersagen-des-bundes.html)
+- [Hydrologische Vorhersagen vom Bund (nüt dopplet mache)](https://www.bafu.admin.ch/bafu/de/home/themen/wasser/extremereignisse/hydrologische-vorhersagen-des-bundes.html)
 
 ### Potenzielle Ressourcen
 
@@ -48,4 +52,4 @@ dvc repro
 
 AGPL-3.0
 
-(für aare.guru fände mr sicher ä gueti Lösig, i mache ds hie houptsächläch füre Spass u fänds riise geil 's i aare.guru z integriere wes de ändlech fr öppis isch)
+(für aare.guru müesst das nid kümmere, i mache ds hie houptsächläch füre Spass u fänds riise geil 's i aare.guru z integriere wes de ändlech fr öppis isch)

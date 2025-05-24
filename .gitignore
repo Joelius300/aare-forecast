@@ -166,3 +166,4 @@ cython_debug/
 
 res_locf.png
 res_locf_mstl.png
+.jupyter_ystore.db

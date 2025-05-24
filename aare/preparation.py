@@ -2,6 +2,7 @@
 #  to transition to the feature class without breaking all the old notebooks etc.
 from typing import cast, Optional
 
+from deprecated import deprecated
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
@@ -18,13 +19,15 @@ def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
 
 
 def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
+    """Resample the dataframe to the (in the params.yaml) specified frequency/resolution."""
     if freq is None:
         freq = read_params()["general"]["frequency"]
 
     return _resample(df, freq)
 
 
-def remove_faulty_periods(df: pd.DataFrame) -> pd.DataFrame:
+@deprecated(reason="Move faulty periods into feature class")
+def remove_faulty_periods_aare_temp(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     df.loc[between(df, "2003-01-28", "2003-03-03"), TEMP] = np.nan
@@ -32,7 +35,7 @@ def remove_faulty_periods(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _remove_outliers(
+def remove_outliers(
     df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float, col=TEMP
 ) -> pd.DataFrame:
     df = df.copy()
@@ -69,13 +72,14 @@ def _remove_outliers(
     return cast(pd.DataFrame, df[orig_cols])
 
 
-def remove_outliers(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
+@deprecated(reason="Work with WaterTempBern feature")
+def remove_outliers_aare_temp(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
     params = read_params()["cleanup"]
 
-    return _remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col)
+    return remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col)
 
 
-def _interpolate(
+def interpolate_continuous(
     df: pd.DataFrame,
     linear_gap_bound: int,
     cubic_gap_bound: int,
@@ -107,7 +111,8 @@ def _interpolate(
     return df
 
 
-def interpolate(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | None = TEMP) -> pd.DataFrame:
+@deprecated(reason="Work with WaterTempBern feature")
+def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | None = TEMP) -> pd.DataFrame:
     """
     Interpolate the temperature column according to the configured options, or more columns.
     Set columns to None for all columns, otherwise it will only to 'temperature'.
@@ -117,19 +122,20 @@ def interpolate(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | 
     """
     params = read_params()["interpolate"]
 
-    return _interpolate(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
+    return interpolate_continuous(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
 
 
-def prepare_ts(raw: pd.DataFrame) -> TimeSeries:
+@deprecated(reason="Work with WaterTempBern feature")
+def prepare_ts_aare_temp(raw: pd.DataFrame) -> TimeSeries:
     """
     Run all the preparation steps on the raw data and return a clean TimeSeries.
 
     WARNING: Might still contain gaps and must be split with extract_subseries.
     """
     ts = resample(raw)
-    ts = remove_faulty_periods(ts)
-    ts = remove_outliers(ts)
-    ts = interpolate(ts, drop_filled=True)
+    ts = remove_faulty_periods_aare_temp(ts)
+    ts = remove_outliers_aare_temp(ts)
+    ts = interpolate_aare_temp(ts, drop_filled=True)
     ts = to_ts(ts)
 
     return ts

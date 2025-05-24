@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from aare.AareDataset import AareDataset
 from aare.constants import TEMP
 from aare.normalization import store_scaler
-from aare.preparation import resample, remove_faulty_periods, remove_outliers
+from aare.preparation import resample, remove_faulty_periods_aare_temp, remove_outliers_aare_temp
 
 
 logger = logging.getLogger(__name__)
@@ -21,8 +21,8 @@ def prepare_data(dataset: AareDataset):
     train = dataset.get_train()
 
     train = resample(train)
-    train = remove_faulty_periods(train)
-    train = remove_outliers(train)
+    train = remove_faulty_periods_aare_temp(train)
+    train = remove_outliers_aare_temp(train)
 
     return train
 

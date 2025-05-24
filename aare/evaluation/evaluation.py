@@ -19,7 +19,7 @@ from aare.evaluation.forecast import Forecast
 from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.metrics import Metrics
 from aare.params import ValidationParams
-from aare.preparation import prepare_ts
+from aare.preparation import prepare_ts_aare_temp
 from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
 
 logger = logging.getLogger(__name__)
@@ -314,7 +314,7 @@ def evaluation_pipeline_uni(
     dataset = AareDataset.from_conf()
     stride = validation_params["stride"]
     min_lookback_hours = validation_params["min_lookback_hours"]
-    val = prepare_ts(dataset.get_val())
+    val = prepare_ts_aare_temp(dataset.get_val())
     val_subs = extract_subseries(val)
 
     # mostly to suppress the torch notice, darts has bad support for this

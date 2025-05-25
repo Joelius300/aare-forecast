@@ -26,6 +26,10 @@ def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
     return _resample(df, freq)
 
 
+def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
+    df.loc[between(df, from_, to_), col] = np.nan
+
+
 @deprecated(reason="Move faulty periods into feature class")
 def remove_faulty_periods_aare_temp(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -85,7 +89,7 @@ def interpolate_continuous(
     cubic_gap_bound: int,
     drop_filled: bool,
     columns: str | list[str] | None = TEMP,
-):
+) -> pd.DataFrame:
     df = df.copy()
     if columns is None:
         columns = list(df.columns)

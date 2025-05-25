@@ -4,6 +4,7 @@ from darts.dataprocessing.transformers import Mapper
 from aare.features.air_temp_bern import AirTempBern
 from aare.features.base.feature import Feature
 from aare.features.base.transformed_feature import TransformedFeature
+from aare.features.flow_bern import FlowBern
 from aare.features.sunshine_bern import SunshineBern
 from aare.features.water_temp_bern import WaterTempBern
 
@@ -42,4 +43,5 @@ FEATURES = {
     "ss_bern_ma12": _make_ma(SunshineBern(), 12),
     "ss_bern_ma24": _make_ma(SunshineBern(), 24),
     "ss_bern_ma60": _make_ma(SunshineBern(), 60),
+    "flow_bern": FlowBern(),
 }

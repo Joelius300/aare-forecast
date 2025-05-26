@@ -612,6 +612,7 @@ fsspec==2025.3.2 \
     #   dvc-http
     #   dvc-objects
     #   huggingface-hub
+    #   lightning
     #   pytorch-lightning
     #   scmrepo
     #   torch
@@ -978,10 +979,14 @@ kombu==5.5.3 \
     #   celery
     #   dvc
     #   dvc-task
+lightning==2.5.1.post0 \
+    --hash=sha256:a228a52ca52f0c5006ff327c92b8942f09e1aea3f2d9b0d7c8a209edd5b9e71d \
+    --hash=sha256:fda1ac63c283b3b08a54be8d905dd88469cf09e9845d36dd28b699e78911cbc8
 lightning-utilities==0.14.3 \
     --hash=sha256:37e2f83f273890052955a44054382c211a303012ee577619efbaa5df9e65e9f5 \
     --hash=sha256:4ab9066aa36cd7b93a05713808901909e96cc3f187ea6fd3052b2fd91313b468
     # via
+    #   lightning
     #   pytorch-lightning
     #   torchmetrics
 llvmlite==0.44.0 \
@@ -1426,6 +1431,7 @@ packaging==24.2 \
     #   jupyter-server
     #   jupyterlab
     #   jupyterlab-server
+    #   lightning
     #   lightning-utilities
     #   matplotlib
     #   mlflow-skinny
@@ -1818,7 +1824,9 @@ python-json-logger==3.3.0 \
 pytorch-lightning==2.5.1.post0 \
     --hash=sha256:873fb21392c8b79908218f5ca8f65bd835439216e52550c36ff55d849e99c93e \
     --hash=sha256:abc3d5a804d41f941b14e3fd7db5572a1270cd1e9889b50e962984c87d498d94
-    # via darts
+    # via
+    #   darts
+    #   lightning
 pytz==2025.2 \
     --hash=sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3 \
     --hash=sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00
@@ -1866,6 +1874,7 @@ pyyaml==6.0.2 \
     # via
     #   huggingface-hub
     #   jupyter-events
+    #   lightning
     #   mlflow-skinny
     #   omegaconf
     #   pytorch-lightning
@@ -2382,6 +2391,7 @@ torch==2.7.0 \
     # via
     #   benchpots
     #   darts
+    #   lightning
     #   pygrinder
     #   pypots
     #   pytorch-lightning
@@ -2389,7 +2399,9 @@ torch==2.7.0 \
 torchmetrics==1.7.1 \
     --hash=sha256:0ac1a0e90d2375866ceb5d3868720c6df7d7d0c5729b7ad36e92c897c6af70c2 \
     --hash=sha256:9a4c45edbd0a1844cc1540c9e71bfbe0ee783a2ed997344d947fefecac90dbb9
-    # via pytorch-lightning
+    # via
+    #   lightning
+    #   pytorch-lightning
 tornado==6.4.2 \
     --hash=sha256:072ce12ada169c5b00b7d92a99ba089447ccc993ea2143c9ede887e0937aa803 \
     --hash=sha256:1a017d239bd1bb0919f72af256a970624241f070496635784d9bf0db640d3fec \
@@ -2418,6 +2430,7 @@ tqdm==4.67.1 \
     #   dvc-data
     #   fsspec
     #   huggingface-hub
+    #   lightning
     #   pytorch-lightning
     #   scmrepo
     #   shap
@@ -2484,6 +2497,7 @@ typing-extensions==4.13.2 \
     #   fastapi
     #   graphene
     #   huggingface-hub
+    #   lightning
     #   lightning-utilities
     #   mlflow-skinny
     #   opentelemetry-sdk

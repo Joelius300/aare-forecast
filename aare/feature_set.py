@@ -13,6 +13,12 @@ from aare.preparation import resample
 from aare.remote_existenz_store import RemoteExistenzStore
 
 
+# TODO it would be very nice to have the option (maybe per feature) to
+#  avoid removing so much data as that fragments the training and val data.
+#  Instead it would fill the gaps up to a certain size with -99 and create a companion feature
+#  indicating whether it was filled in or not.
+#  Maybe extra feature could be to fill in spots where maximum X out of Y features are NaN,
+#  if more are NaN, a split is needed.
 class FeatureSet:
     def __init__(
         self,

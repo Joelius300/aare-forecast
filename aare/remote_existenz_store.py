@@ -50,7 +50,6 @@ class FieldRequest:
         self.location_orig = location
         assert measurement in ["hydro", "smn"], f"Invalid measurement: '{measurement}'"
         self.location = translate_location(location, cast(Literal["hydro", "smn"], measurement))
-        # ma: Optional[str] = None
 
     def __str__(self):
         return f"{self.measurement}/{self.field}:{self.agg_fn}_{self.freq}@{self.location_orig}"

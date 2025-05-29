@@ -20,6 +20,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "gunicorn>=23.0.0",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",
     "jupyter>=1.1.1",
@@ -27,6 +28,9 @@ dev = [
     "lightning>=2.5.1.post0",
     "mlflow>=2.22.0",
     "nbstripout>=0.8.1",
+    "optuna>=4.3.0",
+    "optuna-dashboard>=0.18.0",
+    "optuna-fast-fanova>=0.0.4",
     "psutil>=7.0.0",
     "pynvml>=12.0.0",
     "pyright>=1.1.391",

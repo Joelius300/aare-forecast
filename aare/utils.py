@@ -11,10 +11,14 @@ from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 
+# since __file__ is an absolute path, all paths derived are also absolute
 DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"
+
+OPTUNA_STORE = DATA_FOLDER / "optuna-trials.db"
+OPTUNA_STORE_URI = f"sqlite:///{OPTUNA_STORE}"
 
 
 def _median_filler(df: pd.DataFrame, limit: int):

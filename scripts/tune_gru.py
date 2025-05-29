@@ -118,6 +118,17 @@ class GRUTuning:
 
         # how many hours lookback when predicting
         input_chunk_length = trial.suggest_int("input_chunk_length", 1, 24)
+
+        add_encoders = None
+        add_hour_enc = trial.suggest_categorical("add_hour_enc", [True, False])
+        add_year_enc = trial.suggest_categorical("add_year_enc", [True, False])
+        if add_hour_enc or add_year_enc:
+            enc = []
+            if add_hour_enc:
+                enc.append("hour")
+            if add_year_enc:
+                enc.append("day_of_year")
+            add_encoders = {"cyclic": {"future": enc}}
         hparams_model = dict(
             model=MODEL_NAME,
             input_chunk_length=input_chunk_length,
@@ -159,8 +170,7 @@ class GRUTuning:
                 "callbacks": [early_stopping, pruning],
                 "log_every_n_steps": 50,
             },
-            # TODO make these two boolean hparams
-            add_encoders={"cyclic": {"future": ["hour", "day_of_year"]}},
+            add_encoders=add_encoders,
         )
 
         mlflow.log_params({"model_" + key: value for key, value in hparams_model.items()})
@@ -214,6 +224,9 @@ class GRUTuning:
 
     def __call__(self, trial: Trial):
         with mlflow.start_run(nested=True, log_system_metrics=True) as run:
+            trial.set_user_attr("mlflow_run_id", run.info.run_id)
+            mlflow.set_tag("optuna_study", trial.study.study_name)
+            mlflow.set_tag("optuna_trial", trial.number)
             mlflow.log_params(self.hparams_general)
             model = self.get_model(trial, run)
             self.fit(model)
@@ -249,7 +262,19 @@ def main():
     )
 
     mlflow.set_experiment(MODEL_NAME)
-    with mlflow.start_run(run_name=name, description="Tune hparams of GRU without changing features"):
+    with mlflow.start_run(run_name=name, description="Tune hparams of GRU without changing features") as parent_run:
+        mlflow.set_tag("optuna_study", study.study_name)
+        study.set_user_attr("mlflow_exp_id", parent_run.info.experiment_id)
+        study.set_user_attr("mlflow_parent_run_id", parent_run.info.run_id)
+
+        # Stop fake "running" trial and re-queue them (they are left when cancelling with ctrl+c).
+        # Of course this won't work in a distributed setting where multiple runs could actually be running etc.
+        for trial in study.trials:
+            if trial.state == optuna.trial.TrialState.RUNNING:
+                logging.info(f"Failing and re-queuing previously running trial {trial.number}")
+                study.enqueue_trial(trial.params)
+                study.tell(trial.number, state=optuna.trial.TrialState.FAIL)
+
         study.optimize(GRUTuning(params, features, batch_size, max_n_epochs))
 
 

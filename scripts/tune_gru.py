@@ -1,20 +1,17 @@
 import logging
-import matplotlib.pyplot as plt
 import os
 from typing import cast
 
+import matplotlib.pyplot as plt
 import mlflow
 import optuna
-from darts.models import RNNModel
-from mlflow import ActiveRun
-
-from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
-
 import torch
 import torchmetrics
 from darts import TimeSeries
 from darts.dataprocessing.transformers import Scaler
+from darts.models import RNNModel
 from lightning_fabric import seed_everything
+from mlflow import ActiveRun
 from optuna import Trial
 from optuna.pruners import HyperbandPruner
 from optuna.samplers import TPESampler
@@ -24,6 +21,7 @@ from sklearn.preprocessing import StandardScaler
 from torch import nn
 from torchmetrics import MetricCollection
 
+from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare.evaluation.evaluation import DataTransformers, evaluate_model
 from aare.evaluation.metrics import Metrics
 from aare.feature_set import FeatureSet
@@ -233,6 +231,7 @@ class GRUTuning:
             metrics = self.evaluate(model, run)
 
             # this is what will be minimized by optuna
+            # TODO also minimize nr of params?
             return metrics.mae
 
 

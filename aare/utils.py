@@ -150,6 +150,7 @@ def between(df, from_, to_):
 
 
 def ensure_frame(df: pd.DataFrame | pd.Series) -> pd.DataFrame:
+    """Transform a pandas series/dataframe into a dataframe, if needed."""
     if isinstance(df, pd.Series):
         return df.to_frame()
     return df
@@ -201,6 +202,7 @@ def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]
 
 
 def get_context_len(model: ForecastingModel) -> int:
+    """Get the context length of a forecasting model"""
     # written before I realized that extreme_lags[0] should equal the context length, but now incorporated
     extreme_lags = model.extreme_lags
     abs_min_target_lag = abs(extreme_lags[0]) if extreme_lags[0] is not None else None
@@ -219,3 +221,19 @@ def get_context_len(model: ForecastingModel) -> int:
     )
 
     return context_len
+
+def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[TimeSeries]):
+    """Get some train/val data stats for logging."""
+    train_lens = [len(x) for x in train_target_subs]
+    val_lens = [len(x) for x in val_target_subs]
+    return {
+        "train_lens": train_lens,
+        "train_len_total": sum(train_lens),
+        "train_n_subs": len(train_lens),
+        "val_lens": val_lens,
+        "val_len_total": sum(val_lens),
+        "val_n_subs": len(val_lens),
+        "val_split": sum(val_lens) / (sum(val_lens) + sum(train_lens)),
+    }
+
+

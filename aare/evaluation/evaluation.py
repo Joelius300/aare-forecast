@@ -2,19 +2,18 @@ import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
-from typing import Literal, Mapping, Optional, Sequence, cast, TypedDict, NotRequired
+from typing import Literal, Mapping, Optional, Sequence, cast
 
 import numpy as np
 import torch
 from darts import TimeSeries
-from darts.dataprocessing import Pipeline
-from darts.dataprocessing.transformers import BaseDataTransformer
 from darts.metrics import mae, rmse
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.global_baseline_models import _GlobalNaiveModel
 from darts.utils.missing_values import extract_subseries
 
 from aare.AareDataset import AareDataset
+from aare.compat.types import DataTransformers
 from aare.evaluation.forecast import Forecast
 from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.metrics import Metrics
@@ -23,14 +22,6 @@ from aare.preparation import prepare_ts_aare_temp
 from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
 
 logger = logging.getLogger(__name__)
-
-
-class DataTransformers(TypedDict):
-    """Typing for the data_transformers argument of the historical_forecast (backtest) function."""
-
-    series: NotRequired[BaseDataTransformer | Pipeline]
-    past_covariates: NotRequired[BaseDataTransformer | Pipeline]
-    future_covariates: NotRequired[BaseDataTransformer | Pipeline]
 
 
 def _evaluate_model(

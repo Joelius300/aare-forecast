@@ -1,14 +1,11 @@
 import logging
 import os
-from typing import cast
 
 import matplotlib.pyplot as plt
 import mlflow
 import optuna
 import torch
 import torchmetrics
-from darts import TimeSeries
-from darts.dataprocessing.transformers import Scaler
 from darts.models import RNNModel
 from lightning_fabric import seed_everything
 from mlflow import ActiveRun
@@ -17,61 +14,17 @@ from optuna.pruners import HyperbandPruner
 from optuna.samplers import TPESampler
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import MLFlowLogger
-from sklearn.preprocessing import StandardScaler
 from torch import nn
 from torchmetrics import MetricCollection
 
 from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
-from aare.evaluation.evaluation import DataTransformers, evaluate_model
+from aare.evaluation.evaluation import evaluate_model
 from aare.evaluation.metrics import Metrics
 from aare.feature_set import FeatureSet
 from aare.features.registry import FEATURES
+from aare.normalization import get_scalers
 from aare.params import read_params, Params
-from aare.utils import OPTUNA_STORE_URI
-
-
-def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[TimeSeries]):
-    train_lens = [len(x) for x in train_target_subs]
-    val_lens = [len(x) for x in val_target_subs]
-    return {
-        "train_lens": train_lens,
-        "train_len_total": sum(train_lens),
-        "train_n_subs": len(train_lens),
-        "val_lens": val_lens,
-        "val_len_total": sum(val_lens),
-        "val_n_subs": len(val_lens),
-        "val_split": sum(val_lens) / (sum(val_lens) + sum(train_lens)),
-    }
-
-
-def get_scalers(
-    train_target_subs: list[TimeSeries],
-    *,
-    train_pc_subs: list[TimeSeries] | None = None,
-    train_fc_subs: list[TimeSeries] | None = None,
-) -> DataTransformers:
-    scaler_target = Scaler(StandardScaler(), global_fit=True)
-    scaler_pc = Scaler(StandardScaler(), global_fit=True) if train_pc_subs is not None else None
-    scaler_fc = Scaler(StandardScaler(), global_fit=True) if train_fc_subs is not None else None
-
-    scaler_target.fit(train_target_subs)
-
-    # darts can't handle if the scaler is just None, it must not be present in the dict...
-    dt = {
-        "series": scaler_target,
-    }
-
-    if scaler_pc:
-        assert train_pc_subs is not None
-        scaler_pc.fit(train_pc_subs)
-        dt.update(past_covariates=scaler_pc)
-    if scaler_fc:
-        assert train_fc_subs is not None
-        scaler_fc.fit(train_fc_subs)
-        dt.update(future_covariates=scaler_fc)
-
-    return cast(DataTransformers, dt)
-
+from aare.utils import OPTUNA_STORE_URI, get_data_stats
 
 MODEL_NAME = "GRU"
 RANDOM_SEED = 42
@@ -268,6 +221,9 @@ def main():
 
         # Stop fake "running" trial and re-queue them (they are left when cancelling with ctrl+c).
         # Of course this won't work in a distributed setting where multiple runs could actually be running etc.
+        # TODO Guard with a semaphore and add logs. For big distributed settings shouldn't use sqlite.
+        # TODO add initial trials to speed up search esp. pruning, makes a big difference.
+        # TODO Set it up so that different models can be tried by optuna and enqueue at least one trial per model.
         for trial in study.trials:
             if trial.state == optuna.trial.TrialState.RUNNING:
                 logging.info(f"Failing and re-queuing previously running trial {trial.number}")

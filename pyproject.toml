@@ -11,11 +11,7 @@ dependencies = [
     "matplotlib>=3.10.0",
     "numpy>=1.26.4",
     "pandas>=2.2.3",
-    "plotly>=5.24.1",
-    "polars>=1.18.0",
-    "pypots>=0.8.1",
     "scikit-learn>=1.5.2",
-    "statsmodels>=0.14.4",
 ]
 
 [dependency-groups]
@@ -30,10 +26,13 @@ dev = [
     "optuna>=4.3.0",
     "optuna-dashboard>=0.18.0",
     "optuna-fast-fanova>=0.0.4",
+    "plotly>=6.1.2",
     "psutil>=7.0.0",
     "pynvml>=12.0.0",
+    "pypots>=0.19",
     "pyright>=1.1.391",
     "ruff>=0.9.5",
+    "statsmodels>=0.14.4",
 ]
 
 [tool.pyright]

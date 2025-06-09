@@ -12,7 +12,7 @@ from aare.constants import TIME
 logger = logging.getLogger(__name__)
 
 # since __file__ is an absolute path, all paths derived are also absolute
-DATA_FOLDER: Path = Path(__file__).parent.parent / "data"
+DATA_FOLDER: Path = Path(__file__).parent.parent.parent.parent.parent / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"
@@ -222,6 +222,7 @@ def get_context_len(model: ForecastingModel) -> int:
 
     return context_len
 
+
 def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[TimeSeries]):
     """Get some train/val data stats for logging."""
     train_lens = [len(x) for x in train_target_subs]
@@ -235,5 +236,3 @@ def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[Ti
         "val_n_subs": len(val_lens),
         "val_split": sum(val_lens) / (sum(val_lens) + sum(train_lens)),
     }
-
-

@@ -1,0 +1,35 @@
+[project]
+name = "aare-shared"
+version = "0.1.0"
+description = "aare-forecast shared library"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "darts>=0.35.0",
+    "dvc>=3.58.0",
+    "influxdb-client>=1.48.0",
+    "matplotlib>=3.10.0",
+    "numpy>=1.26.4",
+    "pandas>=2.2.3",
+    "scikit-learn>=1.5.2",
+]
+package = true
+
+[dependency-groups]
+dev = [
+    "hatchling>=1.27.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# build the package under src/aare (and use that as package root)
+[tool.hatch.build.targets.wheel]
+packages = ["src/aare"]
+
+# with this uv monorepo setup, there is only one venv at /.venv
+[tool.pyright]
+venvPath = "../.."
+venv = ".venv"
+pythonVersion = "3.12"

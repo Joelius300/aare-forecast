@@ -4,18 +4,12 @@ version = "0.1.0"
 description = "Forecasting temperature (and water level) for the Swiss river Aare"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "darts>=0.35.0",
-    "dvc>=3.58.0",
-    "influxdb-client>=1.48.0",
-    "matplotlib>=3.10.0",
-    "numpy>=1.26.4",
-    "pandas>=2.2.3",
-    "scikit-learn>=1.5.2",
-]
+dependencies = []
+package = false
 
 [dependency-groups]
 dev = [
+    "aare-shared",
     "gunicorn>=23.0.0",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",
@@ -37,3 +31,11 @@ dev = [
 
 [tool.pyright]
 reportRedeclaration = "warning"
+
+[tool.uv.workspace]
+members = [
+    "src/aare-shared",
+]
+
+[tool.uv.sources]
+aare-shared = { workspace = true }

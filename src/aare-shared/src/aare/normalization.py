@@ -23,10 +23,10 @@ def store_scaler(scaler: StandardScaler, path: PathLike = SCALER_PATH):
 
 
 def get_scalers(
-        train_target_subs: list[TimeSeries],
-        *,
-        train_pc_subs: list[TimeSeries] | None = None,
-        train_fc_subs: list[TimeSeries] | None = None,
+    train_target_subs: list[TimeSeries],
+    *,
+    train_pc_subs: list[TimeSeries] | None = None,
+    train_fc_subs: list[TimeSeries] | None = None,
 ) -> DataTransformers:
     """Train darts compatible StandardScalers for target, past cov and future cov."""
     scaler_target = Scaler(StandardScaler(), global_fit=True)
@@ -50,4 +50,3 @@ def get_scalers(
         dt.update(future_covariates=scaler_fc)
 
     return dt
-

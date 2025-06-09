@@ -1,12 +1,15 @@
 # /// script
 # requires-python = ">=3.10,<3.12"
 # dependencies = [
+#     "aare-shared",
 #     "darts==0.35.0",
 #     "dvc",
 #     "influxdb-client",
 #     "pandas",
 #     "timesfm[torch]",
 # ]
+# [tool.uv.sources]
+# aare-shared = { workspace = true }
 # ///
 import logging
 

@@ -10,7 +10,7 @@
 
 ![Aare Oraku Komponente](./img/architecture-mvp.png)
 
-Drei neue Komponente werden für das Aare Oraku benötigt.
+Drei neue Software Komponente werden für das Aare Oraku benötigt.
 
 ### Python Prediction Batch Job
 
@@ -53,3 +53,18 @@ Nach aktueller Idee wäre das Scheduling auf Orchestrator-Ebene, das heisst, ein
 ### Scaling
 
 Für MVP eigentlich auch noch nicht wichtig aber mit dieser Architektur könnte alles individuell skaliert werden, je nach Bedarf ist.
+
+## Modell
+
+Das Vorhersagemodell für den MVP hat tiefe Anforderungen und wird nicht perfekt sein. Es muss
+
+1. mind. 24h in die Zukunft Vorhersagen machen
+2. möglichst wenige Datenquellen haben, damit MVP bald mal läuft
+3. eine eval MAE mit 4 Tage Horizont von < 0.5 °C haben \
+   Kontext: beste Baseline ist bei ~0.58 und bisher bestes LR-Modell war bei ~0.35
+
+Zudem gelten die initialen Spezifikationen von [specs.md](./specs.md) heisst
+
+- nur Bern, Schönau (2135)
+- Auflösung: 1h
+- reicht, wenn es einmal täglich läuft (und sonst schlechte Perf hat)

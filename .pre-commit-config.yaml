@@ -5,12 +5,12 @@ repos:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.11
+    rev: 0.7.12
     hooks:
     -   id: uv-lock
     -   id: uv-export
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.12
+    rev: v0.11.13
     hooks:
     -   id: ruff-check
         args: [--fix]
@@ -24,6 +24,6 @@ repos:
         types: [python, pyi]
         pass_filenames: false
 -   repo: https://github.com/iterative/dvc
-    rev: 3.59.2
+    rev: 3.60.0
     hooks:
     -   id: dvc-pre-commit

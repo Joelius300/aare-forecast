@@ -1,8 +1,8 @@
 # TODO: This module will need a big refactor, since this was just for the temperature feature and we want
 #  to transition to the feature class without breaking all the old notebooks etc.
 from typing import cast, Optional
+from typing_extensions import deprecated
 
-from deprecated import deprecated
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
@@ -30,7 +30,7 @@ def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
     df.loc[between(df, from_, to_), col] = np.nan
 
 
-@deprecated(reason="Move faulty periods into feature class")
+@deprecated("Move faulty periods into feature class")
 def remove_faulty_periods_aare_temp(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
@@ -76,7 +76,7 @@ def remove_outliers(
     return cast(pd.DataFrame, df[orig_cols])
 
 
-@deprecated(reason="Work with WaterTempBern feature")
+@deprecated("Work with WaterTempBern feature")
 def remove_outliers_aare_temp(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
     params = read_params()["cleanup"]
 
@@ -115,7 +115,7 @@ def interpolate_continuous(
     return df
 
 
-@deprecated(reason="Work with WaterTempBern feature")
+@deprecated("Work with WaterTempBern feature")
 def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | None = TEMP) -> pd.DataFrame:
     """
     Interpolate the temperature column according to the configured options, or more columns.
@@ -129,7 +129,7 @@ def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | li
     return interpolate_continuous(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
 
 
-@deprecated(reason="Work with WaterTempBern feature")
+@deprecated("Work with WaterTempBern feature")
 def prepare_ts_aare_temp(raw: pd.DataFrame) -> TimeSeries:
     """
     Run all the preparation steps on the raw data and return a clean TimeSeries.

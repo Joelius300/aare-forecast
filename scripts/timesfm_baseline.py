@@ -8,8 +8,9 @@
 #     "pandas",
 #     "timesfm[torch]",
 # ]
+#
 # [tool.uv.sources]
-# aare-shared = { workspace = true }
+# aare-shared = { path = "../src/aare-shared" }
 # ///
 import logging
 

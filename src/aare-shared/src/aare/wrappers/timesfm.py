@@ -1,3 +1,5 @@
+"""This module is meant to work with timesfm, which only works with Python 3.11"""
+
 import enum
 from typing import Optional, Union, Sequence
 

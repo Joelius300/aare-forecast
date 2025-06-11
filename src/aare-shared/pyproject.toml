@@ -3,7 +3,7 @@ name = "aare-shared"
 version = "0.1.0"
 description = "aare-forecast shared library"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "darts>=0.35.0",
     "dvc>=3.58.0",

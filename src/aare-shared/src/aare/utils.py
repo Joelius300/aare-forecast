@@ -11,6 +11,7 @@ from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 
+# TODO this does not work anymore if we package this file :(
 # since __file__ is an absolute path, all paths derived are also absolute
 DATA_FOLDER: Path = Path(__file__).parent.parent.parent.parent.parent / "data"
 

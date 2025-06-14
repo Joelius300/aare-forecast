@@ -5,16 +5,10 @@ repos:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.12
+    rev: 0.7.13
     hooks:
     -   id: uv-lock
     -   id: uv-export
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
-    hooks:
-    -   id: ruff-check
-        args: [--fix]
-    -   id: ruff-format
 -   repo: local
     hooks:
     -   id: pyright-local
@@ -23,7 +17,19 @@ repos:
         entry: uv run pyright
         types: [python, pyi]
         pass_filenames: false
+    -   id: ruff-check-local
+        language: system
+        name: ruff-check-local
+        entry: uv run ruff check --fix
+        types: [python, pyi]
+        pass_filenames: false
+    -   id: ruff-format-local
+        language: system
+        name: ruff-format-local
+        entry: uv run ruff format
+        types: [python, pyi]
+        pass_filenames: false
 -   repo: https://github.com/iterative/dvc
-    rev: 3.60.0
+    rev: 3.60.1
     hooks:
     -   id: dvc-pre-commit

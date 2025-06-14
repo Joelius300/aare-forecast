@@ -13,3 +13,13 @@ repro:
 lint:
   uv run ruff check --fix
   uv run ruff format
+
+mlflow:
+  uv run mlflow ui
+
+optuna:
+  uv run optuna-dashboard sqlite:///data/optuna-trials.db
+
+# start both mlflow ui and optuna-dashboard. on my setup, ctrl+c once closes both, idk..
+track:
+  just mlflow & just optuna && fg

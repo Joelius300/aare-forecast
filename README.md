@@ -39,6 +39,19 @@ In vscode, when it asks after first time execution, set the environment to the r
 If you want to use JupyterLab, you need to install the kernelspec first: `just install-kernel` \
 Then run `jupyter lab`. You'll need to change the kernel in the top right for every notebook.
 
+To start the mlflow ui and the optuna dashboard for experiment tracking and hyperparameter tuning, use the following commands in separate terminals:
+
+```bash
+just mlflow
+just optuna
+```
+
+Or use
+
+```bash
+just track
+```
+
 If you want to work with the code instead of just running it, I suggest you install `nbstripout` (already in venv) and `pre-commit` (`uv tool install pre-commit`).
 To set them up, run the following.
 

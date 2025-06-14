@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/aare-shared/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/prediction-service" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/projects/aare-forecast/.venv" jdkType="Python SDK" />

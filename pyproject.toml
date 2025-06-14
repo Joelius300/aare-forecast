@@ -35,6 +35,7 @@ reportRedeclaration = "warning"
 [tool.uv.workspace]
 members = [
     "src/aare-shared",
+    "src/prediction-service",
 ]
 
 [tool.uv.sources]

@@ -1,0 +1,12 @@
+[project]
+name = "aare-oraku-prediction"
+version = "0.1.0"
+description = "Prediction service to fetch external data and persist predictions to a DB"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aare-shared"
+]
+
+[tool.uv.sources]
+aare-shared = { workspace = true }

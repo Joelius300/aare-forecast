@@ -1,4 +1,4 @@
-# Aare Forecasting
+# Aare Oraku
 
 I bi vou binech das [momentan z viu AI-Hype ume isch](https://ai.aare.guru/) aber weisch wi geil we dr Aare Guru
 scho paar Täg im vorus ungfähr wüsst wi warm d Aare de isch u wiviu Wasser si de het?
@@ -6,36 +6,46 @@ scho paar Täg im vorus ungfähr wüsst wi warm d Aare de isch u wiviu Wasser si
 **Namensidee:** Aare Oraku \
 **Logoidee**: Wätterfrosch wo uf sire Leitere steit und id witi luegt aus wärs ä Schiffsusguck während er mit sim Glas d Aare ab tribt <- di Idee hani vorem Name gha
 
-Implementiert isch no nid viu aber ha dänkt i fa mau a.
-
 Interessanterwiis gits scho ä Vorhersag zum Wasserabfluss (d Wassermängi im Aare.guru) vom Bund, i nime a di isch
 scho sehr guet u chönnt direkt verwendet werde. Übrig blibt auso d Temperaturvorhersag, wo vermuetlech eifacher isch
 aus d Abflussvorhersag, drum probiere mrs eis.
 
 ## Setup
 
-Runs best with [uv](https://docs.astral.sh/uv/) and relies heavily on [DVC](https://dvc.org/). Only tested on Linux with bash and zsh.
+Relies on [uv](https://docs.astral.sh/uv/) and [DVC](https://dvc.org/). Uses [just](https://just.systems/) to simplify commands.
+Only tested on Linux with bash and zsh.
+
+First [install uv](https://docs.astral.sh/uv/getting-started/installation/), then use it to install just with:
 
 ```bash
-uv venv --seed
-uv sync
-source .venv/bin/activate
+uv tool install rust-just
 ```
 
-To run the pipelines, do this (from the project root). These currently just calculate the baselines.
+Then creating the Python environment is as simple as
 
 ```bash
-export PYTHONPATH="$PWD"
-dvc repro
+just sync
+```
+
+To run the pipelines, do this. These currently just calculate the baselines.
+
+```bash
+just repro
 ```
 
 To run the notebooks, make sure to set the kernel to the lokal venv (`.venv/bin/python`) in your IDE.
 In vscode, when it asks after first time execution, set the environment to the recommended ".venv" env.
-Also, I suggest launching vscode from the console after executing `export PYTHONPATH="$PWD"` because unlike
-PyCharm, it doesn't autodetect the `aare` package. Can also be [done in code](https://stackoverflow.com/a/16114586/10883465) if you must.
 
-If you want to use JupyterLab, you need to install the kernelspec first: `python -m ipykernel install --user --name aare-forecast` \
-Then set the PYTHONPATH again and run `jupyter lab`. You'll need to change the kernel in the top right for every notebook.
+If you want to use JupyterLab, you need to install the kernelspec first: `just install-kernel` \
+Then run `jupyter lab`. You'll need to change the kernel in the top right for every notebook.
+
+If you want to work with the code instead of just running it, I suggest you install `nbstripout` (already in venv) and `pre-commit` (`uv tool install pre-commit`).
+To set them up, run the following.
+
+```bash
+uv run nbstripout --install --attributes .gitattributes
+pre-commit install --install-hooks
+```
 
 ## Quellen & Links
 

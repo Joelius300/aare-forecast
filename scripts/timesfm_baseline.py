@@ -10,7 +10,7 @@
 # ]
 #
 # [tool.uv.sources]
-# aare-shared = { path = "../src/aare-shared" }
+# aare-shared = { path = "../src/aare-shared", editable = true }
 # ///
 import logging
 

@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 from typing import Union, Optional, cast, overload, Callable
 
@@ -11,9 +12,31 @@ from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 
-# TODO this does not work anymore if we package this file :(
-# since __file__ is an absolute path, all paths derived are also absolute
-DATA_FOLDER: Path = Path(__file__).parent.parent.parent.parent.parent / "data"
+
+def find_project_root(raise_not_found=True) -> Path:
+    """Traverse CWD up to the project root and return its path."""
+    cwd = Path(os.getcwd())
+    cur = cwd
+    while True:
+        # should be enough to identify the project root
+        if (cur / ".dvc").is_dir() and (cur / "uv.lock").is_file():
+            return cur
+
+        parent = cur.parent
+
+        if parent == cur:
+            # reached file system root
+            if raise_not_found:
+                raise ValueError("Could not find project root!")
+            else:
+                logger.warning(f"COULD NOT DETERMINE PROJECT ROOT, USING CWD: '{cwd}'")
+                return cwd
+
+        cur = parent
+
+
+# suboptimal that this runs on import, but works and avoids refactoring many things
+DATA_FOLDER: Path = find_project_root(raise_not_found=False) / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"

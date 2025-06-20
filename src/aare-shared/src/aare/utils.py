@@ -13,7 +13,10 @@ from aare.constants import TIME
 logger = logging.getLogger(__name__)
 
 
-def find_project_root(raise_not_found=True) -> Path:
+def find_project_root(raise_not_found=True, allow_env=True) -> Path:
+    if allow_env and (root := os.getenv("PROJECT_ROOT")):
+        return Path(root)
+    
     """Traverse CWD up to the project root and return its path."""
     cwd = Path(os.getcwd())
     cur = cwd

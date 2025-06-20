@@ -1,0 +1,17 @@
+.venv
+.git
+.github
+.idea
+**/.pytest_cache
+**/__pycache__
+.ruff_cache
+.jupyter_ystore.db
+
+mlruns
+mlartifacts
+tensorboard
+
+notebooks
+scripts
+data
+docs

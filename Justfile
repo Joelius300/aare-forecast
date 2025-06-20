@@ -23,3 +23,6 @@ optuna:
 # start both mlflow ui and optuna-dashboard. on my setup, ctrl+c once closes both, idk..
 track:
   just mlflow & just optuna && fg
+
+build:
+  docker build -f src/prediction-service/Dockerfile . -t aare-oraku-prediction:latest

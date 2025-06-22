@@ -7,5 +7,17 @@ services:
       - "3000:3000"
     volumes:
       - "grafana_aare:/var/lib/grafana"
+  timescale:
+    image: timescale/timescaledb:latest-pg17
+    container_name: timescale
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - "timescale_aare:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "aare_oraku"
 volumes:
   grafana_aare: {}
+  timescale_aare: {}

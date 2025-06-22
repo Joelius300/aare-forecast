@@ -22,6 +22,7 @@ dev = [
     "optuna-fast-fanova>=0.0.4",
     "plotly>=6.1.2",
     "psutil>=7.0.0",
+    "psycopg[binary,pool]>=3.2.9",
     "pynvml>=12.0.0",
     "pypots>=0.19",
     "pyright>=1.1.391",

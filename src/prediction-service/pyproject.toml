@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aare-shared",
+    "psycopg[binary,pool]>=3.2.9",
     "requests>=2.32.3",
 ]
 

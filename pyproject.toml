@@ -25,6 +25,7 @@ dev = [
     "pynvml>=12.0.0",
     "pypots>=0.19",
     "pyright>=1.1.391",
+    "requests>=2.32.3",
     "ruff>=0.9.5",
     "statsmodels>=0.14.4",
 ]

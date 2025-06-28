@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import requests
+import httpx
 
 
 class MeteoTestSource:
@@ -9,7 +9,8 @@ class MeteoTestSource:
         self.url = url
         
     def fetch(self) -> pd.DataFrame:
-        r = requests.get(self.url)
+        # can be made async later
+        r = httpx.get(self.url)
         r.raise_for_status()
         
         body = r.json()
@@ -30,5 +31,6 @@ class MeteoTestSource:
     def _to_df(self, data: dict):
         df = pd.DataFrame.from_dict(data, orient="index", dtype=np.float32)
         df.index = pd.to_datetime(df.index)
+        df = df.reset_index(names="time")
         
         return df

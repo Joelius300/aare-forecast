@@ -8,8 +8,9 @@ from psycopg_pool import ConnectionPool
 
 from aare.utils import find_project_root
 from lib import hello
-from lib.sinks.sink import Sink
-from lib.sinks.timescale import TimescaleSink
+from lib.external_sources.external_source import ExternalSource
+
+from lib.external_sources.registry import SourceRegistry
 
 
 # dict/None = don't know the type yet :)
@@ -41,13 +42,11 @@ def persist_metadata(run_ts: datetime.datetime):
     pass
 
 
-def fetch_external_data() -> dict:
+def fetch_external_data(sources: dict[str, ExternalSource]) -> dict[str, pd.DataFrame]:
     # pull from all registered external sources
 
-    # ACTUALLY need to decided if we want to fetch _all_ data even if we're not using it for the model (not in features)
-    # because that would build a dataset of data we can use later for services that don't offer historical forecasts
-    # like the flow prediction of BAFU. -> yes do that :)
-    pass
+    # can be parallelized later, at least async
+    return {source_name: source.fetch() for source_name, source in sources.items()}
 
 
 def get_inference_data(features: FeatureIds, external_data: dict) -> InferenceData:
@@ -56,9 +55,10 @@ def get_inference_data(features: FeatureIds, external_data: dict) -> InferenceDa
     pass
 
 
-def persist_data(run_ts: datetime.datetime, data: dict):
+def persist_data(run_ts: datetime.datetime, sink: Sink, data: dict[str, pd.DataFrame]):
     # store all the data together with the run_ts as identification
-    pass
+    for table, df in data.items():
+        sink.persist()
 
 
 def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
@@ -99,11 +99,10 @@ if __name__ == "__main__":
     # with this config, it opens a connection immediately and keeps it open/ready.
     conn_pool = ConnectionPool("host=127.0.0.1 dbname=aare_oraku user=postgres password=password", min_size=1)
     with conn_pool:
-        # todo fix crazy psycopg typing
-        pg_sink = TimescaleSink(conn_pool)  # pyright: ignore [reportArgumentType]
+        sources = SourceRegistry().configure_sources(conn_pool)
 
         # persist_metadata(run_ts)
-        external_data = fetch_external_data()
+        external_data = fetch_external_data(sources)
         persist_data(run_ts, external_data)
         data = get_inference_data(features, external_data)
 

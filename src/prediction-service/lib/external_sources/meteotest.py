@@ -6,8 +6,9 @@ import httpx
 class MeteoTestSource:
     """Fetch predictions from Meteotest (internal Meteotest service)"""
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, locations: list[str]):
         self.url = url
+        self.locations = locations
 
     def fetch(self) -> pd.DataFrame:
         # can be made async later
@@ -17,14 +18,13 @@ class MeteoTestSource:
         body = r.json()
         mos = body["payload"]["mos"]
 
-        # TODO make generic solution aligned with the names in the locations module
-        bern = mos["BERN"]
-        thun = mos["THUN"]
+        dfs = []
+        for loc in self.locations:
+            df = self._to_df(mos[loc])
+            df["location"] = loc
+            dfs.append(df)
 
-        bern_df = self._to_df(bern)
-        thun_df = self._to_df(thun)
-
-        df = pd.merge(bern_df, thun_df, left_index=True, right_index=True, suffixes=("bern", "thun"))
+        df = pd.concat(dfs, axis="index", ignore_index=True)
 
         return df
 

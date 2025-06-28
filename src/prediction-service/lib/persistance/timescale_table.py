@@ -1,3 +1,4 @@
+import logging
 from io import BytesIO
 from typing import cast
 
@@ -6,17 +7,34 @@ import psycopg
 from pandas._typing import WriteBuffer
 from psycopg import sql
 from psycopg_pool import ConnectionPool
+from abc import ABC, abstractmethod
 
-from lib.sinks.sink import Sink
+
+logger = logging.getLogger(__name__)
 
 
-class TimescaleSink(Sink):
-    def __init__(self, connection_pool: ConnectionPool):
+# micro ORM for our use-case :)
+class TimescaleTable(ABC):
+    def __init__(self, connection_pool: ConnectionPool, table_name: str, columns: list[str]):
         self.connection_pool = connection_pool
+        self.table_name = table_name
+        self.columns = columns
 
-    def persist(self, table: str, data: pd.DataFrame) -> None:
+    @abstractmethod
+    def ensure_table_exists(self):
+        """Create the table with if necessary. Order of the columns must match the columns parameter."""
+        pass
+
+    def insert(self, df: pd.DataFrame):
+        to_store = cast(pd.DataFrame, df[self.columns])  # if not all columns are in df, it will fail here already
+        if len(self.columns) != len(df.columns):
+            # more columns than required
+            logger.warning(
+                f"Column mismatch of dataframe and table. Expected: {','.join(self.columns)} but got {','.join(df.columns)}"
+            )
+
         with self.connection_pool.connection() as conn:
-            self.copy_from_df(conn, data, table)
+            self.copy_from_df(conn, to_store, self.table_name)
 
     @staticmethod
     def copy_from_df(conn: psycopg.Connection, df: pd.DataFrame, table: str):

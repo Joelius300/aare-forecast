@@ -17,7 +17,7 @@ def find_project_root(raise_not_found=True, allow_env=True) -> Path:
     """Traverse CWD up to the project root and return its path. Take PROJECT_ROOT env if set."""
     if allow_env and (root := os.getenv("PROJECT_ROOT")):
         return Path(root)
-    
+
     cwd = Path(os.getcwd())
     cur = cwd
     while True:

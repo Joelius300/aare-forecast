@@ -29,8 +29,7 @@ class TimescaleSink(Sink):
         csv = buffer.getvalue()
 
         with conn.cursor() as cur:
-            with cur.copy(
-                sql.SQL("COPY {table} FROM STDIN").format(table=sql.Identifier(table))) as copy:
+            with cur.copy(sql.SQL("COPY {table} FROM STDIN").format(table=sql.Identifier(table))) as copy:
                 copy.write(csv)
 
     @staticmethod

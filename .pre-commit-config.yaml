@@ -20,15 +20,17 @@ repos:
     -   id: ruff-check-local
         language: system
         name: ruff-check-local
-        entry: uv run ruff check --fix
-        types: [python, pyi]
-        pass_filenames: false
+        entry: uv run ruff check --force-exclude --fix
+        types_or: [python, pyi, jupyter]
+        pass_filenames: true
+        require_serial: true
     -   id: ruff-format-local
         language: system
         name: ruff-format-local
-        entry: uv run ruff format
-        types: [python, pyi]
-        pass_filenames: false
+        entry: uv run ruff format --force-exclude
+        types_or: [python, pyi, jupyter]
+        pass_filenames: true
+        require_serial: true
 -   repo: https://github.com/iterative/dvc
     rev: 3.60.1
     hooks:

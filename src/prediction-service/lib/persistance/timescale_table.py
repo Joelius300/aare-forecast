@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 # micro ORM for our use-case :)
+# currently no abstraction because no intention of switching database. would need a big refactor anyway.
 class TimescaleTable(ABC):
     def __init__(self, connection_pool: ConnectionPool, table_name: str, columns: list[str]):
         self.connection_pool = connection_pool
@@ -22,7 +23,11 @@ class TimescaleTable(ABC):
 
     @abstractmethod
     def ensure_table_exists(self):
-        """Create the table with if necessary. Order of the columns must match the columns parameter."""
+        """
+        Create the table with if necessary. Order of the columns must match the columns parameter.
+        THIS FUNCTION SHOULD BE IDEMPOTENT (can be executed multiple times without side effects).
+        """
+        # If a new column is added, it should be done with something like 'alter add if not exists'.
         pass
 
     def insert(self, df: pd.DataFrame):

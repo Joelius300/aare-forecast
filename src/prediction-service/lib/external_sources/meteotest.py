@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import httpx
 
+from lib.external_sources.external_source import ExternalSource
 
-class MeteoTestSource:
+
+class MeteoTestSource(ExternalSource):
     """Fetch predictions from Meteotest (internal Meteotest service)"""
 
     def __init__(self, url: str, locations: list[str]):

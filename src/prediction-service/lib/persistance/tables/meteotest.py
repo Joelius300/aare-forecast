@@ -30,6 +30,7 @@ class MeteotestTable(TimescaleTable):
                 """
             )
 
+            # TODO ensure this is idempotent
             conn.execute(
                 # could add second partitioning dimension with add_dimension after create_hypertable
                 """

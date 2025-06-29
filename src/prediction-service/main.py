@@ -10,7 +10,9 @@ from aare.utils import find_project_root
 from lib import hello
 from lib.external_sources.external_source import ExternalSource
 
-from lib.external_sources.registry import SourceRegistry
+from lib.external_sources.registry import SourceRegistry, Sources
+from lib.persistance.tables.prediction import PredictionTable
+from lib.persistance.timescale_table import TimescaleTable
 
 
 # dict/None = don't know the type yet :)
@@ -42,23 +44,24 @@ def persist_metadata(run_ts: datetime.datetime):
     pass
 
 
-def fetch_external_data(sources: dict[str, ExternalSource]) -> dict[str, pd.DataFrame]:
-    # pull from all registered external sources
+def _fetch_cache_external(source: ExternalSource, table: TimescaleTable):
+    df = source.fetch()
+    table.insert(df)
 
-    # can be parallelized later, at least async
-    return {source_name: source.fetch() for source_name, source in sources.items()}
+    return df
 
 
-def get_inference_data(features: FeatureIds, external_data: dict) -> InferenceData:
+def load_external_data(sources: Sources) -> dict[str, pd.DataFrame]:
+    # pull from all registered external sources and store to db cache
+
+    # can be parallelized later, or at least async
+    return {source_name: _fetch_cache_external(**source) for source_name, source in sources.items()}
+
+
+def get_inference_data(features: FeatureIds, external_data: dict[str, pd.DataFrame]) -> InferenceData:
     # get actual features from the registry
     # take what you can from influx, the rest must be in external_data
     pass
-
-
-def persist_data(run_ts: datetime.datetime, sink: Sink, data: dict[str, pd.DataFrame]):
-    # store all the data together with the run_ts as identification
-    for table, df in data.items():
-        sink.persist()
 
 
 def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
@@ -76,16 +79,11 @@ def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
     return pred.to_dataframe().reset_index(names="time")
 
 
-def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, sink: Sink):
+def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, table: TimescaleTable):
     # store prediction to db
     to_store = prediction.copy()
     to_store["run_ts"] = run_ts
-    pred_cols = ["run_ts", "time", "temp_bern"]
-    if len(to_store.columns) != len(pred_cols):
-        raise ValueError("Unexpected number of columns in prediction")
-
-    to_store = to_store[pred_cols]
-    sink.persist("forecast", to_store)
+    table.insert(to_store)
 
 
 if __name__ == "__main__":
@@ -102,9 +100,8 @@ if __name__ == "__main__":
         sources = SourceRegistry().configure_sources(conn_pool)
 
         # persist_metadata(run_ts)
-        external_data = fetch_external_data(sources)
-        persist_data(run_ts, external_data)
+        external_data = load_external_data(sources)
         data = get_inference_data(features, external_data)
 
         prediction = predict(model, data)
-        persist_prediction(run_ts, prediction, pg_sink)
+        persist_prediction(run_ts, prediction, PredictionTable(conn_pool))

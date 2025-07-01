@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import TypedDict, NotRequired
 
 import pandas as pd
@@ -6,16 +7,14 @@ from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
-from aare.utils import find_project_root
-from lib import hello
 from lib.external_sources.external_source import ExternalSource
 
 from lib.external_sources.registry import SourceRegistry, Sources
-from lib.persistance.tables.prediction import PredictionTable
 from lib.persistance.timescale_table import TimescaleTable
 
 
 # dict/None = don't know the type yet :)
+logger = logging.getLogger(__name__)
 
 
 class InferenceData(TypedDict):
@@ -44,18 +43,27 @@ def persist_metadata(run_ts: datetime.datetime):
     pass
 
 
-def _fetch_cache_external(source: ExternalSource, table: TimescaleTable):
+def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
+    # fetch, cache in db and then return data from the source
     df = source.fetch()
+    logger.debug(f"Fetched {len(df)} rows from {name}")
+    df["run_ts"] = run_ts
+    # table.ensure_table_exists()
+
     table.insert(df)
+    logger.debug(f"Inserted {len(df)} rows into {table.table_name}")
 
     return df
 
 
-def load_external_data(sources: Sources) -> dict[str, pd.DataFrame]:
+def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str, pd.DataFrame]:
     # pull from all registered external sources and store to db cache
 
     # can be parallelized later, or at least async
-    return {source_name: _fetch_cache_external(**source) for source_name, source in sources.items()}
+    return {
+        source_name: _fetch_cache_external(source_name, **source, run_ts=run_ts)
+        for source_name, source in sources.items()
+    }
 
 
 def get_inference_data(features: FeatureIds, external_data: dict[str, pd.DataFrame]) -> InferenceData:
@@ -69,7 +77,7 @@ def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
     # TODO read args from some config yaml
     args = dict(n=96, num_samples=128)
 
-    pred = model.predict(**data, **args)  # not sure why pyright is mad here
+    pred = model.predict(**data, **args)  # not sure why pyright is mad here  # pyright: ignore [reportArgumentType]
     if not isinstance(pred, TimeSeries):
         raise ValueError(f"Model returned '{type(pred)}' instead of TimeSeries.")
 
@@ -87,11 +95,9 @@ def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, tabl
 
 
 if __name__ == "__main__":
-    hello()
-    print(f"Project Root: {find_project_root()}")
-
+    logging.basicConfig(level="DEBUG")
     run_ts = datetime.datetime.now(datetime.UTC)
-    model, features = load_model()
+    # model, features = load_model()
 
     # could also use NullConnectionPool because we don't really need pooling atm.
     # with this config, it opens a connection immediately and keeps it open/ready.
@@ -100,8 +106,8 @@ if __name__ == "__main__":
         sources = SourceRegistry().configure_sources(conn_pool)
 
         # persist_metadata(run_ts)
-        external_data = load_external_data(sources)
-        data = get_inference_data(features, external_data)
+        external_data = load_external_data(sources, run_ts)
+        # data = get_inference_data(features, external_data)
 
-        prediction = predict(model, data)
-        persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
+        # prediction = predict(model, data)
+        # persist_prediction(run_ts, prediction, PredictionTable(conn_pool))

@@ -46,13 +46,17 @@ class TimescaleTable(ABC):
         """Copy a pandas DataFrame into a Timescale table."""
         # save dataframe to an in-memory buffer
         buffer = BytesIO()
-        df.to_csv(cast(WriteBuffer[bytes], buffer), index=False, header=False)
+        df.to_csv(cast(WriteBuffer[bytes], buffer), index=False, header=True)
 
         buffer.seek(0)
         csv = buffer.getvalue()
 
         with conn.cursor() as cur:
-            with cur.copy(sql.SQL("COPY {table} FROM STDIN").format(table=sql.Identifier(table))) as copy:
+            # for whatever ungodly reason, it will raise 'invalid input syntax for type timestamp with time zone'
+            # if you omit the HEADERs, even though they are supposedly ignored completely, but idk man...
+            with cur.copy(
+                sql.SQL("COPY {table} FROM STDIN WITH CSV HEADER").format(table=sql.Identifier(table))
+            ) as copy:
                 copy.write(csv)
 
     @staticmethod

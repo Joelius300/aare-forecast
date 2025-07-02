@@ -45,10 +45,11 @@ def persist_metadata(run_ts: datetime.datetime):
 
 def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
     # fetch, cache in db and then return data from the source
+    table.ensure_table_exists()
     df = source.fetch()
+
     logger.debug(f"Fetched {len(df)} rows from {name}")
     df["run_ts"] = run_ts
-    # table.ensure_table_exists()
 
     table.insert(df)
     logger.debug(f"Inserted {len(df)} rows into {table.table_name}")

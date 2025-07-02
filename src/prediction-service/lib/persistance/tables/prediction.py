@@ -22,10 +22,4 @@ class PredictionTable(TimescaleTable):
                 """
             )
 
-            # TODO ensure this is idempotent
-            conn.execute(
-                """
-                SELECT *
-                FROM create_hypertable('prediction', by_range('time', INTERVAL '7 days'));
-                """
-            )
+            self.make_hypertable(conn)

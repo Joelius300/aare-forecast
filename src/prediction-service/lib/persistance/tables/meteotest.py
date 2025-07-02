@@ -30,11 +30,4 @@ class MeteotestTable(TimescaleTable):
                 """
             )
 
-            # TODO ensure this is idempotent
-            conn.execute(
-                # could add second partitioning dimension with add_dimension after create_hypertable
-                """
-                SELECT *
-                FROM create_hypertable('meteotest', by_range('time', INTERVAL '7 days'));
-                """
-            )
+            self.make_hypertable(conn)

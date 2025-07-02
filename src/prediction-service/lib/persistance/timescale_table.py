@@ -41,6 +41,17 @@ class TimescaleTable(ABC):
         with self.connection_pool.connection() as conn:
             self.copy_from_df(conn, to_store, self.table_name)
 
+    def make_hypertable(self, conn: psycopg.Connection, time_col="time", chunk_interval=7):
+        """Call create_hypertable to turn the table into a hypertable. Idempotent."""
+        conn.execute(
+            # could add second partitioning dimension with add_dimension after create_hypertable
+            sql.SQL("""
+            SELECT *
+            FROM create_hypertable({table}, by_range({time_col}, INTERVAL '{chunk_interval} days'), if_not_exists => TRUE);
+            """).format(table=self.table_name, time_col=time_col, chunk_interval=chunk_interval)
+            # strings will be wrapped in ''
+        )
+
     @staticmethod
     def copy_from_df(conn: psycopg.Connection, df: pd.DataFrame, table: str):
         """Copy a pandas DataFrame into a Timescale table."""

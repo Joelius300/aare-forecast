@@ -2,7 +2,7 @@
 # requires-python = ">=3.10,<3.12"
 # dependencies = [
 #     "aare-shared",
-#     "darts==0.35.0",
+#     "darts==0.36.0",
 #     "dvc",
 #     "influxdb-client",
 #     "pandas",

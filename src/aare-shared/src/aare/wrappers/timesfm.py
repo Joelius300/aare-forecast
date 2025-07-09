@@ -110,6 +110,7 @@ class TimesFmDarts(GlobalForecastingModel):
         verbose: bool = False,
         predict_likelihood_parameters: bool = False,
         show_warnings: bool = True,
+        random_state: Optional[int] = None,
     ) -> Union[TimeSeries, Sequence[TimeSeries]]:
         if past_covariates is not None or future_covariates is not None:
             raise ValueError("Covariates are not supported atm")
@@ -128,6 +129,7 @@ class TimesFmDarts(GlobalForecastingModel):
             verbose,
             predict_likelihood_parameters,
             show_warnings,
+            random_state,
         )
 
         if series is None or not isinstance(series, TimeSeries):

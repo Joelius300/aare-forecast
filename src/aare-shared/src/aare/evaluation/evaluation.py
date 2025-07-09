@@ -35,6 +35,7 @@ def _evaluate_model(
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
     data_transformers: Optional[DataTransformers],
+    random_state: Optional[int],
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
@@ -56,7 +57,7 @@ def _evaluate_model(
 
     # simulate historical forecasts (without retraining!)
     historical_forecasts = _historical_forecasts_parallel(
-        model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers
+        model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers, random_state
     )
 
     # run metric calculations on all those forecasts
@@ -106,6 +107,7 @@ def _historical_forecasts_parallel(
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
     data_transformers: Optional[DataTransformers],
+    random_state: Optional[int],
 ) -> list[list[TimeSeries]]:
     if (
         future_cov is not None
@@ -133,6 +135,7 @@ def _historical_forecasts_parallel(
                 num_samples=actual_num_samples,
                 verbose=verbose,  # seemingly only for retraining, so probably useless
                 data_transformers=data_transformers,
+                random_state=random_state,
             ),
         )
 
@@ -162,6 +165,7 @@ def _historical_forecasts_parallel(
             [actual_num_samples] * len(prioritized),
             future_covs,
             [data_transformers] * len(prioritized),
+            [random_state] * len(prioritized),
         )
 
         hf = list(hf)  # makes it easier and the overhead is nothing
@@ -177,6 +181,7 @@ def _parallel_forecast_step(
     num_samples: int,
     future_cov: TimeSeries | None,
     data_transformers: Optional[DataTransformers],
+    random_state: Optional[int],
 ):
     assert future_cov is None or isinstance(future_cov, TimeSeries), "Invalid type of future_cov"
     i, ts = i_ts
@@ -190,6 +195,7 @@ def _parallel_forecast_step(
         num_samples=num_samples,
         verbose=False,  # no need in another process
         data_transformers=data_transformers,
+        random_state=random_state,
     )
 
     return i, cast(list[TimeSeries], forecasts)
@@ -238,6 +244,7 @@ def evaluate_model(
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
     num_samples=128,
     data_transformers: Optional[DataTransformers] = None,
+    random_state=42,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -251,6 +258,8 @@ def evaluate_model(
 
     Allows for parallelization, but beware that it will replicate the model on multiple processes, so it has to be
     pickleable, and it will multiply memory usage.
+
+    Random state is fixed at 42 by default for reproducibility.
 
     Returns the aggregated metrics as well as the most average, best and worst prediction
     the model made (decided by MAE or whatever you specify).
@@ -280,6 +289,7 @@ def evaluate_model(
         future_cov=future_cov,
         num_samples=num_samples,
         data_transformers=data_transformers,
+        random_state=random_state,
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 

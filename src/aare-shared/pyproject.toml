@@ -5,7 +5,7 @@ description = "aare-forecast shared library"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "darts>=0.35.0",
+    "darts>=0.36.0",
     "dvc>=3.58.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",

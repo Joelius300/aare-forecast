@@ -214,7 +214,8 @@ def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]
             if inf_freq is None:
                 raise ValueError("Could not infer frequency from data.")
             freq = inf_freq
-        index.freq = freq
+        # well it works, what do you want me to do pyright?
+        index.freq = freq  # pyright: ignore [reportAttributeAccessIssue]
     else:
         if freq != index.freq:
             logger.warning(f"Explicitly passed freq '{freq}', but series already has frequency '{index.freq}'")

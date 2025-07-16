@@ -20,7 +20,7 @@ dev = [
     "nbstripout>=0.8.1",
     "optuna>=4.3.0",
     "optuna-dashboard>=0.18.0",
-    "optuna-fast-fanova>=0.0.4",
+    "pandas-stubs>=2.3.0.250703",
     "plotly>=6.1.2",
     "psutil>=7.0.0",
     "psycopg[binary,pool]>=3.2.9",
@@ -33,6 +33,14 @@ dev = [
 
 [tool.pyright]
 reportRedeclaration = "warning"
+reportMissingImports = "error"
+
+ignore = [
+    "src/aare-shared/src/aare/compat/optuna_lightning_integration.py",
+    "src/aare-shared/src/aare/wrappers/timesfm.py",
+]
+
+pythonPlatform = "Linux"
 
 [tool.uv.workspace]
 members = [

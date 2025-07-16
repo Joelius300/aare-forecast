@@ -3,6 +3,7 @@ import logging
 from typing import TypedDict, NotRequired
 
 import pandas as pd
+import psycopg
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
@@ -35,12 +36,12 @@ class FeatureIds(TypedDict):
 def load_model():
     # load model (from pickle)
     # load feature set from yaml
-    pass
+    raise NotImplementedError()
 
 
 def persist_metadata(run_ts: datetime.datetime):
     # store version (?), features, etc.
-    pass
+    raise NotImplementedError()
 
 
 def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
@@ -70,7 +71,7 @@ def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str,
 def get_inference_data(features: FeatureIds, external_data: dict[str, pd.DataFrame]) -> InferenceData:
     # get actual features from the registry
     # take what you can from influx, the rest must be in external_data
-    pass
+    raise NotImplementedError()
 
 
 def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
@@ -102,7 +103,11 @@ if __name__ == "__main__":
 
     # could also use NullConnectionPool because we don't really need pooling atm.
     # with this config, it opens a connection immediately and keeps it open/ready.
-    conn_pool = ConnectionPool("host=127.0.0.1 dbname=aare_oraku user=postgres password=password", min_size=1)
+    conn_pool = ConnectionPool(
+        "host=127.0.0.1 dbname=aare_oraku user=postgres password=password",
+        min_size=1,
+        connection_class=psycopg.Connection,
+    )
     with conn_pool:
         sources = SourceRegistry().configure_sources(conn_pool)
 

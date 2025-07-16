@@ -1289,8 +1289,8 @@ numpy==2.2.6 \
     #   nfoursid
     #   numba
     #   optuna
-    #   optuna-fast-fanova
     #   pandas
+    #   pandas-stubs
     #   patsy
     #   pygrinder
     #   pyod
@@ -1399,14 +1399,10 @@ opentelemetry-semantic-conventions==0.55b1 \
 optuna==4.4.0 \
     --hash=sha256:a9029f6a92a1d6c8494a94e45abd8057823b535c2570819072dbcdc06f1c1da4 \
     --hash=sha256:fad8d9c5d5af993ae1280d6ce140aecc031c514a44c3b639d8c8658a8b7920ea
-    # via
-    #   optuna-dashboard
-    #   optuna-fast-fanova
+    # via optuna-dashboard
 optuna-dashboard==0.19.0 \
     --hash=sha256:07dc73a4a7b95ba2f45e20f404622f2684291024082e7ca1620d3db0dd4fa794 \
     --hash=sha256:d43da5676979f80552c9077005cce4cf77cafe05ae570071feb06222a3982cb4
-optuna-fast-fanova==0.0.4 \
-    --hash=sha256:fba6f5133225903facd94f12b09c729544062b804edf0d7b7f0d521762dfe45d
 orjson==3.10.18 ; implementation_name == 'cpython' \
     --hash=sha256:0315317601149c244cb3ecef246ef5861a64824ccbcb8018d32c66a60a84ffbc \
     --hash=sha256:187ec33bbec58c76dbd4066340067d9ece6e10067bb0cc074a21ae3300caa84e \
@@ -1514,6 +1510,9 @@ pandas==2.3.1 \
     #   tsdb
     #   utilsforecast
     #   xarray
+pandas-stubs==2.3.0.250703 \
+    --hash=sha256:a9265fc69909f0f7a9cabc5f596d86c9d531499fed86b7838fd3278285d76b81 \
+    --hash=sha256:fb6a8478327b16ed65c46b1541de74f5c5947f3601850caf3e885e0140584717
 pandocfilters==1.5.1 \
     --hash=sha256:002b4a555ee4ebc03f8b66307e287fa492e4a77b4ea14d3f934328297bb4939e \
     --hash=sha256:93be382804a9cdb0a7267585f157e5d1731bbe5545a85b268d6f5fe6232de2bc
@@ -2228,7 +2227,6 @@ scikit-learn==1.7.0 \
     #   darts
     #   mlflow
     #   optuna-dashboard
-    #   optuna-fast-fanova
     #   pygrinder
     #   pyod
     #   pypots
@@ -2592,6 +2590,10 @@ types-python-dateutil==2.9.0.20250708 \
     --hash=sha256:4d6d0cc1cc4d24a2dc3816024e502564094497b713f7befda4d5bc7a8e3fd21f \
     --hash=sha256:ccdbd75dab2d6c9696c350579f34cffe2c281e4c5f27a585b2a2438dd1d5c8ab
     # via arrow
+types-pytz==2025.2.0.20250516 \
+    --hash=sha256:e0e0c8a57e2791c19f718ed99ab2ba623856b11620cb6b637e5f62ce285a7451 \
+    --hash=sha256:e1216306f8c0d5da6dafd6492e72eb080c9a166171fa80dd7a1990fd8be7a7b3
+    # via pandas-stubs
 typing-extensions==4.14.1 \
     --hash=sha256:38b39f4aeeab64884ce9f74c94263ef78f3c22467c8724005483154c26648d36 \
     --hash=sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76

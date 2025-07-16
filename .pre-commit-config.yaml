@@ -5,7 +5,7 @@ repos:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.19
+    rev: 0.7.21
     hooks:
     -   id: uv-lock
     -   id: uv-export
@@ -15,7 +15,7 @@ repos:
         language: system
         name: pyright-local
         entry: uv run pyright
-        types: [python, pyi]
+        types_or: [python, pyi, jupyter]
         pass_filenames: false
     -   id: ruff-check-local
         language: system

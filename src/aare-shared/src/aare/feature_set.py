@@ -28,6 +28,15 @@ class FeatureSet:
         future: Optional[list[Feature]] = None,
         split_params: SplitParams,
     ):
+        if not targets:
+            raise ValueError("Must provide targets")
+
+        if isinstance(past, list) and not past:
+            raise ValueError("Provide None or a non-empty list for past features")
+
+        if isinstance(future, list) and not future:
+            raise ValueError("Provide None or a non-empty list for future features")
+
         self._store = RemoteExistenzStore()  # TODO decouple
         self._targets: list[Feature] = targets if isinstance(targets, list) else [targets]
         self._past = past

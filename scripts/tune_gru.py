@@ -20,6 +20,7 @@ from torchmetrics import MetricCollection
 from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare.evaluation.evaluation import evaluate_model
 from aare.evaluation.metrics import Metrics
+from aare.feature_identifiers import FeatureIdentifiers
 from aare.feature_set import FeatureSet
 from aare.features.registry import FEATURES
 from aare.normalization import get_scalers
@@ -32,10 +33,11 @@ RANDOM_SEED = 42
 
 # TODO Extract reusable parts from above and below
 class GRUTuning:
-    def __init__(self, params: Params, features: dict[str, list[str]], batch_size: int, max_n_epochs: int):
+    def __init__(self, params: Params, features: FeatureIdentifiers, batch_size: int, max_n_epochs: int):
         ds = FeatureSet(
             targets=[FEATURES[f] for f in features["targets"]],
-            future=[FEATURES[f] for f in features["future"]],
+            future=[FEATURES[f] for f in features["future"]] if "future" in features else None,
+            past=[FEATURES[f] for f in features["past"]] if "past" in features else None,
             split_params=params["split"],
         )
         self.train = ds.get_train()
@@ -57,7 +59,8 @@ class GRUTuning:
             "split_val": params["split"]["val_split"],
             "split_test": params["split"]["test_split"],
             "features_targets": features["targets"],
-            "features_future": features["future"],
+            "features_future": features.get("future", []),
+            "features_past": features.get("past", []),
         }
 
     def get_model(self, trial: Trial, run: mlflow.ActiveRun):
@@ -191,7 +194,7 @@ class GRUTuning:
 def main():
     params = read_params()
 
-    features = {
+    features: FeatureIdentifiers = {
         "targets": ["temp_bern"],
         "future": [
             "tt_bern",
@@ -221,8 +224,8 @@ def main():
 
         # Stop fake "running" trial and re-queue them (they are left when cancelling with ctrl+c).
         # Of course this won't work in a distributed setting where multiple runs could actually be running etc.
-        # TODO Guard with a semaphore and add logs. For big distributed settings shouldn't use sqlite.
-        # TODO add initial trials to speed up search esp. pruning, makes a big difference.
+        # TODO Guard with a semaphore and add logs. For _big_ distributed settings, you wouldn't use sqlite.
+        # TODO add initial trials to speed up search, esp. pruning, makes a big difference.
         # TODO Set it up so that different models can be tried by optuna and enqueue at least one trial per model.
         for trial in study.trials:
             if trial.state == optuna.trial.TrialState.RUNNING:
@@ -230,6 +233,7 @@ def main():
                 study.enqueue_trial(trial.params)
                 study.tell(trial.number, state=optuna.trial.TrialState.FAIL)
 
+        # TODO add callback to store new best model (here's probably best place, but idk) with
         study.optimize(GRUTuning(params, features, batch_size, max_n_epochs))
 
 

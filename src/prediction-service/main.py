@@ -2,12 +2,19 @@ import datetime
 import logging
 from typing import TypedDict, NotRequired
 
+import darts
 import pandas as pd
 import psycopg
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
+from aare.compat.types import ExtremeLags
+from aare.feature_identifiers import FeatureIdentifiers
+from aare.features.registry import FEATURES
+from aare.preparation import resample
+from aare.remote_existenz_store import RemoteExistenzStore
+from aare.storage.model import load_model
 from lib.external_sources.external_source import ExternalSource
 
 from lib.external_sources.registry import SourceRegistry, Sources
@@ -23,20 +30,6 @@ class InferenceData(TypedDict):
     series: NotRequired[TimeSeries]
     past_covariates: NotRequired[TimeSeries]
     future_covariates: NotRequired[TimeSeries]
-
-
-class FeatureIds(TypedDict):
-    """Reference features from the registry for past and future covariates."""
-
-    # no need for target at the moment
-    past: list[str]
-    future: list[str]
-
-
-def load_model():
-    # load model (from pickle)
-    # load feature set from yaml
-    raise NotImplementedError()
 
 
 def persist_metadata(run_ts: datetime.datetime):
@@ -68,10 +61,53 @@ def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str,
     }
 
 
-def get_inference_data(features: FeatureIds, external_data: dict[str, pd.DataFrame]) -> InferenceData:
+# TODO refactor this a bit to reduce duplications and function size
+#  This function has some overlap with FeatureSet, but not sure if it can be consolidated.
+def get_inference_data(
+    features: FeatureIdentifiers, extreme_lags: ExtremeLags, external_data: dict[str, pd.DataFrame]
+) -> InferenceData:
     # get actual features from the registry
     # take what you can from influx, the rest must be in external_data
-    raise NotImplementedError()
+    influx_store = RemoteExistenzStore()
+
+    # targets can always be taken from influx because they are either in the past or predicted AR
+    target_features = [FEATURES[f] for f in features["targets"]]
+    target_fields = [field for f in target_features for field in f.required_fields]
+
+    max_target_lag = extreme_lags[0]
+
+    assert max_target_lag is not None and max_target_lag < 0, f"Invalid max_target_lag (for us): {max_target_lag}"
+
+    # take data from further in the past to make sure we get all the required data, I think darts handles that
+    target_df = influx_store.query(f"{max_target_lag - 2}h", target_fields)
+    target_df = resample(target_df)
+    targets = [f.make(target_df) for f in target_features]
+    # need a single TimeSeries with all relevant components for inference
+    target = darts.concatenate(targets, axis="component")
+    if not target.gaps(mode="any").empty:
+        raise ValueError("There are (unfillable) gaps in the target variable, cannot make a prediction!")
+
+    if "past" in features:
+        # would need to take from influx for the past extreme_lags[2] hours.
+        # Reminder: past covariates are known in the same time-span as the target itself
+        # by definition, past cov cannot be known into the future, so fetching from external source
+        # would make them a future cov (the weird actual/forecast mixing we're doing currently makes this
+        # a bit more confusing to understand). If the model is AR and has an output chunk len < our desired horizon,
+        # then we would need the _past_ covariate ALSO into the future, which is nonsense. So either use future cov,
+        # use a model that outputs enough data points that no AR is needed, or turn past cov into an extra AR target.
+        raise NotImplementedError("Currently support for past covariates.")
+
+    if "future" in features:
+        # TODO implement :)
+        #  Currently, I think you could just build a df by taking all the pandas series out of the dataframes
+        #  of the external sources until you have everything you need to make all features (i.e. all required
+        #  fields are in a df), then from f.make on it's the same as the target var. Of course refactor into func.
+        pass
+
+    return {
+        "series": target,
+        # TODO
+    }
 
 
 def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
@@ -113,7 +149,12 @@ if __name__ == "__main__":
 
         # persist_metadata(run_ts)
         external_data = load_external_data(sources, run_ts)
-        # data = get_inference_data(features, external_data)
 
+        model_meta, model, scalers = load_model(name="LR", version="dev")
+        data = get_inference_data(model_meta["features"], model.extreme_lags, external_data)
+
+        # TODO scale
         # prediction = predict(model, data)
         # persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
+
+        print("fini")

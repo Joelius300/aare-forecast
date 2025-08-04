@@ -84,8 +84,8 @@ class FieldRequest:
         return FieldRequest(measurement, field, freq, agg_fn, loc)
 
 
-PERIOD = str | tuple[str, str]
-LOCATIONS = str | int | list[str | int] | None
+Period = str | tuple[str, str]
+Locations = str | int | list[str | int] | None
 
 
 def _rename_col_after_pivot(df: pd.DataFrame, fields: Optional[list[FieldRequest]]):
@@ -112,8 +112,8 @@ class RemoteExistenzStore:
 
     def _base_query(
         self,
-        period: PERIOD,
-        locations: LOCATIONS,
+        period: Period,
+        locations: Locations,
     ):
         start = period if isinstance(period, str) else period[0]
         stop = "now()" if isinstance(period, str) else period[1]
@@ -142,9 +142,9 @@ postProc = (tables=<-) =>
 
     def _query_fields(
         self,
-        period: PERIOD,
+        period: Period,
         fields: list[FieldRequest],
-        locations: LOCATIONS = None,
+        locations: Locations = None,
     ):
         query = self._base_query(period, locations)
         for field in fields:
@@ -162,7 +162,7 @@ postProc = (tables=<-) =>
         self,
         query: str,
         keep_loc: bool,
-        locations: LOCATIONS = None,
+        locations: Locations = None,
         fields: list[FieldRequest] | None = None,
     ):
         logger.debug("Executing Flux Query:\n{%s}", query)
@@ -186,7 +186,7 @@ postProc = (tables=<-) =>
 
     def query_hydro(
         self,
-        period: PERIOD,
+        period: Period,
         locations: str | int | list[str | int],
         fields: str | list[str] = "temperature",
         agg_freq="1h",  # could also read from params
@@ -226,7 +226,7 @@ postProc = (tables=<-) =>
 
     def query(
         self,
-        period: PERIOD,
+        period: Period,
         fields: str | Iterable[str | FieldRequest],
         keep_loc=False,
     ):

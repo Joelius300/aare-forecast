@@ -1,4 +1,4 @@
-from typing import TypedDict, NotRequired
+from typing import TypedDict, NotRequired, Optional
 
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import BaseDataTransformer
@@ -10,3 +10,15 @@ class DataTransformers(TypedDict):
     series: NotRequired[BaseDataTransformer | Pipeline]
     past_covariates: NotRequired[BaseDataTransformer | Pipeline]
     future_covariates: NotRequired[BaseDataTransformer | Pipeline]
+
+
+ExtremeLags = tuple[
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    Optional[int],
+    int,
+    Optional[int],
+]

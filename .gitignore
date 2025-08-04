@@ -169,3 +169,4 @@ res_locf.png
 res_locf_mstl.png
 .jupyter_ystore.db
 data/optuna-trials.db
+data/models

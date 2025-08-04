@@ -43,6 +43,7 @@ DATA_FOLDER: Path = find_project_root(raise_not_found=False) / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"
+MODEL_FOLDER = DATA_FOLDER / "models"
 
 OPTUNA_STORE = DATA_FOLDER / "optuna-trials.db"
 OPTUNA_STORE_URI = f"sqlite:///{OPTUNA_STORE}"

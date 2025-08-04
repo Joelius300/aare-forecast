@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import TypedDict, NotRequired
+from typing import TypedDict, NotRequired, Optional
 
 import darts
 import pandas as pd
@@ -11,6 +11,7 @@ from psycopg_pool import ConnectionPool
 
 from aare.compat.types import ExtremeLags
 from aare.feature_identifiers import FeatureIdentifiers
+from aare.features.base.feature import Feature
 from aare.features.registry import FEATURES
 from aare.preparation import resample
 from aare.remote_existenz_store import RemoteExistenzStore
@@ -18,6 +19,7 @@ from aare.storage.model import load_model
 from lib.external_sources.external_source import ExternalSource
 
 from lib.external_sources.registry import SourceRegistry, Sources
+from lib.external_sources.translations import MEAS_TRANS
 from lib.persistance.timescale_table import TimescaleTable
 
 
@@ -27,9 +29,10 @@ logger = logging.getLogger(__name__)
 
 class InferenceData(TypedDict):
     # no batch support (or necessity)
-    series: NotRequired[TimeSeries]
-    past_covariates: NotRequired[TimeSeries]
-    future_covariates: NotRequired[TimeSeries]
+    # not provided is the same as None here, that's not always the case (!)
+    series: TimeSeries  # some models allow covariate-only pred, but we'll never use it so non-nullable
+    past_covariates: NotRequired[Optional[TimeSeries]]
+    future_covariates: NotRequired[Optional[TimeSeries]]
 
 
 def persist_metadata(run_ts: datetime.datetime):
@@ -61,33 +64,43 @@ def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str,
     }
 
 
+def _get_features_and_fields(feature_ids: list[str]):
+    features = [FEATURES[f] for f in feature_ids]
+    fields = list(set(field for f in features for field in f.required_fields))
+
+    return features, fields
+
+
+def _prepare_series(features: list[Feature], df: pd.DataFrame) -> TimeSeries:
+    df = resample(df)
+    tss = [f.make(df) for f in features]
+    # need a single TimeSeries with all relevant components for inference
+    series = darts.concatenate(tss, axis="component")
+    if not series.gaps(mode="any").empty:
+        raise ValueError("There are (unfillable) gaps, cannot make a prediction!")
+
+    return series
+
+
 # TODO refactor this a bit to reduce duplications and function size
 #  This function has some overlap with FeatureSet, but not sure if it can be consolidated.
 def get_inference_data(
     features: FeatureIdentifiers, extreme_lags: ExtremeLags, external_data: dict[str, pd.DataFrame]
 ) -> InferenceData:
-    # get actual features from the registry
-    # take what you can from influx, the rest must be in external_data
-    influx_store = RemoteExistenzStore()
+    influx_store = RemoteExistenzStore()  # eww, need to remove these coupling
 
     # targets can always be taken from influx because they are either in the past or predicted AR
-    target_features = [FEATURES[f] for f in features["targets"]]
-    target_fields = [field for f in target_features for field in f.required_fields]
-
-    max_target_lag = extreme_lags[0]
-
-    assert max_target_lag is not None and max_target_lag < 0, f"Invalid max_target_lag (for us): {max_target_lag}"
+    target_features, target_fields = _get_features_and_fields(features["targets"])
+    # reminder to self: the min in min_target_lag means it's a lower value and further back,
+    # it's NOT the minimum it will look back (it's actually the maximum/furthest it will look back)
+    min_target_lag = extreme_lags[0]
+    assert min_target_lag is not None and min_target_lag < 0, f"Invalid min_target_lag (for us): {min_target_lag}"
 
     # take data from further in the past to make sure we get all the required data, I think darts handles that
-    target_df = influx_store.query(f"{max_target_lag - 2}h", target_fields)
-    target_df = resample(target_df)
-    targets = [f.make(target_df) for f in target_features]
-    # need a single TimeSeries with all relevant components for inference
-    target = darts.concatenate(targets, axis="component")
-    if not target.gaps(mode="any").empty:
-        raise ValueError("There are (unfillable) gaps in the target variable, cannot make a prediction!")
+    target_df = influx_store.query(f"{min_target_lag - 2}h", target_fields)
+    target = _prepare_series(target_features, target_df)
 
-    if "past" in features:
+    if "past" in features and features["past"] is not None:
         # would need to take from influx for the past extreme_lags[2] hours.
         # Reminder: past covariates are known in the same time-span as the target itself
         # by definition, past cov cannot be known into the future, so fetching from external source
@@ -97,16 +110,36 @@ def get_inference_data(
         # use a model that outputs enough data points that no AR is needed, or turn past cov into an extra AR target.
         raise NotImplementedError("Currently support for past covariates.")
 
-    if "future" in features:
-        # TODO implement :)
-        #  Currently, I think you could just build a df by taking all the pandas series out of the dataframes
-        #  of the external sources until you have everything you need to make all features (i.e. all required
-        #  fields are in a df), then from f.make on it's the same as the target var. Of course refactor into func.
-        pass
+    future = None
+    if "future" in features and features["future"] is not None:
+        cols = []
+        future_features, future_fields = _get_features_and_fields(features["future"])
+        # take the data from the external sources for the future data points
+        for field in future_fields:
+            assert field.measurement in MEAS_TRANS, (
+                f"Measurement of required field '{field}' ({field.measurement}) has no translation!"
+            )
+            source_name = MEAS_TRANS[field.measurement]
+            cols.append(external_data[source_name][field.field])
+
+        future_df_future: pd.DataFrame = pd.concat(cols, axis=1)
+
+        # must combine that future data with past data, if the model uses it
+        min_future_lag = extreme_lags[4]
+        assert min_future_lag is not None, f"Invalid min_future_lag (for us): {min_future_lag}"
+        if min_future_lag >= 0:
+            # no need to look into the past and fetch from influx, it only uses future future cov vals
+            future_df = future_df_future
+        else:
+            # it also uses past future cov values, so we need to fetch from influx
+            future_df_past = influx_store.query(f"{min_future_lag - 2}h", future_fields)
+            future_df = pd.concat([future_df_past, future_df_future], axis=0, ignore_index=True)
+
+        future = _prepare_series(future_features, future_df)
 
     return {
         "series": target,
-        # TODO
+        "future_covariates": future,
     }
 
 
@@ -135,7 +168,8 @@ def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, tabl
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")
     run_ts = datetime.datetime.now(datetime.UTC)
-    # model, features = load_model()
+    model_meta, model, scalers = load_model(name="LR", version="dev")
+    print(model.extreme_lags)
 
     # could also use NullConnectionPool because we don't really need pooling atm.
     # with this config, it opens a connection immediately and keeps it open/ready.
@@ -150,7 +184,6 @@ if __name__ == "__main__":
         # persist_metadata(run_ts)
         external_data = load_external_data(sources, run_ts)
 
-        model_meta, model, scalers = load_model(name="LR", version="dev")
         data = get_inference_data(model_meta["features"], model.extreme_lags, external_data)
 
         # TODO scale

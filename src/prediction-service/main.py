@@ -10,6 +10,7 @@ from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
 from aare.compat.types import ExtremeLags
+from aare.constants import TIME
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.features.base.feature import Feature
 from aare.features.registry import FEATURES
@@ -40,7 +41,7 @@ def persist_metadata(run_ts: datetime.datetime):
 
 
 def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
-    # fetch, cache in db and then return data from the source
+    # fetch, cache in db and then transform and return data from the source
     table.ensure_table_exists()
     df = source.fetch()
 
@@ -50,7 +51,9 @@ def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTab
     table.insert(df)
     logger.debug(f"Inserted {len(df)} rows into {table.table_name}")
 
-    return df
+    prepared = source.prepare(df)
+
+    return prepared
 
 
 def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str, pd.DataFrame]:
@@ -96,6 +99,7 @@ def get_inference_data(
     assert min_target_lag is not None and min_target_lag < 0, f"Invalid min_target_lag (for us): {min_target_lag}"
 
     # take data from further in the past to make sure we get all the required data, I think darts handles that
+    # TODO set the period end to the run_ts so it's reproducible and not bound to some "now" implementation (!)
     target_df = influx_store.query(f"{min_target_lag - 2}h", target_fields)
     target = _prepare_series(target_features, target_df)
 
@@ -119,13 +123,11 @@ def get_inference_data(
                 f"Measurement of required field '{field}' ({field.measurement}) has no translation!"
             )
             source_name = MEAS_TRANS[field.measurement]
+            # set index here so it is included in the series and kept after concatenation
+            df = external_data[source_name].set_index(TIME)
+            cols.append(df[field.name])
 
-            # TODO currently missing the time field, will need that
-            # TODO currently the external source dict and the data pulled from influxdb don't have the same names
-            #  (tt and tt_bern)
-            cols.append(external_data[source_name][field.field])
-
-        future_df_future: pd.DataFrame = pd.concat(cols, axis=1)
+        future_df_future: pd.DataFrame = pd.concat(cols, axis=1).reset_index(names=TIME)
 
         # must combine that future data with past data, if the model uses it
         min_future_lag = extreme_lags[4]

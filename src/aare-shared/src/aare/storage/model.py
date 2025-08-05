@@ -11,7 +11,6 @@ from aare.feature_identifiers import FeatureIdentifiers
 from aare.storage.metadata import AareModel, get_mlflow_info, serialize_model_info, load_model_info
 from aare.utils import MODEL_FOLDER
 
-
 # META_SUFFIX only has one part because with_suffix only changes the last, so we can use it as root/anchor.
 # Using with_suffix on model or scaler path will give you wrong paths because the .model / .scaler stays.
 META_SUFFIX = ".json"
@@ -58,7 +57,7 @@ def save_model(
 
 def load_model(
     meta_path: Optional[os.PathLike] = None, name: Optional[str] = None, version: Optional[str] = None
-) -> tuple[AareModel, GlobalForecastingModel, DataTransformers]:
+) -> tuple[AareModel, GlobalForecastingModel, Optional[DataTransformers]]:
     """Load a model from a specified path. For local dev, can also provide name and version."""
     if not meta_path:
         if not name or not version:

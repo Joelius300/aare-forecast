@@ -17,11 +17,10 @@ from aare.preparation import resample
 from aare.remote_existenz_store import RemoteExistenzStore
 from aare.storage.model import load_model
 from lib.external_sources.external_source import ExternalSource
-
 from lib.external_sources.registry import SourceRegistry, Sources
 from lib.external_sources.translations import MEAS_TRANS
+from lib.persistance.tables.prediction import PredictionTable
 from lib.persistance.timescale_table import TimescaleTable
-
 
 # dict/None = don't know the type yet :)
 logger = logging.getLogger(__name__)
@@ -120,6 +119,10 @@ def get_inference_data(
                 f"Measurement of required field '{field}' ({field.measurement}) has no translation!"
             )
             source_name = MEAS_TRANS[field.measurement]
+
+            # TODO currently missing the time field, will need that
+            # TODO currently the external source dict and the data pulled from influxdb don't have the same names
+            #  (tt and tt_bern)
             cols.append(external_data[source_name][field.field])
 
         future_df_future: pd.DataFrame = pd.concat(cols, axis=1)
@@ -146,7 +149,9 @@ def get_inference_data(
 def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
     # use the data to predict the coming temperature
     # TODO read args from some config yaml
-    args = dict(n=96, num_samples=128)
+    args = dict(n=96)
+    if model.supports_probabilistic_prediction:
+        args["num_samples"] = 128
 
     pred = model.predict(**data, **args)  # not sure why pyright is mad here  # pyright: ignore [reportArgumentType]
     if not isinstance(pred, TimeSeries):
@@ -186,8 +191,16 @@ if __name__ == "__main__":
 
         data = get_inference_data(model_meta["features"], model.extreme_lags, external_data)
 
-        # TODO scale
-        # prediction = predict(model, data)
-        # persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
+        if scalers is not None:
+            # if scalers are provided, it's expected that all targets and covariates have a scaler
+            for key in data.keys():
+                # just to make type checkers happy
+                assert isinstance(data, dict)
+                assert isinstance(scalers, dict)
+                assert key in scalers, f"Scalers dict was provided, but for '{key}' there wasn't one"
+                data[key] = scalers[key].transform(data[key])
+
+        prediction = predict(model, data)
+        persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
 
         print("fini")

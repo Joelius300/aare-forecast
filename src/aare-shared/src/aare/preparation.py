@@ -1,11 +1,11 @@
 # TODO: This module will need a big refactor, since this was just for the temperature feature and we want
 #  to transition to the feature class without breaking all the old notebooks etc.
 from typing import cast, Optional
-from typing_extensions import deprecated
 
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
+from typing_extensions import deprecated
 
 from aare.constants import TEMP, TIME
 from aare.params import read_params
@@ -19,7 +19,12 @@ def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
 
 
 def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
-    """Resample the dataframe to the (in the params.yaml) specified frequency/resolution."""
+    """
+    Resample the dataframe to the (in the params.yaml) specified frequency/resolution.
+    It takes the first and labels the first data point (left). So 08:00 and 08:15 will be
+    turned into the single 08:00 point and 08:15 is fully discarded. Does not do any mean
+    aggregation or anything of the sorts.
+    """
     if freq is None:
         freq = read_params()["general"]["frequency"]
 

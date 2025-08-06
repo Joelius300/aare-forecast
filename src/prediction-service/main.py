@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import TypedDict, NotRequired, Optional
+from typing import TypedDict, NotRequired, Optional, cast
 
 import darts
 import pandas as pd
@@ -86,10 +86,16 @@ def _prepare_series(features: list[Feature], df: pd.DataFrame) -> TimeSeries:
     return series
 
 
+EXTRA_PAST_HOURS = 2
+
+
 # TODO refactor this a bit to reduce duplications and function size
 #  This function has some overlap with FeatureSet, but not sure if it can be consolidated.
 def get_inference_data(
-    features: FeatureIdentifiers, extreme_lags: ExtremeLags, external_data: dict[str, pd.DataFrame]
+    features: FeatureIdentifiers,
+    extreme_lags: ExtremeLags,
+    external_data: dict[str, pd.DataFrame],
+    run_ts: datetime.datetime,
 ) -> InferenceData:
     influx_store = RemoteExistenzStore()  # eww, need to remove these coupling
 
@@ -102,7 +108,7 @@ def get_inference_data(
 
     # take data from further in the past to make sure we get all the required data, I think darts handles that
     # TODO set the period end to the run_ts so it's reproducible and not bound to some "now" implementation (!)
-    target_df = influx_store.query(f"{min_target_lag - 2}h", target_fields)
+    target_df = influx_store.query(f"{min_target_lag - EXTRA_PAST_HOURS}h", target_fields)
     target = _prepare_series(target_features, target_df)
 
     if "past" in features and features["past"] is not None:
@@ -130,6 +136,9 @@ def get_inference_data(
             cols.append(df[field.name])
 
         future_df_future: pd.DataFrame = pd.concat(cols, axis=1).reset_index(names=TIME)
+        # discard data from external sources that are in the past since we can fetch more
+        # accurate data from influx directly. At least for our current sources.
+        future_df_future = cast(pd.DataFrame, future_df_future[future_df_future[TIME] >= run_ts])
 
         # must combine that future data with past data, if the model uses it
         min_future_lag = extreme_lags[4]
@@ -139,11 +148,19 @@ def get_inference_data(
             future_df = future_df_future
         else:
             # it also uses past future cov values, so we need to fetch from influx
-            future_df_past = influx_store.query(f"{min_future_lag - 2}h", future_fields)
+            future_df_past = influx_store.query(f"{min_future_lag - EXTRA_PAST_HOURS}h", future_fields)
+            future_df_past = resample(future_df_past)  # remove trailing 08:40 data point (see below)
             future_df = pd.concat([future_df_past, future_df_future], axis=0, ignore_index=True)
-            # TODO check if data needs to be removed from the future because meteotest also returns
-            #  data in the past but then we get duplicate points (real and predicted).
-            #  Alternatively, take the mean over the two (smoother but less accurate).
+
+            # Influx also returns a data point at the very end that's basically at run_ts. To remove it, we
+            # can either just resample future_df_past (see above), or we could merge it together with the
+            # future prediction and take the mean. Here it's important that the data point at 01:00 only contains data
+            # from before (<= 01:00) and 08:45 is merged with 09:00, so closed and label must be set to 'right'.
+            # THE REASON I'M JUST DROPPING INSTEAD OF MERGING is that at 08:50 it would probably increase accuracy
+            # but at 08:10 it might decrease it because it pulls it to the earlier hour. For the sake of transparency
+            # and simplicity, we just ignore the last "partial" data point from influx.
+            # > should read 1h from config, if you do this
+            # future_df = future_df.set_index(TIME).resample("1h", closed="right", label="right").mean().reset_index()
 
         future = _prepare_series(future_features, future_df)
 
@@ -192,6 +209,7 @@ if __name__ == "__main__":
 
     # could also use NullConnectionPool because we don't really need pooling atm.
     # with this config, it opens a connection immediately and keeps it open/ready.
+    # TODO read from config/env
     conn_pool = ConnectionPool(
         "host=127.0.0.1 dbname=aare_oraku user=postgres password=password",
         min_size=1,
@@ -203,7 +221,7 @@ if __name__ == "__main__":
         # persist_metadata(run_ts)
         external_data = load_external_data(sources, run_ts)
 
-        data = get_inference_data(model_meta["features"], model.extreme_lags, external_data)
+        data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
 
         if scalers is not None:
             # if scalers are provided, it's expected that all targets and covariates have a scaler

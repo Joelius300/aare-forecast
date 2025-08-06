@@ -6,6 +6,8 @@ import darts
 import pandas as pd
 import psycopg
 from darts import TimeSeries
+from darts.dataprocessing import Pipeline
+from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
@@ -139,6 +141,9 @@ def get_inference_data(
             # it also uses past future cov values, so we need to fetch from influx
             future_df_past = influx_store.query(f"{min_future_lag - 2}h", future_fields)
             future_df = pd.concat([future_df_past, future_df_future], axis=0, ignore_index=True)
+            # TODO check if data needs to be removed from the future because meteotest also returns
+            #  data in the past but then we get duplicate points (real and predicted).
+            #  Alternatively, take the mean over the two (smoother but less accurate).
 
         future = _prepare_series(future_features, future_df)
 
@@ -148,7 +153,9 @@ def get_inference_data(
     }
 
 
-def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
+def predict(
+    model: GlobalForecastingModel, data: InferenceData, target_scaler: Optional[InvertibleDataTransformer | Pipeline]
+) -> pd.DataFrame:
     # use the data to predict the coming temperature
     # TODO read args from some config yaml
     args = dict(n=96)
@@ -162,11 +169,16 @@ def predict(model: GlobalForecastingModel, data: InferenceData) -> pd.DataFrame:
     if pred.is_stochastic:
         raise ValueError("Model returned a stochastic prediction; not supported yet")
 
+    if target_scaler:
+        assert isinstance(target_scaler, (InvertibleDataTransformer, Pipeline))
+        pred = target_scaler.inverse_transform(pred)
+        assert isinstance(pred, TimeSeries), "Not a TimeSeries anymore after inverse transform"
+
     return pred.to_dataframe().reset_index(names="time")
 
 
 def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, table: TimescaleTable):
-    # store prediction to db
+    table.ensure_table_exists()
     to_store = prediction.copy()
     to_store["run_ts"] = run_ts
     table.insert(to_store)
@@ -202,7 +214,7 @@ if __name__ == "__main__":
                 assert key in scalers, f"Scalers dict was provided, but for '{key}' there wasn't one"
                 data[key] = scalers[key].transform(data[key])
 
-        prediction = predict(model, data)
+        prediction = predict(model, data, scalers.get("series") if scalers else None)
         persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
 
         print("fini")

@@ -30,7 +30,6 @@ class MeteoTestSource(ExternalSource):
             dfs.append(df)
 
         df = pd.concat(dfs, axis="index", ignore_index=True)
-        # TODO interpret the naive timestamps as UTC timestamps
 
         return df
 
@@ -52,7 +51,8 @@ class MeteoTestSource(ExternalSource):
 
     def _to_df(self, data: dict):
         df = pd.DataFrame.from_dict(data, orient="index", dtype=np.float32)
-        df.index = pd.to_datetime(df.index)
+        # timestamps from meteotest are naive but should be interpreted as UTC
+        df.index = pd.to_datetime(df.index).tz_localize("UTC")
         df = df.reset_index(names="time")
 
         return df

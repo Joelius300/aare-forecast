@@ -1,6 +1,6 @@
 from psycopg_pool import ConnectionPool
 
-from lib.persistance.timescale_table import TimescaleTable
+from lib.persistence.timescale_table import TimescaleTable
 
 
 class MeteotestTable(TimescaleTable):

@@ -22,8 +22,8 @@ from aare.storage.model import load_model
 from lib.external_sources.external_source import ExternalSource
 from lib.external_sources.registry import SourceRegistry, Sources
 from lib.external_sources.translations import MEAS_TRANS
-from lib.persistance.tables.prediction import PredictionTable
-from lib.persistance.timescale_table import TimescaleTable
+from lib.persistence.tables.prediction import PredictionTable
+from lib.persistence.timescale_table import TimescaleTable
 
 # dict/None = don't know the type yet :)
 logger = logging.getLogger(__name__)

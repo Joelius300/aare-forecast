@@ -4,8 +4,8 @@ from psycopg_pool import ConnectionPool
 
 from lib.external_sources.external_source import ExternalSource
 from lib.external_sources.meteotest import MeteoTestSource
-from lib.persistance.tables.meteotest import MeteotestTable
-from lib.persistance.timescale_table import TimescaleTable
+from lib.persistence.tables.meteotest import MeteotestTable
+from lib.persistence.timescale_table import TimescaleTable
 
 
 class SourceTuple(TypedDict):

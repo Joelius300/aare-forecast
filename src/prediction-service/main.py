@@ -6,6 +6,7 @@ import configargparse
 import darts
 import pandas as pd
 import psycopg
+from psycopg import sql
 from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
@@ -59,7 +60,7 @@ def persist_metadata(table: PredictionMetaTable, run_ts: datetime.datetime, mode
         "status": "started",
         "finished_at": None,
         "horizon": config.horizon,
-        "mlflow_name": model_meta["mlflow"]["run_name"],
+        "mlflow_run_name": model_meta["mlflow"]["run_name"],
         "mlflow_exp_id": model_meta["mlflow"]["exp_id"],
         "mlflow_run_id": model_meta["mlflow"]["run_id"],
         "features_targets": ",".join(model_meta["features"]["targets"]),
@@ -295,7 +296,9 @@ def main():
         connection_class=psycopg.Connection,
     )
     with conn_pool:
-        persist_metadata(PredictionMetaTable(conn_pool), run_ts, model_meta, args)
+        metadata_table = PredictionMetaTable(conn_pool)
+        metadata_table.ensure_table_exists()
+        persist_metadata(metadata_table, run_ts, model_meta, args)
 
         # noinspection PyBroadException
         status = "success"
@@ -306,6 +309,22 @@ def main():
             status = "failure"
             error = str(e)
 
+        with conn_pool.connection() as conn:
+            conn.execute(
+                sql.SQL(
+                    """
+                UPDATE {table}
+                SET status = {status}, error = {error}, finished_at = {finished_at}
+                WHERE run_ts = {run_ts}
+                """
+                ).format(
+                    table=sql.Identifier(metadata_table.table_name),
+                    status=status,
+                    error=error,
+                    run_ts=run_ts,
+                    finished_at=datetime.datetime.now(datetime.UTC),
+                )
+            )
         # TODO update run_ts and error fields in prediction_meta
 
     logger.info("finito")

@@ -46,5 +46,3 @@ class PredictionMetaTable(TimescaleTable):
                 );
                 """
             )
-
-            self.make_hypertable(conn)

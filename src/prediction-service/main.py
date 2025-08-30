@@ -1,7 +1,8 @@
 import datetime
 import logging
-from typing import TypedDict, NotRequired, Optional, cast
+from typing import TypedDict, NotRequired, Optional, cast, Literal
 
+import configargparse
 import darts
 import pandas as pd
 import psycopg
@@ -18,14 +19,15 @@ from aare.features.base.feature import Feature
 from aare.features.registry import FEATURES
 from aare.preparation import resample
 from aare.remote_existenz_store import RemoteExistenzStore
+from aare.storage.metadata import AareModel
 from aare.storage.model import load_model
 from lib.external_sources.external_source import ExternalSource
 from lib.external_sources.registry import SourceRegistry, Sources
 from lib.external_sources.translations import MEAS_TRANS
 from lib.persistence.tables.prediction import PredictionTable
+from lib.persistence.tables.prediction_meta import PredictionMetaTable
 from lib.persistence.timescale_table import TimescaleTable
 
-# dict/None = don't know the type yet :)
 logger = logging.getLogger(__name__)
 
 
@@ -37,9 +39,36 @@ class InferenceData(TypedDict):
     future_covariates: NotRequired[Optional[TimeSeries]]
 
 
-def persist_metadata(run_ts: datetime.datetime):
-    # store version (?), features, etc.
-    raise NotImplementedError()
+def persist_metadata(table: PredictionMetaTable, run_ts: datetime.datetime, model_meta: AareModel, config):
+    # store initial information on the run. It will later be updated when the run is finished.
+    def _get_features(time: Literal["past", "future"]):
+        # for some reason pycharm is much worse at understanding typings than pyright
+        # noinspection PyTypedDict
+        features = model_meta["features"].get(time)
+        if not features:
+            return None
+
+        # noinspection PyTypeChecker
+        return ",".join(features)
+
+    # later also add num_samples
+    meta = {
+        "run_ts": run_ts,
+        "model_name": model_meta["name"],
+        "model_version": model_meta["version"],
+        "status": "started",
+        "finished_at": None,
+        "horizon": config["horizon"],
+        "mlflow_name": model_meta["mlflow"]["run_name"],
+        "mlflow_exp_id": model_meta["mlflow"]["exp_id"],
+        "mlflow_run_id": model_meta["mlflow"]["run_id"],
+        "features_targets": ",".join(model_meta["features"]["targets"]),
+        "features_past": _get_features("past"),
+        "features_future": _get_features("future"),
+        "error": None,
+    }
+
+    table.insert(pd.DataFrame([meta]))
 
 
 def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
@@ -201,8 +230,11 @@ def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, tabl
     table.insert(to_store)
 
 
-if __name__ == "__main__":
+def main():
     logging.basicConfig(level="DEBUG")
+    logging.getLogger("dulwich").setLevel(logging.WARNING)
+    logging.getLogger("fsspec").setLevel(logging.WARNING)
+    
     run_ts = datetime.datetime.now(datetime.UTC)
     model_meta, model, scalers = load_model(name="LR", version="dev")
     print(model.extreme_lags)
@@ -236,3 +268,24 @@ if __name__ == "__main__":
         persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
 
         print("fini")
+
+def get_args():
+    p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=["./dev_config.yaml"])
+    p.add_argument("-c", "--connection-string", required=True, type=str, help="Connection string for the postgres database")
+    p.add_argument("-m", "--model-path", required=True, type=str, help="Path to the model meta file (json)")
+    p.add_argument("-h", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")
+    p.add_argument("--num-samples", default=128, type=int, help="Number of samples to take for probabilistic forecasts")
+    p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
+
+    return p.parse_args()
+
+def main_with_error():
+    # noinspection PyBroadException
+    try:
+        main()
+    except Exception:
+        # TODO
+        pass
+
+if __name__ == "__main__":
+    main()

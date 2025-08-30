@@ -1,0 +1,5 @@
+# config for the inference service during development to avoid retyping args etc.
+# for deployment, these settings generally are set via env variables
+logging-level: DEBUG
+model-path: "data/models/LR-dev.json"
+connection-string: "host=127.0.0.1 dbname=aare_oraku user=postgres password=password"

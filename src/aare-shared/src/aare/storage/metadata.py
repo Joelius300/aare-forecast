@@ -76,7 +76,7 @@ def serialize_model_info(path: os.PathLike, model: AareModel, indent=2) -> None:
         json.dump(model, file, cls=_ClassEncoder, indent=indent)
 
 
-def load_model_info(path: os.PathLike) -> AareModel:
+def load_model_info(path: os.PathLike | str) -> AareModel:
     """Read a model info dict from json and import specified model type."""
     with open(str(path), "rt") as file:
         info = json.load(file, object_hook=_class_decoder)

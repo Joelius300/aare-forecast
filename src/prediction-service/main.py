@@ -12,7 +12,7 @@ from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
-from aare.compat.types import ExtremeLags
+from aare.compat.types import ExtremeLags, DataTransformers
 from aare.constants import TIME
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.features.base.feature import Feature
@@ -58,7 +58,7 @@ def persist_metadata(table: PredictionMetaTable, run_ts: datetime.datetime, mode
         "model_version": model_meta["version"],
         "status": "started",
         "finished_at": None,
-        "horizon": config["horizon"],
+        "horizon": config.horizon,
         "mlflow_name": model_meta["mlflow"]["run_name"],
         "mlflow_exp_id": model_meta["mlflow"]["exp_id"],
         "mlflow_run_id": model_meta["mlflow"]["run_id"],
@@ -200,13 +200,16 @@ def get_inference_data(
 
 
 def predict(
-    model: GlobalForecastingModel, data: InferenceData, target_scaler: Optional[InvertibleDataTransformer | Pipeline]
+    model: GlobalForecastingModel,
+    data: InferenceData,
+    target_scaler: Optional[InvertibleDataTransformer | Pipeline],
+    horizon: int,
+    num_samples: int,
 ) -> pd.DataFrame:
-    # use the data to predict the coming temperature
-    # TODO read args from some config yaml
-    args = dict(n=96)
+    # use the fetched data to predict the coming temperature
+    args = dict(n=horizon)
     if model.supports_probabilistic_prediction:
-        args["num_samples"] = 128
+        args["num_samples"] = num_samples
 
     pred = model.predict(**data, **args)  # not sure why pyright is mad here  # pyright: ignore [reportArgumentType]
     if not isinstance(pred, TimeSeries):
@@ -230,62 +233,84 @@ def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, tabl
     table.insert(to_store)
 
 
-def main():
-    logging.basicConfig(level="DEBUG")
-    logging.getLogger("dulwich").setLevel(logging.WARNING)
-    logging.getLogger("fsspec").setLevel(logging.WARNING)
-    
-    run_ts = datetime.datetime.now(datetime.UTC)
-    model_meta, model, scalers = load_model(name="LR", version="dev")
-    print(model.extreme_lags)
+def make_prediction(
+    run_ts: datetime.datetime,
+    model_meta: AareModel,
+    model: GlobalForecastingModel,
+    scalers: Optional[DataTransformers],
+    conn_pool: ConnectionPool,
+    horizon: int,
+    num_samples: int,
+):
+    sources = SourceRegistry().configure_sources(conn_pool)
+    external_data = load_external_data(sources, run_ts)
 
-    # could also use NullConnectionPool because we don't really need pooling atm.
-    # with this config, it opens a connection immediately and keeps it open/ready.
-    # TODO read from config/env
-    conn_pool = ConnectionPool(
-        "host=127.0.0.1 dbname=aare_oraku user=postgres password=password",
-        min_size=1,
-        connection_class=psycopg.Connection,
-    )
-    with conn_pool:
-        sources = SourceRegistry().configure_sources(conn_pool)
+    data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
 
-        # persist_metadata(run_ts)
-        external_data = load_external_data(sources, run_ts)
+    if scalers is not None:
+        # if scalers are provided, it's expected that all targets and covariates have a scaler
+        for key in data.keys():
+            # just to make type checkers happy
+            assert isinstance(data, dict)
+            assert isinstance(scalers, dict)
+            assert key in scalers, f"Scalers dict was provided, but for '{key}' there wasn't one"
+            data[key] = scalers[key].transform(data[key])
 
-        data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
+    prediction = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
+    persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
 
-        if scalers is not None:
-            # if scalers are provided, it's expected that all targets and covariates have a scaler
-            for key in data.keys():
-                # just to make type checkers happy
-                assert isinstance(data, dict)
-                assert isinstance(scalers, dict)
-                assert key in scalers, f"Scalers dict was provided, but for '{key}' there wasn't one"
-                data[key] = scalers[key].transform(data[key])
-
-        prediction = predict(model, data, scalers.get("series") if scalers else None)
-        persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
-
-        print("fini")
 
 def get_args():
     p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=["./dev_config.yaml"])
-    p.add_argument("-c", "--connection-string", required=True, type=str, help="Connection string for the postgres database")
+    p.add_argument(
+        "-c", "--connection-string", required=True, type=str, help="Connection string for the postgres database"
+    )
     p.add_argument("-m", "--model-path", required=True, type=str, help="Path to the model meta file (json)")
-    p.add_argument("-h", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")
+    p.add_argument("-n", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")
     p.add_argument("--num-samples", default=128, type=int, help="Number of samples to take for probabilistic forecasts")
     p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
 
     return p.parse_args()
 
-def main_with_error():
-    # noinspection PyBroadException
-    try:
-        main()
-    except Exception:
-        # TODO
-        pass
 
+def set_logging(level: str):
+    logging.basicConfig(level=level)
+    logging.getLogger("dulwich").setLevel(logging.WARNING)
+    logging.getLogger("fsspec").setLevel(logging.WARNING)
+
+
+def main():
+    args = get_args()
+    set_logging(args.logging_level)
+
+    run_ts = datetime.datetime.now(datetime.UTC)
+
+    model_meta, model, scalers = load_model(args.model_path)
+
+    # could also use NullConnectionPool because we don't really need pooling atm.
+    # with this config, it opens a connection immediately and keeps it open/ready.
+    conn_pool = ConnectionPool(
+        args.connection_string,
+        min_size=1,
+        connection_class=psycopg.Connection,
+    )
+    with conn_pool:
+        persist_metadata(PredictionMetaTable(conn_pool), run_ts, model_meta, args)
+
+        # noinspection PyBroadException
+        status = "success"
+        error = None
+        try:
+            make_prediction(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
+        except Exception as e:
+            status = "failure"
+            error = str(e)
+
+        # TODO update run_ts and error fields in prediction_meta
+
+    logger.info("finito")
+
+
+# TODO god this thing needs to be refactored...
 if __name__ == "__main__":
     main()

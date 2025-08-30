@@ -56,7 +56,7 @@ def save_model(
 
 
 def load_model(
-    meta_path: Optional[os.PathLike] = None, name: Optional[str] = None, version: Optional[str] = None
+    meta_path: Optional[os.PathLike | str] = None, name: Optional[str] = None, version: Optional[str] = None
 ) -> tuple[AareModel, GlobalForecastingModel, Optional[DataTransformers]]:
     """Load a model from a specified path. For local dev, can also provide name and version."""
     if not meta_path:

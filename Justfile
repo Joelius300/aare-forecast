@@ -15,6 +15,9 @@ lint:
   uv run ruff format
   uv run pyright
 
+format:
+  uv run ruff format
+
 mlflow:
   uv run mlflow ui
 

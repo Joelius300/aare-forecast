@@ -6,8 +6,6 @@ from pathlib import Path, PosixPath, WindowsPath
 from typing import TypedDict, cast
 
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
-from mlflow.entities import RunInfo
-
 from aare.feature_identifiers import FeatureIdentifiers
 
 logger = logging.getLogger(__name__)
@@ -19,7 +17,8 @@ class MlFlowInfo(TypedDict):
     run_id: str
 
 
-def get_mlflow_info(run_info: RunInfo) -> MlFlowInfo:
+# no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
+def get_mlflow_info(run_info) -> MlFlowInfo:
     return {
         "run_name": str(run_info.run_name),
         "exp_id": run_info.experiment_id,

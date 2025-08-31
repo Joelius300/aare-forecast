@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import cast, Optional
 
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
-from mlflow.entities import RunInfo
 
 from aare.compat.types import DataTransformers
 from aare.feature_identifiers import FeatureIdentifiers
@@ -28,7 +27,7 @@ def save_model(
     model: GlobalForecastingModel,
     features: FeatureIdentifiers,
     scalers: DataTransformers,
-    run_info: RunInfo,
+    run_info,  # no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
     override=False,
 ):
     """Store a model with all necessary information including a metadata file."""

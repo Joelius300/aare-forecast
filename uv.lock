@@ -13,9 +13,6 @@ members = [
 name = "aare-forecast"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "configargparse" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -42,7 +39,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "configargparse", specifier = ">=1.7.1" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -74,6 +70,7 @@ version = "0.1.0"
 source = { virtual = "src/prediction-service" }
 dependencies = [
     { name = "aare-shared" },
+    { name = "configargparse" },
     { name = "httpx" },
     { name = "psycopg", extra = ["binary", "pool"] },
 ]
@@ -81,6 +78,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aare-shared", editable = "src/aare-shared" },
+    { name = "configargparse", specifier = ">=1.7.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
 ]

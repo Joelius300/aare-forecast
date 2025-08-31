@@ -4,9 +4,7 @@ version = "0.1.0"
 description = "Forecasting temperature (and water level) for the Swiss river Aare"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    "configargparse>=1.7.1",
-]
+dependencies = []
 package = false
 
 [dependency-groups]

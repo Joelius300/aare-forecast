@@ -306,10 +306,6 @@ comm==0.2.2 \
     # via
     #   ipykernel
     #   ipywidgets
-configargparse==1.7.1 \
-    --hash=sha256:79c2ddae836a1e5914b71d58e4b9adbd9f7779d4e6351a637b7d2d9b6c46d3d9 \
-    --hash=sha256:8b586a31f9d873abd1ca527ffbe58863c99f36d896e2829779803125e83be4b6
-    # via aare-forecast
 configobj==5.0.9 \
     --hash=sha256:03c881bbf23aa07bccf1b837005975993c4ab4427ba57f959afdd9d1a2386848 \
     --hash=sha256:1ba10c5b6ee16229c79a05047aeda2b55eb4e80d7c7d8ecf17ec1ca600c79882

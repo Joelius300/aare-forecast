@@ -1,4 +1,4 @@
-import datetime
+from datetime import UTC, datetime
 import logging
 from typing import TypedDict, NotRequired, Optional, cast, Literal
 
@@ -6,7 +6,6 @@ import configargparse
 import darts
 import pandas as pd
 import psycopg
-from psycopg import sql
 from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
@@ -40,12 +39,12 @@ class InferenceData(TypedDict):
     future_covariates: NotRequired[Optional[TimeSeries]]
 
 
-def persist_metadata(table: PredictionMetaTable, run_ts: datetime.datetime, model_meta: AareModel, config):
+def persist_metadata(table: PredictionMetaTable, run_ts: datetime, model_meta: AareModel, config):
     # store initial information on the run. It will later be updated when the run is finished.
-    def _get_features(time: Literal["past", "future"]):
+    def _get_features(cov_type: Literal["past", "future"]):
         # for some reason pycharm is much worse at understanding typings than pyright
         # noinspection PyTypedDict
-        features = model_meta["features"].get(time)
+        features = model_meta["features"].get(cov_type)
         if not features:
             return None
 
@@ -72,7 +71,7 @@ def persist_metadata(table: PredictionMetaTable, run_ts: datetime.datetime, mode
     table.insert(pd.DataFrame([meta]))
 
 
-def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime.datetime):
+def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
     # fetch, cache in db and then transform and return data from the source
     table.ensure_table_exists()
     df = source.fetch()
@@ -88,7 +87,7 @@ def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTab
     return prepared
 
 
-def load_external_data(sources: Sources, run_ts: datetime.datetime) -> dict[str, pd.DataFrame]:
+def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd.DataFrame]:
     # pull from all registered external sources and store to db cache
 
     # can be parallelized later, or at least async
@@ -125,7 +124,7 @@ def get_inference_data(
     features: FeatureIdentifiers,
     extreme_lags: ExtremeLags,
     external_data: dict[str, pd.DataFrame],
-    run_ts: datetime.datetime,
+    run_ts: datetime,
 ) -> InferenceData:
     influx_store = RemoteExistenzStore()  # eww, need to remove these coupling
 
@@ -227,7 +226,7 @@ def predict(
     return pred.to_dataframe().reset_index(names="time")
 
 
-def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, table: TimescaleTable):
+def persist_prediction(run_ts: datetime, prediction: pd.DataFrame, table: TimescaleTable):
     table.ensure_table_exists()
     to_store = prediction.copy()
     to_store["run_ts"] = run_ts
@@ -235,7 +234,7 @@ def persist_prediction(run_ts: datetime.datetime, prediction: pd.DataFrame, tabl
 
 
 def make_prediction(
-    run_ts: datetime.datetime,
+    run_ts: datetime,
     model_meta: AareModel,
     model: GlobalForecastingModel,
     scalers: Optional[DataTransformers],
@@ -284,7 +283,7 @@ def main():
     args = get_args()
     set_logging(args.logging_level)
 
-    run_ts = datetime.datetime.now(datetime.UTC)
+    run_ts = datetime.now(UTC)
 
     model_meta, model, scalers = load_model(args.model_path)
 
@@ -304,28 +303,15 @@ def main():
         status = "success"
         error = None
         try:
+            # do the hard part
             make_prediction(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
         except Exception as e:
             status = "failure"
             error = str(e)
 
-        with conn_pool.connection() as conn:
-            conn.execute(
-                sql.SQL(
-                    """
-                UPDATE {table}
-                SET status = {status}, error = {error}, finished_at = {finished_at}
-                WHERE run_ts = {run_ts}
-                """
-                ).format(
-                    table=sql.Identifier(metadata_table.table_name),
-                    status=status,
-                    error=error,
-                    run_ts=run_ts,
-                    finished_at=datetime.datetime.now(datetime.UTC),
-                )
-            )
-        # TODO update run_ts and error fields in prediction_meta
+        finished_at = datetime.now(UTC)
+
+        metadata_table.update_metadata(run_ts, status, error, finished_at)
 
     logger.info("finito")
 

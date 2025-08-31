@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from psycopg import sql
 from psycopg_pool import ConnectionPool
 
 from lib.persistence.timescale_table import TimescaleTable
@@ -45,4 +48,25 @@ class PredictionMetaTable(TimescaleTable):
                     PRIMARY KEY (run_ts)
                 );
                 """
+            )
+
+    def update_metadata(self, run_ts: datetime, status: str, error: str | None, finished_at: datetime):
+        """
+        Update an existing metadata entry with a new status, error and finished_at timestamp, identified by run_ts.
+        """
+        with self.connection_pool.connection() as conn:
+            conn.execute(
+                sql.SQL(
+                    """
+                UPDATE {table}
+                SET status = {status}, error = {error}, finished_at = {finished_at}
+                WHERE run_ts = {run_ts}
+                """
+                ).format(
+                    table=sql.Identifier(self.table_name),
+                    status=status,
+                    error=error,
+                    run_ts=run_ts,
+                    finished_at=finished_at,
+                )
             )

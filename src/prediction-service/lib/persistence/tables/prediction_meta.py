@@ -1,8 +1,11 @@
 from datetime import datetime
+from typing import Literal
 
+import pandas as pd
 from psycopg import sql
 from psycopg_pool import ConnectionPool
 
+from aare.storage.metadata import AareModel
 from lib.persistence.timescale_table import TimescaleTable
 
 
@@ -49,6 +52,40 @@ class PredictionMetaTable(TimescaleTable):
                 );
                 """
             )
+
+    def insert_metadata(self, run_ts: datetime, model_meta: AareModel, config_args, starting_status="started"):
+        """
+        Store initial information on the run. It should later be updated when the run is finished/crashed.
+        """
+
+        def _get_features(cov_type: Literal["past", "future"]):
+            # for some reason pycharm is much worse at understanding typings than pyright
+            # noinspection PyTypedDict
+            features = model_meta["features"].get(cov_type)
+            if not features:
+                return None
+
+            # noinspection PyTypeChecker
+            return ",".join(features)
+
+        # later also add num_samples
+        meta = {
+            "run_ts": run_ts,
+            "model_name": model_meta["name"],
+            "model_version": model_meta["version"],
+            "status": starting_status,
+            "finished_at": None,
+            "horizon": config_args.horizon,
+            "mlflow_run_name": model_meta["mlflow"]["run_name"],
+            "mlflow_exp_id": model_meta["mlflow"]["exp_id"],
+            "mlflow_run_id": model_meta["mlflow"]["run_id"],
+            "features_targets": ",".join(model_meta["features"]["targets"]),
+            "features_past": _get_features("past"),
+            "features_future": _get_features("future"),
+            "error": None,
+        }
+
+        self.insert(pd.DataFrame([meta]))
 
     def update_metadata(self, run_ts: datetime, status: str, error: str | None, finished_at: datetime):
         """

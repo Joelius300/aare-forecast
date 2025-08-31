@@ -1,10 +1,12 @@
 .venv
 .git
+.dvc
 .github
 .idea
 **/.pytest_cache
 **/__pycache__
 .ruff_cache
+.ipynb_checkpoints
 .jupyter_ystore.db
 
 mlruns
@@ -15,3 +17,4 @@ notebooks
 scripts
 data
 docs
+dev_config.yaml

@@ -5,11 +5,10 @@ description = "Forecasting temperature (and water level) for the Swiss river Aar
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
-package = false
 
 [dependency-groups]
 dev = [
-    "aare-shared",
+    "aare-shared[gpu-auto]",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
     "ipykernel>=6.29.5",
@@ -45,11 +44,11 @@ ignore = [
 
 pythonPlatform = "Linux"
 
+[tool.uv]
+package = false
+
 [tool.uv.workspace]
-members = [
-    "src/aare-shared",
-    "src/prediction-service",
-]
+members = ["src/aare-shared", "src/prediction-service"]
 
 [tool.uv.sources]
 aare-shared = { workspace = true }

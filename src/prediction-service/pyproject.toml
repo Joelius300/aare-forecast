@@ -5,11 +5,18 @@ description = "Prediction service to fetch external data and persist predictions
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aare-shared",
     "configargparse>=1.7.1",
     "httpx>=0.28.1",
     "psycopg[binary,pool]>=3.2.9",
 ]
+
+[project.optional-dependencies]
+gpu-auto = ["aare-shared[gpu-auto]"]
+gpu = ["aare-shared[gpu]"]
+cpu = ["aare-shared[cpu]"]
+
+[tool.uv]
+conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
 
 [tool.uv.sources]
 aare-shared = { workspace = true }

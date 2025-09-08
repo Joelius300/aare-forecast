@@ -13,12 +13,47 @@ dependencies = [
     "pandas>=2.2.3",
     "scikit-learn>=1.5.2",
 ]
-package = true
 
 [dependency-groups]
-dev = [
-    "hatchling>=1.27.0",
+dev = ["hatchling>=1.27.0"]
+
+[project.optional-dependencies]
+gpu-auto = ["torch>=2.7.0"]
+gpu = ["torch>=2.7.0"]
+cpu = ["torch>=2.7.0"]
+
+
+[tool.uv]
+package = true
+
+conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-auto", extra = "gpu-auto" },
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu128", extra = "gpu" },
 ]
+
+[[tool.uv.index]]
+name = "pytorch-auto"
+url = "https://pypi.org/simple"
+# the wheels hosted on pypi have automatic accelerator switching depending on the platform.
+# on linux you get CUDA acceleration, but on mac or windows, it's CPU-only.
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+# 128 = CUDA 12.8, which is the current default (SEP 25)
+# https://pytorch.org/get-started/locally/
+explicit = true
+
 
 [build-system]
 requires = ["hatchling"]

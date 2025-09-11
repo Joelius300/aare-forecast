@@ -1,10 +1,26 @@
+# ignore everything for a start
+*
+
+# allow neccessary files and directories
+!/src
+!/pyproject.toml
+!/uv.lock
+
+# ignore unnecessary files inside allowed directories, must be after allow statements
+**/*~
+**/*.log
+**/.DS_Store
+**/Thumbs.db
+**/.pytest_cache
+**/__pycache__
+**/*.pyc
+
+# these should already be ignored, this is just double wrapping from before
 .venv
 .git
 .dvc
 .github
 .idea
-**/.pytest_cache
-**/__pycache__
 .ruff_cache
 .ipynb_checkpoints
 .jupyter_ystore.db

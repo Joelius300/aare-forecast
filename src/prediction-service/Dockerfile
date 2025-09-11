@@ -18,15 +18,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/prediction-service/README.md,target=src/prediction-service/README.md \
     uv sync --locked --no-install-project --no-dev --extra cpu --package=aare-oraku-prediction
 
-# could probably do more granularly
+# which files/dirs are copied is controlled by the .dockerignore file
 COPY . /app
-# TODO could you maybe build the aare-shared package into a wheel and then only copy/install that
-#  instead of having it both as source in tree and installed in the venv?
-#  Of course the deps are the bigger problem, but still. Or use una.
 
-# install packages from our code etc.
+# install packages from our code etc. and remove unneccessary (transitive) dependencies of darts
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --extra cpu --package=aare-oraku-prediction
+    uv sync --locked --no-dev --extra cpu --package=aare-oraku-prediction \
+    && uv pip uninstall xgboost nvidia-nccl-cu12 statsforecast pyarrow fontTools networkx cryptography pygit2 pygments aiohttp
 
 # must be same base image as builder, otherwise copying venv won't work
 FROM python:3.12-slim-bookworm

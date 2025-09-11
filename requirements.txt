@@ -387,10 +387,6 @@ cycler==0.12.1 \
     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30 \
     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c
     # via matplotlib
-darts==0.36.0 \
-    --hash=sha256:a2a2a4b3f673913ffa17afeb5d735266d1fe9cf64325a90efe3162e5b470d58b \
-    --hash=sha256:c5b78637196b90c2d567f255cbc2a78d326d3c0b58904e7cc7a5125db1032dd1
-    # via aare-shared
 databricks-sdk==0.58.0 \
     --hash=sha256:8f5a35e42cc3f8a065d2e7c2d1aa5fb2fbaf3f5f0b475b75f5af17234f02abbd \
     --hash=sha256:9be3985f1297c5e605103e0df3aa5a2ee6fda56e9d83721f376af7c6855bcb90
@@ -759,7 +755,7 @@ hf-xet==1.1.5 ; platform_machine == 'aarch64' or platform_machine == 'amd64' or 
 holidays==0.76 \
     --hash=sha256:41a35fe7693c0306b95c86e1103d1d3ec7dfa873540c651bbdc35f604056efe8 \
     --hash=sha256:c57b1c258b6697832c29b8f09f18ca2f69c3200c0762a5d606efc76127a06595
-    # via darts
+    # via u8darts
 httpcore==1.0.9 \
     --hash=sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55 \
     --hash=sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8
@@ -849,9 +845,9 @@ joblib==1.5.1 \
     --hash=sha256:4719a31f054c7d766948dcd83e9613686b27114f190f717cec7eaa2084f8a74a \
     --hash=sha256:f4f86e351f39fe3d0d32a9f2c3d8af1ee4cec285aafcb27003dda5205576b444
     # via
-    #   darts
     #   pyod
     #   scikit-learn
+    #   u8darts
 json5==0.12.0 \
     --hash=sha256:0b4b6ff56801a1c7dc817b0241bca4ce474a0e6a163bfef3fc594d3fd263ff3a \
     --hash=sha256:6d37aa6c08b0609f16e1ec5ff94697e2cbbfbad5ac112afa05794da9ab7810db
@@ -1083,12 +1079,12 @@ matplotlib==3.10.3 \
     --hash=sha256:f6929fc618cb6db9cb75086f73b3219bbb25920cb24cee2ea7a12b04971a4158
     # via
     #   aare-shared
-    #   darts
     #   mlflow
     #   nfoursid
     #   pyod
     #   pypots
     #   seaborn
+    #   u8darts
 matplotlib-inline==0.1.7 \
     --hash=sha256:8423b23ec666be3d16e16b60bdd8ac4e86e840ebd1dd11a30b9f117f2fa0ab90 \
     --hash=sha256:df192d39a4ff8f21b1895d72e6a13f5fcc5099f00fa84384e0ea28c2cc0653ca
@@ -1178,8 +1174,8 @@ narwhals==1.46.0 \
     --hash=sha256:f15d2255695d7e99f624f76aa5b765eb3fff8a509d3215049707af3a3feebc90 \
     --hash=sha256:fd7e53860b233c2b5566d8b4e1b3e8e9c01b5a87649a9f9a322742000f207a60
     # via
-    #   darts
     #   plotly
+    #   u8darts
 nbclient==0.10.2 \
     --hash=sha256:4ffee11e788b4a27fabeb7955547e4318a5298f34342a4bfd01f2e1faaeadc3d \
     --hash=sha256:90b7fc6b810630db87a6d0c2250b1f0ab4cf4d3c27a299b0cde78a4ed3fd9193
@@ -1214,7 +1210,7 @@ networkx==3.5 \
 nfoursid==1.0.1 \
     --hash=sha256:cd780c40a30ddf81c1d67014e6abd6626360334a65646e16dccd6e6831afc795 \
     --hash=sha256:d481e8ad58f19eba4292498ea4fd1324572a31c776fe6cf2ca774ea42448c04b
-    # via darts
+    # via u8darts
 nodeenv==1.9.1 \
     --hash=sha256:6ec12890a2dab7946721edbfbcd91f3319c6ccc9aec47be7c7e6b7011ee6645f \
     --hash=sha256:ba11c9782d29c27c70ffbdda2d7415098754709be8a7056d79a737cd901155c9
@@ -1282,7 +1278,6 @@ numpy==2.2.6 \
     #   benchpots
     #   contourpy
     #   coreforecast
-    #   darts
     #   h5py
     #   matplotlib
     #   mlflow
@@ -1307,6 +1302,7 @@ numpy==2.2.6 \
     #   transformers
     #   triad
     #   tsdb
+    #   u8darts
     #   utilsforecast
     #   xarray
     #   xgboost
@@ -1515,7 +1511,6 @@ pandas==2.3.1 \
     # via
     #   aare-shared
     #   benchpots
-    #   darts
     #   mlflow
     #   nfoursid
     #   pygrinder
@@ -1526,6 +1521,7 @@ pandas==2.3.1 \
     #   statsmodels
     #   triad
     #   tsdb
+    #   u8darts
     #   utilsforecast
     #   xarray
 pandas-stubs==2.3.0.250703 \
@@ -1892,7 +1888,7 @@ pynvml==12.0.0 \
 pyod==2.0.5 \
     --hash=sha256:1a3182529c68e388be0671840bb11f83d5d1deb738ad931d294881f7d50e4fdb \
     --hash=sha256:c1c2d2f3e8ebfb047c9b5da556cce924e64f7eeb1ad9d5af1455843ec13cb3d1
-    # via darts
+    # via u8darts
 pyparsing==3.2.3 \
     --hash=sha256:a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf \
     --hash=sha256:b9c13f1ab8b3b542f72e28f634bad4de758ab3ce4546e4301970ad6fa77c38be
@@ -1926,7 +1922,7 @@ python-json-logger==3.3.0 \
 pytorch-lightning==2.5.2 \
     --hash=sha256:17cfdf89bd98074e389101f097cdf34c486a1f5c6d3fdcefbaf4dea7f97ff0bf \
     --hash=sha256:f817087d611be8d43b777dd4e543d72703e235510936677a13e6c29f7fd790e3
-    # via darts
+    # via u8darts
 pytz==2025.2 \
     --hash=sha256:360b9e3dbb49a209c21ad61809c7fb453643e048b38924c765813546746e81c3 \
     --hash=sha256:5ddf76296dd8c44c26eb8f4b6f35488f3ccbf6fbbd7adee0b7262d43f0ec2f00
@@ -2053,7 +2049,6 @@ requests==2.32.4 \
     --hash=sha256:27babd3cda2a6d50b30443204ee89830707d396671944c998b5975b031ac2b2c \
     --hash=sha256:27d0316682c8a29834d3264820024b62a36942083d52caf2f14c0591336d3422
     # via
-    #   darts
     #   databricks-sdk
     #   docker
     #   dvc
@@ -2064,6 +2059,7 @@ requests==2.32.4 \
     #   mlflow-skinny
     #   transformers
     #   tsdb
+    #   u8darts
 rfc3339-validator==0.1.4 \
     --hash=sha256:138a2abdf93304ad60530167e51d2dfb9549521a836871b88d7f4695d0022f6b \
     --hash=sha256:24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa
@@ -2242,7 +2238,6 @@ scikit-learn==1.7.0 \
     # via
     #   aare-shared
     #   benchpots
-    #   darts
     #   mlflow
     #   optuna-dashboard
     #   pygrinder
@@ -2250,6 +2245,7 @@ scikit-learn==1.7.0 \
     #   pypots
     #   shap
     #   tsdb
+    #   u8darts
 scipy==1.15.3 \
     --hash=sha256:05dc6abcd105e1a29f95eada46d4a3f251743cfd7d3ae8ddb4088047f24ea477 \
     --hash=sha256:06efcba926324df1696931a57a176c80848ccd67ce6ad020c810736bfd58eb1c \
@@ -2280,7 +2276,6 @@ scipy==1.15.3 \
     --hash=sha256:eae3cf522bc7df64b42cad3925c876e1b0b6c35c1337c93e12c0f366f55b0eaf \
     --hash=sha256:f77f853d584e72e874d87357ad70f44b437331507d1c311457bed8ed2b956126
     # via
-    #   darts
     #   mlflow
     #   pyod
     #   pypots
@@ -2289,6 +2284,7 @@ scipy==1.15.3 \
     #   statsforecast
     #   statsmodels
     #   tsdb
+    #   u8darts
     #   xgboost
 scmrepo==3.3.11 \
     --hash=sha256:58b7948b218abecd3637d91ff937c442315052d3340bf7abc0a867ef2fb14e0c \
@@ -2334,7 +2330,7 @@ shap==0.48.0 \
     --hash=sha256:e0d0cc355d4f5091b32827c8fa425378ac76f50a4e2891e026ce5cc5c0d7a036 \
     --hash=sha256:ea19d7e8eb0071e4f734bca67c12efe8e3b1ef5418915265f0cb9f720ad8d08e \
     --hash=sha256:f169dc73fe144e70a0331b5507f9fd290d7695a3c7935fa8e4862e376321baf9
-    # via darts
+    # via u8darts
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \
     --hash=sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de
@@ -2421,7 +2417,7 @@ statsforecast==2.0.2 \
     --hash=sha256:98ad5a7fbd1795681af3583273e527308372b4d64d1575f28378f1876fbe4a42 \
     --hash=sha256:d342aae66a563cb39ecbbf71817942de9b3baf68c60f6efb3eac5e5704815507 \
     --hash=sha256:fd790fd4fe98f6e5571ee9f3a3d77bdffa7d57702b68a7657675be3864b77d46
-    # via darts
+    # via u8darts
 statsmodels==0.14.5 \
     --hash=sha256:2a06bca03b7a492f88c8106103ab75f1a5ced25de90103a89f3a287518017939 \
     --hash=sha256:37e7364a39f9aa3b51d15a208c2868b90aadb8412f868530f5cba9197cb00eaa \
@@ -2437,8 +2433,8 @@ statsmodels==0.14.5 \
     --hash=sha256:c3dd760a6fa80cd5e0371685c697bb9c2c0e6e1f394d975e596a1e6d0bbb9372 \
     --hash=sha256:de260e58cccfd2ceddf835b55a357233d6ca853a1aa4f90f7553a52cc71c6ddf
     # via
-    #   darts
     #   statsforecast
+    #   u8darts
 sympy==1.14.0 \
     --hash=sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517 \
     --hash=sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
@@ -2462,7 +2458,7 @@ tensorboard-data-server==0.7.2 \
 tensorboardx==2.6.4 \
     --hash=sha256:5970cf3a1f0a6a6e8b180ccf46f3fe832b8a25a70b86e5a237048a7c0beb18e2 \
     --hash=sha256:b163ccb7798b31100b9f5fa4d6bc22dad362d7065c2f24b51e50731adde86828
-    # via darts
+    # via u8darts
 terminado==0.18.1 \
     --hash=sha256:a4468e1b37bb318f8a86514f65814e1afc977cf29b3992a4500d9dd305dcceb0 \
     --hash=sha256:de09f2c4b85de4765f7714688fff57d3e75bad1f909b589fde880460c753fd2e
@@ -2516,11 +2512,11 @@ torch==2.8.0 \
     # via
     #   aare-shared
     #   benchpots
-    #   darts
     #   pygrinder
     #   pypots
     #   pytorch-lightning
     #   torchmetrics
+    #   u8darts
 torchmetrics==1.7.4 \
     --hash=sha256:506a1a5c7c304cd77ba323ca4b009e46b814fd2be9dcf0f4ccc2e5c0f5b4b0c1 \
     --hash=sha256:9298ad0e893b0cf2956bee95b0f7eecdc65205ab84ddb4f6762eff157c240518
@@ -2549,7 +2545,6 @@ tqdm==4.67.1 \
     --hash=sha256:26445eca388f82e72884e0d580d5464cd801a3ea01e63e5601bdff9ba6a48de2 \
     --hash=sha256:f8aef9c52c08c13a65f30ea34f4e5aac3fd1a34959879d7e59e63027286627f2
     # via
-    #   darts
     #   dvc
     #   dvc-data
     #   fsspec
@@ -2561,6 +2556,7 @@ tqdm==4.67.1 \
     #   statsforecast
     #   transformers
     #   tsdb
+    #   u8darts
 traitlets==5.14.3 \
     --hash=sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7 \
     --hash=sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f
@@ -2622,7 +2618,6 @@ typing-extensions==4.14.1 \
     #   anyio
     #   asyncssh
     #   beautifulsoup4
-    #   darts
     #   fastapi
     #   graphene
     #   huggingface-hub
@@ -2644,6 +2639,7 @@ typing-extensions==4.14.1 \
     #   torch
     #   typer
     #   typing-inspection
+    #   u8darts
 typing-inspection==0.4.1 \
     --hash=sha256:389055682238f53b04f7badcb49b989835495a96700ced5dab2d8feae4b26f51 \
     --hash=sha256:6ae134cc0203c33377d43188d4064e9b357dba58cff3185f22924610e70a9d28
@@ -2655,6 +2651,10 @@ tzdata==2025.2 \
     #   kombu
     #   pandas
     #   psycopg
+u8darts==0.37.1 \
+    --hash=sha256:4412e9fa7341ac03e84c3ebc4e96767c85e9ff46463ca4bf345b87a42d60f8d2 \
+    --hash=sha256:b20aab23902d623cb7e92f20dd0af034b2059848ef57025d8e7ef9730dfab517
+    # via aare-shared
 uri-template==1.3.0 \
     --hash=sha256:0e00f8eb65e18c7de20d595a14336e9f337ead580c70934141624b6d1ffdacc7 \
     --hash=sha256:a44a133ea12d44a0c0f06d7d42a52d71282e77e2f937d8abd5655b8d56fc1363
@@ -2723,7 +2723,7 @@ widgetsnbextension==4.0.14 \
 xarray==2025.7.0 \
     --hash=sha256:7b5d7267bd554ae119c7a0062f62b50517b4dd1968efc11f2553826b7d99297f \
     --hash=sha256:fd83ac8d638e7caef9d7f0c82bcdf380cede29d2ff84575133b2b95164af78ee
-    # via darts
+    # via u8darts
 xgboost==3.0.2 \
     --hash=sha256:0ea95fef12313f8563458bbf49458db434d620af27b1991ddb8f46806cb305a5 \
     --hash=sha256:5c4e377c86df815669939646b3abe7a20559e4d4c0f5c2ab10c31252e7a9d7d9 \
@@ -2733,7 +2733,7 @@ xgboost==3.0.2 \
     --hash=sha256:b4c89b71d134da9fa6318e3c9f5459317d1013b4d57059d10ed2840750e2f7e1 \
     --hash=sha256:d534242489265621397ff403bb1c6235d2e6c66938639239fdf2d6b39d27e339 \
     --hash=sha256:e9acf97b3b2a628b33f1dc80ee3f16a658e1f9f43c4ed2aa85b0a824c87dbde5
-    # via darts
+    # via u8darts
 yarl==1.20.1 \
     --hash=sha256:041eaa14f73ff5a8986b4388ac6bb43a77f2ea09bf1913df7a35d4646db69e53 \
     --hash=sha256:0b5ff0fbb7c9f1b1b5ab53330acbfc5247893069e7716840c8e7d5bb7355038a \

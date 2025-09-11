@@ -1,4 +1,9 @@
+# ruff: noqa: E402
+# ignore 'imports not at top of file' for this file
 from datetime import UTC, datetime
+
+import_start_ts = datetime.now(UTC)
+
 import logging
 from typing import Optional
 
@@ -163,7 +168,7 @@ def main():
 
         metadata_table.update_metadata(run_ts, status, error, finished_at)
 
-    logger.info(f"Finished run in {finished_at - run_ts}")
+    logger.info(f"Finished run in {finished_at - run_ts} (+ {run_ts - import_start_ts} imports)")
 
 
 if __name__ == "__main__":

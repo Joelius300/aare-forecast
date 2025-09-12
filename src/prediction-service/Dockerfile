@@ -23,8 +23,7 @@ COPY . /app
 
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --extra cpu --package=aare-oraku-prediction \
-    && uv pip uninstall xgboost nvidia-nccl-cu12 statsforecast pyarrow fontTools networkx cryptography pygit2 pygments aiohttp
+    uv sync --locked --no-dev --extra cpu --package=aare-oraku-prediction
 
 # must be same base image as builder, otherwise copying venv won't work
 FROM python:3.12-slim-bookworm

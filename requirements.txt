@@ -5,7 +5,7 @@ absl-py==2.3.1 \
     --hash=sha256:a97820526f7fbfd2ec1bce83f3f25e3a14840dac0d8e02a0b71cd75db3f77fc9 \
     --hash=sha256:eeecf07f0c2a93ace0772c92e596ace6d3d3996c042b2128459aaae2a76de11d
     # via tensorboard
-adagio==0.2.6 \
+adagio==0.2.6 ; sys_platform == 'never' \
     --hash=sha256:0c32768f3aba0e05273b36f9420a482034f2510f059171040d7e98ba34128d7a \
     --hash=sha256:1bb8317d41bfff8b11373bc03c9859ff166c498214bb2b7ce1e21638c0babb2c
     # via fugue
@@ -13,11 +13,11 @@ ai4ts==0.0.3 \
     --hash=sha256:7b01845d6b52157e1e9194b7d738ce1d0d56dc17f5a6651163a74b8fe411619d \
     --hash=sha256:e49b2f2fc615c2d47fd345d8cddf484e26e6108d139ebe3a923abd83311167cc
     # via pypots
-aiohappyeyeballs==2.6.1 \
+aiohappyeyeballs==2.6.1 ; sys_platform == 'never' \
     --hash=sha256:c3f9d0113123803ccadfdf3f0faa505bc78e6a72d1cc4806cbd719826e943558 \
     --hash=sha256:f349ba8f4b75cb25c99c5c2d84e997e485204d2902a9597802b0371f09331fb8
     # via aiohttp
-aiohttp==3.12.15 \
+aiohttp==3.12.15 ; sys_platform == 'never' \
     --hash=sha256:049ec0360f939cd164ecbfd2873eaa432613d5e77d6b04535e3d1fbae5a9e645 \
     --hash=sha256:1a649001580bdb37c6fdb1bebbd7e3bc688e8ec2b5c6f52edbb664662b17dc84 \
     --hash=sha256:2e5a495cb1be69dae4b08f35a6c4579c539e9b5706f606632102c0f855bcba7c \
@@ -62,7 +62,7 @@ aiohttp-retry==2.9.1 \
     # via
     #   dvc-http
     #   scmrepo
-aiosignal==1.4.0 \
+aiosignal==1.4.0 ; sys_platform == 'never' \
     --hash=sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e \
     --hash=sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7
     # via aiohttp
@@ -410,7 +410,7 @@ contourpy==1.3.3 \
     --hash=sha256:fd914713266421b7536de2bfa8181aa8c699432b6763a0ea64195ebe28bff6a9 \
     --hash=sha256:fde6c716d51c04b1c25d0b90364d0be954624a0ee9d60e23e850e8d48353d07a
     # via matplotlib
-coreforecast==0.0.16 \
+coreforecast==0.0.16 ; sys_platform == 'never' \
     --hash=sha256:00c7f8061acf10c1e0aca1cca1d958991a030925600386491e1c89658305b9e5 \
     --hash=sha256:0b845827b0e00b017abe3c38e77f628cdca9770fd7bb02861f6edaed0d482d2b \
     --hash=sha256:37fd79bf93e9336e9463c1c874da01e32ee2a4accea9bcee44f6e6494b0244f2 \
@@ -423,7 +423,7 @@ coreforecast==0.0.16 \
     --hash=sha256:b44b895f50909d7807a03d0f1941004452b897eb1719e934062a73108d700f20 \
     --hash=sha256:d250a62e9754b4fd9db07b0634428f4d42f971d50c18767dbd74e7f7e0d620d8
     # via statsforecast
-cryptography==45.0.7 \
+cryptography==45.0.7 ; sys_platform == 'never' \
     --hash=sha256:16ede8a4f7929b4b7ff3642eba2bf79aa1d71f24ab6ee443935c0d269b6bc513 \
     --hash=sha256:18fcf70f243fe07252dcb1b268a687f2358025ce32f9f88028ca5c364b123ef5 \
     --hash=sha256:1993a1bb7e4eccfb922b6cd414f072e08ff5816702a0bdb8941c247a6b1b287c \
@@ -591,7 +591,7 @@ flufl-lock==8.2.0 \
     --hash=sha256:15b333c35fab1a36b223840057258aeb4cd79f0fbaf82c144f23cdf6cf14d5e3 \
     --hash=sha256:59361e277a50efceff288b8e9d36dd43254ad11a88d42d7716195b848a3fce7c
     # via dvc
-fonttools==4.59.2 \
+fonttools==4.59.2 ; sys_platform == 'never' \
     --hash=sha256:036cd87a2dbd7ef72f7b68df8314ced00b8d9973aee296f2464d06a836aeb9a9 \
     --hash=sha256:0476ea74161322e08c7a982f83558a2b81b491509984523a1a540baf8611cc31 \
     --hash=sha256:0ec99f9bdfee9cdb4a9172f9e8fd578cce5feb231f598909e0aecf5418da4f25 \
@@ -631,7 +631,7 @@ fqdn==1.5.1 \
     --hash=sha256:105ed3677e767fb5ca086a0c1f4bb66ebc3c100be518f0e0d755d9eae164d89f \
     --hash=sha256:3a179af3761e4df6eb2e026ff9e1a3033d3587bf980a0b1b2e1e5d08d7358014
     # via jsonschema
-frozenlist==1.7.0 \
+frozenlist==1.7.0 ; sys_platform == 'never' \
     --hash=sha256:04fb24d104f425da3540ed83cbfc31388a586a7696142004c577fa61c6298c3f \
     --hash=sha256:05579bf020096fe05a764f1f84cd104a12f78eaab68842d036772dc6d4870b4b \
     --hash=sha256:0aa7e176ebe115379b5b1c95b4096fb1c17cce0847402e227e712c27bdb5a949 \
@@ -688,7 +688,7 @@ frozenlist==1.7.0 \
     # via
     #   aiohttp
     #   aiosignal
-fs==2.4.16 \
+fs==2.4.16 ; sys_platform == 'never' \
     --hash=sha256:660064febbccda264ae0b6bace80a8d1be9e089e0a5eb2427b7d517f9a91545c \
     --hash=sha256:ae97c7d51213f4b70b6a958292530289090de3a7e15841e108fbe144f069d313
     # via triad
@@ -705,7 +705,7 @@ fsspec==2025.9.0 \
     #   scmrepo
     #   torch
     #   triad
-fugue==0.9.1 \
+fugue==0.9.1 ; sys_platform == 'never' \
     --hash=sha256:5b91e55e6f243af6e2b901dc37914d954d8f0231627b68007850879f8848a3a3 \
     --hash=sha256:fb0f9a4780147ac8438be96efc50593e2d771d1cbf528ac56d3bcecd39915b50
     # via statsforecast
@@ -1106,7 +1106,7 @@ lightning-utilities==0.15.2 \
     # via
     #   pytorch-lightning
     #   torchmetrics
-llvmlite==0.44.0 \
+llvmlite==0.44.0 ; sys_platform == 'never' \
     --hash=sha256:07667d66a5d150abed9157ab6c0b9393c9356f229784a4385c02f99e94fc94d4 \
     --hash=sha256:1d671a56acf725bf1b531d5ef76b86660a5ab8ef19bb6a46064a705c6ca80aad \
     --hash=sha256:2fb7c4f2fb86cbae6dca3db9ab203eeea0e22d73b99bc2341cdf9de93612e930 \
@@ -1243,7 +1243,7 @@ mpmath==1.3.0 \
     --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
     --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
     # via sympy
-multidict==6.6.4 \
+multidict==6.6.4 ; sys_platform == 'never' \
     --hash=sha256:01368e3c94032ba6ca0b78e7ccb099643466cf24f8dc8eefcfdc0571d56e58f9 \
     --hash=sha256:024ce601f92d780ca1617ad4be5ac15b501cc2414970ffa2bb2bbc2bd5a68fa5 \
     --hash=sha256:047d9425860a8c9544fed1b9584f0c8bcd31bcde9568b047c5e567a1025ecd6e \
@@ -1334,7 +1334,7 @@ nest-asyncio==1.6.0 \
     --hash=sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe \
     --hash=sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c
     # via ipykernel
-networkx==3.5 \
+networkx==3.5 ; sys_platform == 'never' \
     --hash=sha256:0030d386a9a06dee3565298b4a734b68589749a544acbb6c412dc9e2489ec6ec \
     --hash=sha256:d4c6f9cf81f52d69230866796b82afbccdec3db7ae4fbd1b65ea750feed50037
     # via
@@ -1358,7 +1358,7 @@ notebook-shim==0.2.4 \
     # via
     #   jupyterlab
     #   notebook
-numba==0.61.2 \
+numba==0.61.2 ; sys_platform == 'never' \
     --hash=sha256:34fba9406078bac7ab052efbf0d13939426c753ad72946baaa5bf9ae0ebb8dd2 \
     --hash=sha256:3a10a8fc9afac40b1eac55717cece1b8b1ac0b946f5065c89e00bde646b5b154 \
     --hash=sha256:48a53a3de8f8793526cbe330f2a39fe9a6638efcbf11bd63f3d2f9757ae345cd \
@@ -1502,7 +1502,7 @@ nvidia-ml-py==13.580.65 \
     --hash=sha256:7bf18b03c7d3658727011cf5f0c6c2155b36ce439e65359a0a4a906214f6a3c9 \
     --hash=sha256:f0c65306ed999d2d4ff793918bfd17d1e30895d1c4606413ef95a0ea42460792
     # via pynvml
-nvidia-nccl-cu12==2.27.3 ; platform_machine != 'aarch64' and sys_platform == 'linux' \
+nvidia-nccl-cu12==2.27.3 ; platform_machine == 'x86_64' and sys_platform == 'linux' \
     --hash=sha256:9ddf1a245abc36c550870f26d537a9b6087fb2e2e3d6e0ef03374c6fd19d984f \
     --hash=sha256:adf27ccf4238253e0b826bce3ff5fa532d65fc42322c8bfdfaf28024c0fbe039
     # via
@@ -1776,7 +1776,7 @@ prompt-toolkit==3.0.52 \
     #   click-repl
     #   ipython
     #   jupyter-console
-propcache==0.3.2 \
+propcache==0.3.2 ; sys_platform == 'never' \
     --hash=sha256:035e631be25d6975ed87ab23153db6a73426a48db688070d925aa27e996fe93c \
     --hash=sha256:03c89c1b14a5452cf15403e291c0ccd7751d5b9736ecb2c5bab977ad6c5bcd81 \
     --hash=sha256:0a2f2235ac46a7aa25bdeb03a9e7060f6ecbd213b1f9101c43b3090ffb971ef6 \
@@ -1989,7 +1989,7 @@ pydot==4.0.1 \
     --hash=sha256:869c0efadd2708c0be1f916eb669f3d664ca684bc57ffb7ecc08e70d5e93fee6 \
     --hash=sha256:c2148f681c4a33e08bf0e26a9e5f8e4099a82e0e2a068098f32ce86577364ad5
     # via dvc
-pygit2==1.18.2 \
+pygit2==1.18.2 ; sys_platform == 'never' \
     --hash=sha256:00919a2eafd975a63025d211e1c1a521bf593f6c822bc61f18c1bc661cbffd42 \
     --hash=sha256:07e5c39ed67e07dac4eb99bfc33d7ccc105cd7c4e09916751155e7da3e07b6bc \
     --hash=sha256:12ae4ed05b48bb9f08690c3bb9f96a37a193ed44e1a9a993509a6f1711bb22ae \
@@ -2008,7 +2008,7 @@ pygit2==1.18.2 \
     --hash=sha256:f65d6114d96cb7a21cc09e8cb0622d0388619adf9cdb5d77d94589a41996b0a8 \
     --hash=sha256:ff1c99f2f342c3a3ec1847182d236088f1eb32bc6c4f93fbb5cb2514ccbe29f3
     # via scmrepo
-pygments==2.19.2 \
+pygments==2.19.2 ; sys_platform == 'never' \
     --hash=sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887 \
     --hash=sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b
     # via
@@ -2034,7 +2034,7 @@ pygtrie==2.5.0 \
 pynvml==13.0.1 \
     --hash=sha256:1245991d9db786b4d2f277ce66869bd58f38ac654e38c9397d18f243c8f6e48f \
     --hash=sha256:e2b20e0a501eeec951e2455b7ab444759cf048e0e13a57b08049fa2775266aa8
-pyod==2.0.5 \
+pyod==2.0.5 ; sys_platform == 'never' \
     --hash=sha256:1a3182529c68e388be0671840bb11f83d5d1deb738ad931d294881f7d50e4fdb \
     --hash=sha256:c1c2d2f3e8ebfb047c9b5da556cce924e64f7eeb1ad9d5af1455843ec13cb3d1
     # via u8darts
@@ -2509,7 +2509,7 @@ setuptools==80.9.0 \
     #   torch
     #   triton
     #   zc-lockfile
-shap==0.48.0 \
+shap==0.48.0 ; sys_platform == 'never' \
     --hash=sha256:14ddf529a628902b93c19e59431c5054b8c7be55d7b9d6c6064763b2275e1e56 \
     --hash=sha256:279890f9649566bbb82622f87ac35f29081fe9aa1e32e02af956e4f33c456b0f \
     --hash=sha256:7277690f2240ccbdd0725f1f654f7ecb09944c330122e7464a83a24e337ddbd6 \
@@ -2547,7 +2547,7 @@ six==1.17.0 \
     #   python-dateutil
     #   rfc3339-validator
     #   triad
-slicer==0.0.8 \
+slicer==0.0.8 ; sys_platform == 'never' \
     --hash=sha256:2e7553af73f0c0c2d355f4afcc3ecf97c6f2156fcf4593955c3f56cf6c4d6eb7 \
     --hash=sha256:6c206258543aecd010d497dc2eca9d2805860a0b3758673903456b7df7934dc3
     # via shap
@@ -2602,7 +2602,7 @@ starlette==0.47.3 \
     --hash=sha256:6bc94f839cc176c4858894f1f8908f0ab79dfec1a6b8402f6da9be26ebea52e9 \
     --hash=sha256:89c0778ca62a76b826101e7c709e70680a1699ca7da6b44d38eb0a7e61fe4b51
     # via fastapi
-statsforecast==2.0.2 \
+statsforecast==2.0.2 ; sys_platform == 'never' \
     --hash=sha256:39636b274261f7411d89c8b4b2e1cc313fe1a3ffb2b8b420300200a79a3de814 \
     --hash=sha256:7e44b95ed0632668594ba765b664867c6a222f2314a19eabe47aa9953a8034d9 \
     --hash=sha256:90670eef1814ef75f6dd5902e9838d87bd9184a17fe2427f362712201dc90550 \
@@ -2770,7 +2770,7 @@ transformers==4.56.1 \
     --hash=sha256:0d88b1089a563996fc5f2c34502f10516cad3ea1aa89f179f522b54c8311fe74 \
     --hash=sha256:1697af6addfb6ddbce9618b763f4b52d5a756f6da4899ffd1b4febf58b779248
     # via pypots
-triad==0.9.8 \
+triad==0.9.8 ; sys_platform == 'never' \
     --hash=sha256:2c0ba7d83977c6d4e7b59e3cc70727f858014ef7676c62d184aa8e63f7bef5de \
     --hash=sha256:5b67673124891981daf8afbab44b2e6358932ca35ef3ff38a25bc3e0f6f03f17
     # via
@@ -2859,7 +2859,7 @@ urllib3==2.5.0 \
     #   dulwich
     #   influxdb-client
     #   requests
-utilsforecast==0.2.12 \
+utilsforecast==0.2.12 ; sys_platform == 'never' \
     --hash=sha256:73f9dfd836a721a95c349f784bd75e18a4cb7c1469800e325414e22901e9775b \
     --hash=sha256:acfba80bbf44e18433c206194f3ddd89cc28ff03aa0ba744b8040795a40b7b3f
     # via statsforecast
@@ -2916,7 +2916,7 @@ xarray==2025.9.0 \
     --hash=sha256:79f0e25fb39571f612526ee998ee5404d8725a1db3951aabffdb287388885df0 \
     --hash=sha256:7dd6816fe0062c49c5e9370dd483843bc13e5ed80a47a9ff10baff2b51e070fb
     # via u8darts
-xgboost==3.0.5 \
+xgboost==3.0.5 ; sys_platform == 'never' \
     --hash=sha256:1a57a0d64a06b596992b664fe17dd1f9782138c6e35ad8fb6355e19a359fa50f \
     --hash=sha256:40c324c329bf74f44571cdafb7aa7435366309d76ec14b3e16874862aeb14351 \
     --hash=sha256:660774249d28a729ba8d22dd3d2c048c56e58f65a683b25ef3252e3383fe956f \
@@ -2926,7 +2926,7 @@ xgboost==3.0.5 \
     --hash=sha256:d7f57a04629b52bae91a80e6721b9cdd009b605827a9eca67953675292b4487e \
     --hash=sha256:f974028c7a0c3ae51ef87e2900405436ddafff46452f6f334f5cc295e921429b
     # via u8darts
-yarl==1.20.1 \
+yarl==1.20.1 ; sys_platform == 'never' \
     --hash=sha256:041eaa14f73ff5a8986b4388ac6bb43a77f2ea09bf1913df7a35d4646db69e53 \
     --hash=sha256:0b5ff0fbb7c9f1b1b5ab53330acbfc5247893069e7716840c8e7d5bb7355038a \
     --hash=sha256:1112ae8154186dfe2de4732197f59c05a83dc814849a5ced892b708033f40dc2 \

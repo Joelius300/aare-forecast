@@ -163,6 +163,7 @@ def main():
             # issues with the database or loading the model will only be visible in the app/container logs.
             status = "failure"
             error = str(e)
+            logger.exception("Couldn't finish the prediction run.", exc_info=True)
 
         finished_at = datetime.now(UTC)
 

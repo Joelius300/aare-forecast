@@ -5,6 +5,7 @@
 !/src
 !/pyproject.toml
 !/uv.lock
+!/deploy
 # general and imputation sections are needed from the params file at the moment.
 # TODO need to bundle the required config params with the model instead of
 #  just copying it into the container at the time the container is built.
@@ -19,6 +20,7 @@
 **/.pytest_cache
 **/__pycache__
 **/*.pyc
+**/Dockerfile
 
 # these should already be ignored, this is just double wrapping from before
 .venv

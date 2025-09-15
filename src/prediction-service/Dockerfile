@@ -28,8 +28,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # must be same base image as builder, otherwise copying venv won't work
 FROM python:3.12-slim-bookworm
 
+WORKDIR /app
+
 # copy the application and built venv from the builder
 COPY --from=builder --chown=app:app /app /app
+COPY ./deploy/app.json /app/app.json
+COPY ./deploy/Procfile /app/Procfile
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PROJECT_ROOT=/app

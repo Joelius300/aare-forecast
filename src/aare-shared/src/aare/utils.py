@@ -39,7 +39,8 @@ def find_project_root(raise_not_found=True, allow_env=True) -> Path:
 
 
 # suboptimal that this runs on import, but works and avoids refactoring many things
-DATA_FOLDER: Path = find_project_root(raise_not_found=False) / "data"
+PROJECT_ROOT = find_project_root(raise_not_found=False)
+DATA_FOLDER: Path = PROJECT_ROOT / "data"
 
 METRICS_FOLDER = DATA_FOLDER / "metrics"
 FORECAST_SAMPLES_FOLDER = DATA_FOLDER / "forecast_samples"

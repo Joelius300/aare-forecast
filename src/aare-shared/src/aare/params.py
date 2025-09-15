@@ -1,6 +1,6 @@
 from typing import TypedDict, cast, Literal
 
-import dvc.api
+from aare.utils import PROJECT_ROOT
 
 
 class GeneralParams(TypedDict):
@@ -45,7 +45,25 @@ class Params(TypedDict):
 
 
 def read_params() -> Params:
-    """Returns the dvc params with appropriate typing (dvc.api.params_show)."""
-    # This function should be extended when more functionality from params_show is needed.
+    """
+    Returns the dvc params with appropriate typing (dvc.api.params_show).
 
-    return cast(Params, dvc.api.params_show())
+    If not in a dvc context/project, "params.yaml" is attempted to be read.
+    """
+    # This function should be extended when more functionality from params_show is needed.
+    # TODO the params that the model were trained with must be bundled with the model!
+
+    params = None
+    if (PROJECT_ROOT / ".dvc").is_dir():
+        import dvc.api
+
+        params = dvc.api.params_show()
+    else:
+        import yaml
+
+        with open(PROJECT_ROOT / "params.yaml", "rt") as file:
+            params = yaml.safe_load(file)
+
+    assert params is not None, "params is None after reading"
+
+    return cast(Params, params)

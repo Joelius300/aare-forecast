@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "u8darts[torch]>=0.37.0",
-    "dvc>=3.58.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",
     "numpy>=1.26.4",
@@ -21,6 +20,7 @@ dev = ["hatchling>=1.27.0"]
 gpu-auto = ["torch>=2.7.0"]
 gpu = ["torch>=2.7.0"]
 cpu = ["torch>=2.7.0"]
+dvc = ["dvc>=3.58.0"]
 
 
 [tool.uv]

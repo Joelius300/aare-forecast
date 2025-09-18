@@ -185,8 +185,7 @@ def ensure_frame(df: pd.DataFrame | pd.Series) -> pd.DataFrame:
     return df
 
 
-# TODO move freq to last position, doesn't seem to be used _anywhere_ at the moment, and makes it annoying to type col=
-def to_ts(df: pd.DataFrame | pd.Series, freq=None, col: Optional[str | list[str]] = None) -> TimeSeries:
+def to_ts(df: pd.DataFrame | pd.Series, col: Optional[str | list[str]] = None, freq=None) -> TimeSeries:
     """
     Transforms a dataframe into a darts TimeSeries using the predefined TIME column (or index).
     Remove all time zone information.

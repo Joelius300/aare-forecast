@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import cast, Optional
 
 import darts
@@ -47,7 +47,7 @@ def get_inference_data(
     run_ts: datetime,
 ) -> InferenceData:
     """Fetch required data from internal influx store and combine with external data to get inference data."""
-    influx_store = RemoteExistenzStore()  # eww, need to remove these coupling
+    influx_store = RemoteExistenzStore()  # TODO eww, need to remove these coupling
 
     # targets can always be taken from influx because they are either in the past or predicted AR
     target_features, target_fields = _get_features_and_fields(features["targets"])
@@ -56,9 +56,10 @@ def get_inference_data(
     min_target_lag = extreme_lags[0]
     assert min_target_lag is not None and min_target_lag < 0, f"Invalid min_target_lag (for us): {min_target_lag}"
 
-    # take data from further in the past to make sure we get all the required data, I think darts handles that
-    # TODO set the period end to the run_ts so it's reproducible and not bound to some "now" implementation (!)
-    target_df = influx_store.query(f"{min_target_lag - EXTRA_PAST_HOURS}h", target_fields)
+    # take data from further in the past to make sure we get all the required data, darts handles that
+    hours_back = abs(min_target_lag) + EXTRA_PAST_HOURS
+    period = run_ts - timedelta(hours=hours_back), run_ts  # start, end
+    target_df = influx_store.query(period, target_fields)
     target = _prepare_series(target_features, target_df)
 
     if "past" in features and features["past"] is not None:
@@ -98,8 +99,10 @@ def get_inference_data(
             future_df = future_df_future
         else:
             # it also uses past future cov values, so we need to fetch from influx
-            future_df_past = influx_store.query(f"{min_future_lag - EXTRA_PAST_HOURS}h", future_fields)
-            future_df_past = resample(future_df_past)  # remove trailing 08:40 data point (see below)
+            hours_back = abs(min_future_lag) + EXTRA_PAST_HOURS
+            period = run_ts - timedelta(hours=hours_back), run_ts  # start, end
+            future_df_past = influx_store.query(period, future_fields)
+            future_df_past = resample(future_df_past)  # remove trailing 08:40 data point (see example below)
             future_df = pd.concat([future_df_past, future_df_future], axis=0, ignore_index=True)
 
             # Influx also returns a data point at the very end that's basically at run_ts. To remove it, we

@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Iterable
+from datetime import datetime
 from functools import reduce
 from typing import cast, Literal, Optional
 
@@ -84,7 +85,7 @@ class FieldRequest:
         return FieldRequest(measurement, field, freq, agg_fn, loc)
 
 
-Period = str | tuple[str, str]
+Period = str | datetime | tuple[str | datetime, str | datetime]
 Locations = str | int | list[str | int] | None
 
 
@@ -95,6 +96,25 @@ def _rename_col_after_pivot(df: pd.DataFrame, fields: Optional[list[FieldRequest
 
     mapper = {f"{field.field}_{field.location}": field.name for field in fields}
     return df.rename(mapper, axis="columns", errors="raise")
+
+
+def _normalize_date(date: str | datetime) -> str:
+    if isinstance(date, str):
+        return date
+
+    assert isinstance(date, datetime) and date.tzinfo is not None, (
+        "Must use string or datetime-aware datetime to query influxdb"
+    )
+    return date.isoformat()
+
+
+def _normalize_period(period: Period) -> tuple[str, str]:
+    if isinstance(period, (str, datetime)):
+        # single str or datetime means 'from that point to now'
+        return _normalize_date(period), "now()"
+
+    assert isinstance(period, tuple) and len(period) == 2, "Invalid period format"
+    return _normalize_date(period[0]), _normalize_date(period[1])
 
 
 class RemoteExistenzStore:
@@ -115,8 +135,7 @@ class RemoteExistenzStore:
         period: Period,
         locations: Locations,
     ):
-        start = period if isinstance(period, str) else period[0]
-        stop = "now()" if isinstance(period, str) else period[1]
+        start, stop = _normalize_period(period)
 
         loc_filter = "" if not locations else f"|> filter(fn: {_chain_equality('loc', locations)})"
 
@@ -196,8 +215,7 @@ postProc = (tables=<-) =>
     ):
         """Queries hydrology data from the remote influx store by existenz.ch"""
         # can later be split and extended for non-hydro data
-        start = period if isinstance(period, str) else period[0]
-        stop = "now()" if isinstance(period, str) else period[1]
+        start, stop = _normalize_period(period)
 
         # NOTE: aggregateWindow 1h on 12:00 will take the values from
         #   11:00 until 12:00 and combine them into a single value

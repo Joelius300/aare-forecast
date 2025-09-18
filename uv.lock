@@ -64,7 +64,6 @@ overrides = [
     { name = "cryptography", marker = "sys_platform == 'never'" },
     { name = "fonttools", marker = "sys_platform == 'never'" },
     { name = "networkx", marker = "sys_platform == 'never'" },
-    { name = "pygit2", marker = "sys_platform == 'never'" },
     { name = "pygments", marker = "sys_platform == 'never'" },
     { name = "pyod", marker = "sys_platform == 'never'" },
     { name = "shap", marker = "sys_platform == 'never'" },
@@ -3691,7 +3690,7 @@ name = "pygit2"
 version = "1.18.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cffi", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "cffi" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/2e/ea/762d00f6f518423cd889e39b12028844cc95f91a6413cf7136e184864821/pygit2-1.18.2.tar.gz", hash = "sha256:eca87e0662c965715b7f13491d5e858df2c0908341dee9bde2bc03268e460f55", size = 797200, upload-time = "2025-08-16T13:52:36.853Z" }
 wheels = [
@@ -4379,7 +4378,7 @@ dependencies = [
     { name = "funcy" },
     { name = "gitpython" },
     { name = "pathspec" },
-    { name = "pygit2", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygit2" },
     { name = "pygtrie" },
     { name = "tqdm" },
 ]

@@ -58,7 +58,6 @@ override-dependencies = [
     "fontTools; sys_platform == 'never'",
     "pygments; sys_platform == 'never'",
     "networkx; sys_platform == 'never'",
-    "pygit2; sys_platform == 'never'",
     "cryptography; sys_platform == 'never'",
     "aiohttp; sys_platform == 'never'",
     # many large packages we simply cannot remove like xarray, scipy, statsmodels, matplotlib

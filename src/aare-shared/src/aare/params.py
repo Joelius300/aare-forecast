@@ -1,6 +1,9 @@
-from typing import TypedDict, cast, Literal
+import logging
+from typing import TypedDict, cast, Literal, Any, NotRequired
 
 from aare.utils import PROJECT_ROOT
+
+logger = logging.getLogger(__name__)
 
 
 class GeneralParams(TypedDict):
@@ -8,7 +11,7 @@ class GeneralParams(TypedDict):
     forecast_horizon: int
 
 
-class CleanupParams(TypedDict):
+class OutliersParams(TypedDict):
     low_cutoff: float
     high_cutoff: float
     diff_threshold: float
@@ -35,10 +38,18 @@ class TimesfmParams(TypedDict):
     version: Literal["200m", "500m"]
 
 
+class FeatureParams(TypedDict):
+    outliers: NotRequired[OutliersParams]
+    interpolate: NotRequired[InterpolateParams]
+    custom: NotRequired[dict[str, Any]]  # for feature-specific custom configuration
+
+
+FeaturesParams = dict[str, FeatureParams]
+
+
 class Params(TypedDict):
     general: GeneralParams
-    cleanup: CleanupParams
-    interpolate: InterpolateParams
+    features: FeaturesParams
     split: SplitParams
     validation: ValidationParams
     timesfm: TimesfmParams
@@ -48,9 +59,10 @@ def read_params() -> Params:
     """
     Returns the dvc params with appropriate typing (dvc.api.params_show).
 
-    If not in a dvc context/project, "params.yaml" is attempted to be read.
+    If not in a dvc context/project, "params.yaml" simply read from disk.
     """
     # This function should be extended when more functionality from params_show is needed.
+    # TODO reading this one file is very fast but could consider caching here still
     # TODO the params that the model were trained with must be bundled with the model!
 
     params = None
@@ -60,6 +72,8 @@ def read_params() -> Params:
         params = dvc.api.params_show()
     else:
         import yaml
+
+        logger.debug("Not in a DVC context, reading params file directly.")
 
         with open(PROJECT_ROOT / "params.yaml", "rt") as file:
             params = yaml.safe_load(file)

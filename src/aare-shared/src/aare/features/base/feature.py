@@ -23,6 +23,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from darts import TimeSeries
 
+from aare.params import read_params
 from aare.remote_existenz_store import FieldRequest
 
 
@@ -30,6 +31,7 @@ class Feature(ABC):
     def __init__(self, name: str, required_fields: FieldRequest | list[FieldRequest]):
         self._name = name
         self._required_fields = required_fields if isinstance(required_fields, list) else [required_fields]
+        self.params = read_params()["features"].get(name)
 
     @property
     def name(self) -> str:

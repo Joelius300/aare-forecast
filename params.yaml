@@ -1,17 +1,27 @@
 # values from EDA
 general:
-  frequency: 1h
+  frequency: 1h  # this is used everywhere and integrated so tightly, that it cannot simply be changed
   forecast_horizon: 96
-cleanup:
-  low_cutoff: 2.5
-  high_cutoff: 25
-  diff_threshold: 0.6  # 0.995 quantile
-interpolate:
-  # depending on how good imputation is,
-  # could lower these a bit.
-  # They work often, but sometimes fail badly.
-  linear_gap_bound: 3
-  cubic_gap_bound: 25
+features:
+  temp_bern:
+    outliers:
+      low_cutoff: 2.5
+      high_cutoff: 25
+      diff_threshold: 0.6  # 0.995 quantile
+    interpolate:
+      # depending on how good imputation is,
+      # could lower these a bit.
+      # They work often, but sometimes fail badly.
+      linear_gap_bound: 3
+      cubic_gap_bound: 25
+  tt_bern:
+    interpolate:
+      linear_gap_bound: 3
+      cubic_gap_bound: 25
+  ss_bern:
+    custom:
+      # TODO should be moved to interpolate
+      median_gap_bound: 10
 split:
   # 12 years in total (2013-2025)
   train_split: "2013-09-01"

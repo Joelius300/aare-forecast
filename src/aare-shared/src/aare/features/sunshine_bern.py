@@ -13,9 +13,13 @@ class SunshineBern(SingleFieldFeature):
         super().__init__(self.NAME, self.FIELD)
 
     def cleanup(self, df: pd.DataFrame) -> pd.DataFrame:
+        limit_key = "median_gap_bound"
+        if self.params is None or (limit := self.params.get("custom", {}).get(limit_key)) is None:
+            raise ValueError(f"'{limit_key}' not set correctly in '{self.name}' feature config")
+
         df_i = fill_with_hard_limit(
             df,
-            limit=10,  # todo parametrize in params.yaml
+            limit=limit,
             fill_method="median",
             columns=[self.field.name],
         )

@@ -1,5 +1,3 @@
-# TODO: This module will need a big refactor, since this was just for the temperature feature and we want
-#  to transition to the feature class without breaking all the old notebooks etc.
 from typing import cast, Optional
 
 import numpy as np
@@ -33,15 +31,6 @@ def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
 
 def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
     df.loc[between(df, from_, to_), col] = np.nan
-
-
-@deprecated("Move faulty periods into feature class")
-def remove_faulty_periods_aare_temp(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.copy()
-
-    df.loc[between(df, "2003-01-28", "2003-03-03"), TEMP] = np.nan
-
-    return df
 
 
 def remove_outliers(
@@ -81,13 +70,6 @@ def remove_outliers(
     return cast(pd.DataFrame, df[orig_cols])
 
 
-@deprecated("Work with WaterTempBern feature")
-def remove_outliers_aare_temp(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
-    params = read_params()["cleanup"]
-
-    return remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col)
-
-
 def interpolate_continuous(
     df: pd.DataFrame,
     linear_gap_bound: int,
@@ -95,6 +77,8 @@ def interpolate_continuous(
     drop_filled: bool,
     columns: str | list[str] | None = TEMP,
 ) -> pd.DataFrame:
+    # TODO rework this so median, linear and cubic can all be specified optionally and the smallest
+    #  gap size is done first, then increasing. Hint: instead of mapping, just set it to "none" everywhere first
     df = df.copy()
     if columns is None:
         columns = list(df.columns)
@@ -120,6 +104,24 @@ def interpolate_continuous(
     return df
 
 
+@deprecated("Move faulty periods into feature class")
+def remove_faulty_periods_aare_temp(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    df.loc[between(df, "2003-01-28", "2003-03-03"), TEMP] = np.nan
+
+    return df
+
+
+@deprecated("Work with WaterTempBern feature")
+def remove_outliers_aare_temp(df: pd.DataFrame, col=TEMP) -> pd.DataFrame:
+    params = read_params()["features"].get("temp_bern", {}).get("outliers")
+    if params is None:
+        raise ValueError("Outlier config of temp_bern is not configured correctly.")
+
+    return remove_outliers(df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col)
+
+
 @deprecated("Work with WaterTempBern feature")
 def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | list[str] | None = TEMP) -> pd.DataFrame:
     """
@@ -129,7 +131,9 @@ def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | li
     WARNING: The options used are tuned for the water temperature and nothing else. Using it for other variables
     might result in misleading data!!!
     """
-    params = read_params()["interpolate"]
+    params = read_params()["features"].get("temp_bern", {}).get("interpolate")
+    if params is None:
+        raise ValueError("Outlier config of temp_bern is not configured correctly.")
 
     return interpolate_continuous(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
 

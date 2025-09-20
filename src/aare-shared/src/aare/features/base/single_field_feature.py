@@ -43,7 +43,7 @@ class SingleFieldFeature(Feature):
         )
 
     def cleanup(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Default implementation removed outliers and interpolates according to feature config."""
+        """Default implementation removes outliers and interpolates according to feature config."""
         df = self.remove_outliers(df)
         df = self.interpolate(df)
 

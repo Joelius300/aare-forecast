@@ -30,6 +30,8 @@ class AareModel(TypedDict):
     """Info about an aare model, needed for inference."""
 
     model_path: str
+    scalers_path: str
+    params_path: str
     model_cls: type[GlobalForecastingModel]
     features: FeatureIdentifiers
     # metadata for transparency and diagnostics

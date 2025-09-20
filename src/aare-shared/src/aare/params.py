@@ -55,7 +55,7 @@ class Params(TypedDict):
     timesfm: TimesfmParams
 
 
-def read_params() -> Params:
+def read_params(*, ensure_dvc=False) -> Params:
     """
     Returns the dvc params with appropriate typing (dvc.api.params_show).
 
@@ -71,6 +71,9 @@ def read_params() -> Params:
 
         params = dvc.api.params_show()
     else:
+        if ensure_dvc:
+            raise ValueError("Called read_params with ensure_dvc outside of a DVC context!")
+
         import yaml
 
         logger.debug("Not in a DVC context, reading params file directly.")

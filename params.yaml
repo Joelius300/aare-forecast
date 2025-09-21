@@ -22,6 +22,14 @@ features:
     custom:
       # TODO should be moved to interpolate
       median_gap_bound: 10
+  flow_bern:
+    outliers:
+      low_cutoff: 30
+      high_cutoff: 99999
+      diff_threshold: 14.5
+    interpolate:
+      linear_gap_bound: 3
+      cubic_gap_bound: 23
 split:
   # 12 years in total (2013-2025)
   train_split: "2013-09-01"

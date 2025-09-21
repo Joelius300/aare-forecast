@@ -1,7 +1,7 @@
 import pandas as pd
 
 from aare.features.base.single_field_feature import SingleFieldFeature
-from aare.preparation import remove_period, remove_outliers, interpolate_continuous
+from aare.preparation import remove_period
 from aare.remote_existenz_store import FieldRequest
 
 
@@ -31,8 +31,7 @@ class FlowBern(SingleFieldFeature):
 
     def cleanup(self, df: pd.DataFrame) -> pd.DataFrame:
         df = self._remove_faulty_periods(df)
-        # TODO move these into params.yaml
-        df = remove_outliers(df, 30, 99999, 14.5, self.field.name)
-        df = interpolate_continuous(df, 3, 23, drop_filled=True, columns=self.field.name)
+        df = self.remove_outliers(df)
+        df = self.interpolate(df)
 
         return df

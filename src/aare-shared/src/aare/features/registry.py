@@ -51,7 +51,7 @@ class FeatureRegistry:
     def __getitem__(self, item: str):
         assert isinstance(item, str), "Cannot use registry with something other than string."
 
-        ma_match = re.search(r"(\w+)_ma(\d+)", item)
+        ma_match = re.search(r"^(\w+)_ma(\d+)$", item)
         if ma_match is not None:
             feature = ma_match.group(1)
             ma_len = int(ma_match.group(2))

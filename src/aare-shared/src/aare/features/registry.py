@@ -1,3 +1,6 @@
+import re
+from collections.abc import Callable
+
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
 
@@ -25,23 +28,37 @@ def _make_ma(feature: Feature, n: int):
     )
 
 
-FEATURES = {
-    "temp_bern": WaterTempBern(),
-    "tt_bern": AirTempBern(),
-    # must ensure that none of the transformations can result in NaN, Inf or anything of the sorts
-    "tt_bern_log": TransformedFeature(AirTempBern(), "_log", Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1))),
-    "tt_bern_cube": TransformedFeature(AirTempBern(), "_cube", lambda ts: ts**3),
-    "tt_bern_sqrt": TransformedFeature(AirTempBern(), "_sqrt", Mapper(lambda x: np.sign(x) * abs(x) ** 0.5)),
-    "tt_bern_ma3": _make_ma(AirTempBern(), 3),
-    "tt_bern_ma6": _make_ma(AirTempBern(), 6),
-    "tt_bern_ma12": _make_ma(AirTempBern(), 12),
-    "tt_bern_ma24": _make_ma(AirTempBern(), 24),
-    "tt_bern_ma60": _make_ma(AirTempBern(), 60),
-    "ss_bern": SunshineBern(),
-    "ss_bern_ma3": _make_ma(SunshineBern(), 3),
-    "ss_bern_ma6": _make_ma(SunshineBern(), 6),
-    "ss_bern_ma12": _make_ma(SunshineBern(), 12),
-    "ss_bern_ma24": _make_ma(SunshineBern(), 24),
-    "ss_bern_ma60": _make_ma(SunshineBern(), 60),
-    "flow_bern": FlowBern(),
-}
+class FeatureRegistry:
+    """Stateless feature registry to create feature instances by name (including suffixes). Use like a dict with []."""
+
+    def __init__(self):
+        # lazy lookup -> classes (without init args) or param-less lambdas
+        self.lookup: dict[str, Callable[[], Feature]] = {
+            "temp_bern": WaterTempBern,
+            "tt_bern": AirTempBern,
+            "ss_bern": SunshineBern,
+            "flow_bern": FlowBern,
+            # must ensure that none of the transformations can result in NaN, Inf or anything of the sorts
+            "tt_bern_log": lambda: TransformedFeature(
+                AirTempBern(), "_log", Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1))
+            ),
+            "tt_bern_cube": lambda: TransformedFeature(AirTempBern(), "_cube", lambda ts: ts**3),
+            "tt_bern_sqrt": lambda: TransformedFeature(
+                AirTempBern(), "_sqrt", Mapper(lambda x: np.sign(x) * abs(x) ** 0.5)
+            ),
+        }
+
+    def __getitem__(self, item: str):
+        assert isinstance(item, str), "Cannot use registry with something other than string."
+
+        ma_match = re.search(r"(\w+)_ma(\d+)", item)
+        if ma_match is not None:
+            feature = ma_match.group(1)
+            ma_len = int(ma_match.group(2))
+            return _make_ma(self.lookup[feature](), ma_len)
+
+        return self.lookup[item]()
+
+
+FEATURES = FeatureRegistry()
+"""FeatureRegistry singleton for convenience as that's the way it's been used when it was just a dict."""

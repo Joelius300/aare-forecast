@@ -47,6 +47,7 @@ def save_model(
     model_cls = type(model)
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"
 
+    # store paths in json as relative so you don't have to update them from dev to prod
     model_path_rel = base_path.with_suffix(MODEL_SUFFIX)
     scalers_path_rel = base_path.with_suffix(SCALER_SUFFIX)
     params_path_rel = base_path.with_suffix(PARAMS_SUFFIX)
@@ -75,9 +76,21 @@ def save_model(
         pickle.dump(scalers, file)
 
 
+def _make_abs_path(meta: AareModel, base_path: Path, key: str):
+    d = cast(dict, meta)
+    d[key] = base_path / d[key]
+    meta = cast(AareModel, d)
+
+    return meta
+
+
 def load_model_meta(
-    meta_path: Optional[os.PathLike | str] = None, name: Optional[str] = None, version: Optional[str] = None
-) -> tuple[AareModel, Path]:
+    meta_path: Optional[os.PathLike | str | Path] = None,
+    name: Optional[str] = None,
+    version: Optional[str] = None,
+    make_paths_absolute=True,
+):
+    """Load a model meta dict from a specified path. For local dev, can also provide name and version."""
     if not meta_path:
         if not name or not version:
             raise ValueError("name and version must be provided if meta_path is not supplied")
@@ -86,39 +99,35 @@ def load_model_meta(
         # same path during training
         meta_path = MODELS_FOLDER / base_path / base_path.with_suffix(META_SUFFIX)
 
-    meta_path = Path(meta_path)
+    meta_path = Path(meta_path).absolute()  # turn it into an absolute path, should only be relative during dev tho
     if not meta_path.is_file() and meta_path.suffix == META_SUFFIX:
         raise ValueError(f"The meta file '{meta_path}' does not exist or isn't a valid meta file.")
     meta: AareModel = load_model_info(meta_path)
 
-    base_path = meta_path.parent
-    return meta, base_path
+    if not make_paths_absolute:
+        return meta
+
+    # turn all the relative paths in the json into absolute paths for easier handling
+    model_folder = meta_path.parent
+    for key in meta.keys():
+        key: str
+        if key.endswith("_path"):
+            _make_abs_path(meta, model_folder, key)
+
+    return meta
 
 
-def load_model(
+def load_model_from_meta(
     meta: AareModel,
-    meta_path_or_base: os.PathLike | str | Path,
 ) -> tuple[GlobalForecastingModel, Optional[DataTransformers]]:
-    """Load a model from a specified path. For local dev, can also provide name and version."""
-    # TODO instead of requiring the base path to be passed here, could also make the paths in the meta dict absolute
-    # when reading them in (because then you know where the meta file lies).
+    """Load a model and its scalers from a meta dict."""
     model_cls = meta["model_cls"]
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"
 
-    meta_path_or_base = Path(meta_path_or_base)
-    if meta_path_or_base.is_file() and meta_path_or_base.suffix == META_SUFFIX:
-        # the meta file path was passed, use its parent as base
-        model_base_path = meta_path_or_base.parent
-    elif meta_path_or_base.is_dir():
-        # base path was passed, use it directly
-        model_base_path = meta_path_or_base
-    else:
-        raise ValueError(
-            f"The passed path '{meta_path_or_base}' doesn't point to the meta file or the model base path."
-        )
-
-    model_path = model_base_path / meta["model_path"]
-    scalers_path = model_base_path / meta["scalers_path"]
+    model_path = Path(meta["model_path"])
+    assert model_path.is_absolute()
+    scalers_path = Path(meta["scalers_path"])
+    assert scalers_path.is_absolute()
 
     model = cast(GlobalForecastingModel, model_cls.load(model_path))
 
@@ -126,3 +135,15 @@ def load_model(
         scalers = pickle.load(file)
 
     return model, scalers
+
+
+def load_model(
+    meta_path: Optional[os.PathLike | str | Path] = None,
+    name: Optional[str] = None,
+    version: Optional[str] = None,
+) -> tuple[AareModel, GlobalForecastingModel, Optional[DataTransformers]]:
+    """Load a model from a specified path. For local dev, can also provide name and version."""
+    meta = load_model_meta(meta_path, name, version, make_paths_absolute=True)
+    model, scalers = load_model_from_meta(meta)
+
+    return meta, model, scalers

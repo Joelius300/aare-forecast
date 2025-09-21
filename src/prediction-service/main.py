@@ -15,11 +15,10 @@ from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
-from pathlib import Path
 
 from aare.compat.types import DataTransformers
 from aare.storage.metadata import AareModel
-from aare.storage.model import load_model, load_model_meta
+from aare.storage.model import load_model
 from aare.params import set_params_file
 from lib.data.compile_data import get_inference_data, scale_inference_data
 from lib.data.inference_data import InferenceData
@@ -140,15 +139,10 @@ def main():
 
     run_ts = datetime.now(UTC)
 
-    # load model info
-    model_meta_path = Path(args.model_path)
-    model_meta, model_base_path = load_model_meta(model_meta_path)
-
-    # configure read_params to take the params file that was saved with the model
-    set_params_file(model_meta_path.parent / model_meta["params_path"])
-
     # load model and all required accessories into memory
-    model, scalers = load_model(model_meta, model_base_path)
+    model_meta, model, scalers = load_model(args.model_path)
+    # set params file for read_params to the one that was used when training the model
+    set_params_file(model_meta["params_path"])
 
     # could also use NullConnectionPool because we don't really need pooling atm.
     # with this config, it opens a connection immediately and keeps it open/ready.

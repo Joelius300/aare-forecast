@@ -75,10 +75,9 @@ def save_model(
         pickle.dump(scalers, file)
 
 
-def load_model(
+def load_model_meta(
     meta_path: Optional[os.PathLike | str] = None, name: Optional[str] = None, version: Optional[str] = None
-) -> tuple[AareModel, GlobalForecastingModel, Optional[DataTransformers]]:
-    """Load a model from a specified path. For local dev, can also provide name and version."""
+) -> tuple[AareModel, Path]:
     if not meta_path:
         if not name or not version:
             raise ValueError("name and version must be provided if meta_path is not supplied")
@@ -88,18 +87,42 @@ def load_model(
         meta_path = MODELS_FOLDER / base_path / base_path.with_suffix(META_SUFFIX)
 
     meta_path = Path(meta_path)
-
+    if not meta_path.is_file() and meta_path.suffix == META_SUFFIX:
+        raise ValueError(f"The meta file '{meta_path}' does not exist or isn't a valid meta file.")
     meta: AareModel = load_model_info(meta_path)
+
+    base_path = meta_path.parent
+    return meta, base_path
+
+
+def load_model(
+    meta: AareModel,
+    meta_path_or_base: os.PathLike | str | Path,
+) -> tuple[GlobalForecastingModel, Optional[DataTransformers]]:
+    """Load a model from a specified path. For local dev, can also provide name and version."""
+    # TODO instead of requiring the base path to be passed here, could also make the paths in the meta dict absolute
+    # when reading them in (because then you know where the meta file lies).
     model_cls = meta["model_cls"]
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"
 
-    model_path = meta_path.parent / meta["model_path"]
-    scalers_path = meta_path.parent / meta["scalers_path"]
+    meta_path_or_base = Path(meta_path_or_base)
+    if meta_path_or_base.is_file() and meta_path_or_base.suffix == META_SUFFIX:
+        # the meta file path was passed, use its parent as base
+        model_base_path = meta_path_or_base.parent
+    elif meta_path_or_base.is_dir():
+        # base path was passed, use it directly
+        model_base_path = meta_path_or_base
+    else:
+        raise ValueError(
+            f"The passed path '{meta_path_or_base}' doesn't point to the meta file or the model base path."
+        )
+
+    model_path = model_base_path / meta["model_path"]
+    scalers_path = model_base_path / meta["scalers_path"]
 
     model = cast(GlobalForecastingModel, model_cls.load(model_path))
 
     with open(scalers_path, "rb") as file:
         scalers = pickle.load(file)
 
-    # no need to return params, they are read by read_params
-    return meta, model, scalers
+    return model, scalers

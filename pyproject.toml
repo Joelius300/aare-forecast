@@ -65,7 +65,11 @@ override-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/aare-shared", "src/prediction-service"]
+members = [
+    "src/aare-shared",
+    "src/prediction-service",
+    "src/prediction-api",
+]
 
 [tool.uv.sources]
 aare-shared = { workspace = true }

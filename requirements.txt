@@ -2863,9 +2863,9 @@ utilsforecast==0.2.12 ; sys_platform == 'never' \
     --hash=sha256:73f9dfd836a721a95c349f784bd75e18a4cb7c1469800e325414e22901e9775b \
     --hash=sha256:acfba80bbf44e18433c206194f3ddd89cc28ff03aa0ba744b8040795a40b7b3f
     # via statsforecast
-uvicorn==0.35.0 \
-    --hash=sha256:197535216b25ff9b785e29a0b79199f55222193d47f820816e7da751e9bc8d4a \
-    --hash=sha256:bc662f087f7cf2ce11a1d7fd70b90c9f98ef2e2831556dd078d131b96cc94a01
+uvicorn==0.36.0 \
+    --hash=sha256:527dc68d77819919d90a6b267be55f0e76704dca829d34aea9480be831a9b9d9 \
+    --hash=sha256:6bb4ba67f16024883af8adf13aba3a9919e415358604ce46780d3f9bdc36d731
     # via mlflow-skinny
 vine==5.1.0 \
     --hash=sha256:40fdf3c48b2cfe1c38a49e9ae2da6fda88e4794c810050a728bd7413811fb1dc \

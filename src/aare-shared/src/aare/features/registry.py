@@ -1,5 +1,5 @@
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
@@ -48,9 +48,8 @@ class FeatureRegistry:
             ),
         }
 
-    def __getitem__(self, item: str):
-        assert isinstance(item, str), "Cannot use registry with something other than string."
-
+    def _get_item(self, item: str):
+        assert isinstance(item, str), "item is not a str"
         ma_match = re.search(r"^(\w+)_ma(\d+)$", item)
         if ma_match is not None:
             feature = ma_match.group(1)
@@ -58,6 +57,14 @@ class FeatureRegistry:
             return _make_ma(self.lookup[feature](), ma_len)
 
         return self.lookup[item]()
+
+    def __getitem__(self, item: str):
+        return self._get_item(item)
+
+    def get_many(self, feature_keys: Sequence[str]):
+        """Get a list of features. Equiv to [reg[f] for f in features]"""
+        # don't overload getitem because then it's typed as returning a union and that's annoying
+        return [self._get_item(key) for key in feature_keys]
 
 
 FEATURES = FeatureRegistry()

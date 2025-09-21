@@ -173,7 +173,7 @@ postProc = (tables=<-) =>
                 f' loc: "{field.location}", agg_fn: {field.agg_fn}, freq: {field.freq}) '
                 f'|> postProc() |> yield(name: "{field.name}")\n'
             )
-        # TODO does yield have significant negative performance implications compared to union?
+        # does yield have significant negative performance implications compared to union? -> couldn't find any yet.
 
         return query
 

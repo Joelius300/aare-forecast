@@ -1,7 +1,7 @@
 # Alles im Rahmen vom Möglichen
 
 - Gewichtete Evaluation, Apr-Mai könnte 1.5x zählen, Mai-Jul 2x (Saisonstart), Jul-Okt wieder 1.5x und Okt-Apr normal 1x
-- Sample weights
+- Sample weights, für jährliche Saison (siehe oben) aber auch daily, weil die Nacht interessiert uns deutlich weniger als 12:00-20:00 z.B.
 - Prediction Bands / Confidence Intervals, also Unsicherheiten wie bei MeteoSwiss
 - See-Temperatur einbeziehen (<https://www.alplakes.eawag.ch/>)
 - Weitere Messstationen (z.B. Thun) vorhersagen

@@ -57,8 +57,8 @@ conflicts = [[
 members = [
     "aare-forecast",
     "aare-oraku-prediction",
+    "aare-oraku-prediction-api",
     "aare-shared",
-    "prediction-api",
 ]
 overrides = [
     { name = "aiohttp", marker = "sys_platform == 'never'" },
@@ -159,6 +159,35 @@ requires-dist = [
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
 ]
 provides-extras = ["gpu-auto", "gpu", "cpu"]
+
+[[package]]
+name = "aare-oraku-prediction-api"
+version = "0.1.0"
+source = { virtual = "src/prediction-api" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "fastapi-cli", extra = ["standard-no-fastapi-cloud-cli"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.36.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "fastapi-cli", extras = ["standard-no-fastapi-cloud-cli"], specifier = ">=0.0.13" }]
 
 [[package]]
 name = "aare-shared"
@@ -3406,35 +3435,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
 ]
-
-[[package]]
-name = "prediction-api"
-version = "0.1.0"
-source = { virtual = "src/prediction-api" }
-dependencies = [
-    { name = "fastapi" },
-    { name = "psycopg", extra = ["binary", "pool"] },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "fastapi-cli", extra = ["standard-no-fastapi-cloud-cli"] },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.116.1" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
-    { name = "pydantic-settings", specifier = ">=2.10.1" },
-    { name = "python-dotenv", specifier = ">=1.1.1" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.36.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [{ name = "fastapi-cli", extras = ["standard-no-fastapi-cloud-cli"], specifier = ">=0.0.13" }]
 
 [[package]]
 name = "prometheus-client"

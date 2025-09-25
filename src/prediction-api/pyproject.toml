@@ -1,9 +1,9 @@
 [project]
-name = "prediction-api"
+name = "aare-oraku-prediction-api"
 version = "0.1.0"
-description = "Add your description here"
+description = "API to get data from the prediction database"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.116.1",
     "psycopg[binary,pool]>=3.2.10",

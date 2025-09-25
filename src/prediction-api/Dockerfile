@@ -14,18 +14,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=src/aare-shared/pyproject.toml,target=src/aare-shared/pyproject.toml \
     --mount=type=bind,source=src/aare-shared/README.md,target=src/aare-shared/README.md \
-    --mount=type=bind,source=src/prediction-service/pyproject.toml,target=src/prediction-service/pyproject.toml \
-    --mount=type=bind,source=src/prediction-service/README.md,target=src/prediction-service/README.md \
+    --mount=type=bind,source=src/prediction-service/pyproject.toml,target=src/prediction-api/pyproject.toml \
+    --mount=type=bind,source=src/prediction-service/README.md,target=src/prediction-api/README.md \
     --mount=type=bind,source=src/prediction-api/pyproject.toml,target=src/prediction-api/pyproject.toml \
     --mount=type=bind,source=src/prediction-api/README.md,target=src/prediction-api/README.md \
-    uv sync --locked --no-install-project --no-dev --extra cpu --package=aare-oraku-prediction
+    uv sync --locked --no-install-project --no-dev --package=aare-oraku-prediction-api
 
 # which files/dirs are copied is controlled by the .dockerignore file
 COPY . /app
 
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-dev --extra cpu --package=aare-oraku-prediction
+    uv sync --locked --no-dev --package=aare-oraku-prediction-api
 
 # must be same base image as builder, otherwise copying venv won't work
 FROM python:3.12-slim-bookworm
@@ -34,10 +34,12 @@ WORKDIR /app
 
 # copy the application and built venv from the builder
 COPY --from=builder --chown=app:app /app /app
-COPY src/prediction-service/deploy/app.json /app/app.json
-COPY src/prediction-service/deploy/Procfile /app/Procfile
 
 ENV PATH="/app/.venv/bin:$PATH"
-ENV PROJECT_ROOT=/app
+COPY src/prediction-api/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+# TODO add app.json with healthcheck
 
-CMD ["python", "/app/src/prediction-service/main.py"]
+# use entrypoint to respect PORT variable by dokku
+CMD ["/entrypoint.sh"]
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]

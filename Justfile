@@ -28,5 +28,12 @@ optuna:
 track:
   just mlflow & just optuna && fg
 
-build:
+build-pred:
   docker build -f src/prediction-service/Dockerfile . -t aare-oraku-prediction:latest
+
+build-api:
+  docker build -f src/prediction-api/Dockerfile . -t aare-oraku-prediction-api:latest
+
+build:
+    just build-pred
+    just build-api

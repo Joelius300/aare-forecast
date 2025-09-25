@@ -10,8 +10,8 @@ class ModelInfo(BaseModel):
 
 
 class PredictionMetadata(BaseModel):
-    run_ts: Optional[datetime]
-    """Exact time the prediction was made or null if not prediction was returned."""
+    last_updated: Optional[datetime]
+    """Exact time the prediction was made (=last updated) or null if not prediction was returned."""
     model: Optional[ModelInfo]
 
 
@@ -19,3 +19,11 @@ class PredictionPayload(BaseModel):
     time: list[datetime]
     temp_bern: list[float]
     metadata: PredictionMetadata
+
+
+class Config(BaseModel):
+    timezone: str
+    maximum_prediction_age: str
+    """Amount of time to look back when searching for a prediction at a given time = maximum age"""
+    default_horizon: int
+    maximum_horizon: int

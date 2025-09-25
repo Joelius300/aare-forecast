@@ -29,6 +29,8 @@ async def select_predictions(
         lookback = pd.to_timedelta(lookback).to_pytimedelta()
 
     # TODO this is doing client side binding, we want server-side binding! otherwise preparation doesn't make sense.
+    # TODO maybe truncate the values with TRUNC. or could round but that's more expensive.
+    #  Could also round/trunc when inserting them.
     query = sql.SQL("""
     select distinct on (time)
       run_ts,

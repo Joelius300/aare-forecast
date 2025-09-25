@@ -11,7 +11,7 @@ from datetime import datetime, UTC
 
 from lib.settings import Settings
 from lib.postgres import select_predictions, get_model_info
-from lib.dto import PredictionPayload, PredictionMetadata
+from lib.dto import PredictionPayload, PredictionMetadata, Config
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
@@ -21,7 +21,7 @@ if settings.default_horizon > settings.maximum_horizon:
 
 logging.basicConfig(level=settings.logging_level)
 
-tz = pytz.timezone(settings.time_zone)
+tz = pytz.timezone(settings.timezone)
 
 PREPARE_THRESHOLD = 0  # prepare every query the first time it's executed -> not sure if this works correctly with copy
 pool = psycopg_pool.AsyncConnectionPool(
@@ -29,7 +29,7 @@ pool = psycopg_pool.AsyncConnectionPool(
     open=False,
     min_size=1,  # keep one open at all times
     max_size=4,
-    num_workers=1,  # shouldn't need more workers to manage those connections (default is on min_size, num_workers, etc.)
+    num_workers=1,  # shouldn't need more workers to manage those connections (big default on min_size, num_workers, ..)
     kwargs=dict(prepare_threshold=PREPARE_THRESHOLD),  # kwargs are passed to the connection
 )
 
@@ -52,35 +52,43 @@ async def get_conn():
 
 
 @app.get("/config")
-def get_config():
+def get_config() -> Config:
     """Get the config the API is running with. Things like maximum_prediction_age, timezone, etc."""
-    # TODO implement
-    return {}
+    return Config(
+        timezone=settings.timezone,
+        maximum_prediction_age=settings.maximum_prediction_age,
+        default_horizon=settings.default_horizon,
+        maximum_horizon=settings.maximum_horizon,
+    )
 
 
 API_DESC = (
     "Get the latest predictions made before the specified time, or the most recent predictions if not specified.\n"
     "If the timestamp is specified without a timezone, it is interpreted as the timezone specified in /config "
-    f"(currently '{settings.time_zone}').\n"
-    "You may optionally specify a horizon if you want determinism or do not want the default.\n"
+    f"(currently '{settings.timezone}').\n"
+    "You may optionally specify a horizon in hours if you want determinism or do not want the default.\n"
+    "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
+    f"time ('from') and {settings.maximum_prediction_age} before that. If no forecast was made in that timeframe, "
+    f"an empty response is returned where 'last_updated' is null."
 )
 FROM_API_DESC = (
     "Timestamp in the format YYYY-MM-DDThh:mm:ssZ. "
     "Use 'Z' for UTC or url-encode the timestamp to use a plus. "
-    f"If no timezone is specified, it is interpreted as {settings.time_zone}!"
+    f"If no timezone is specified, it is interpreted as {settings.timezone}!"
 )
+HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = one day forecast)"
+MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
 
 
 @app.get("/predictions", description=API_DESC)
 async def get_predictions(
     from_: Annotated[Optional[datetime], Query(alias="from", description=FROM_API_DESC)] = None,
-    horizon: Annotated[Optional[int], Query(gt=0, le=settings.maximum_horizon)] = settings.default_horizon,
-    model_info=False,
+    horizon: Annotated[
+        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
+    ] = settings.default_horizon,
+    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
     conn=Depends(get_conn),
 ) -> PredictionPayload:
-    if horizon is None:
-        horizon = settings.default_horizon
-
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
@@ -106,7 +114,7 @@ async def get_predictions(
             time=[],
             temp_bern=[],
             metadata=PredictionMetadata(
-                run_ts=None,
+                last_updated=None,
                 model=None,
             ),
         )
@@ -125,7 +133,7 @@ async def get_predictions(
         time=times.to_list(),
         temp_bern=df["temp_bern"].to_list(),
         metadata=PredictionMetadata(
-            run_ts=run_ts,
+            last_updated=run_ts,
             model=model,
         ),
     )

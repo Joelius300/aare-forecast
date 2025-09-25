@@ -3415,6 +3415,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic-settings" },
+    { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -3428,6 +3429,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.36.0" },
 ]
 

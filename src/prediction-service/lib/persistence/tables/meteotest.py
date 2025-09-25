@@ -19,12 +19,12 @@ class MeteotestTable(TimescaleTable):
                     run_ts   timestamptz NOT NULL,
                     time     timestamptz NOT NULL,
                     location text        NOT NULL,
-                    tt       float,
-                    ff       float,
-                    rr       float,
-                    dd       float,
-                    rh       float,
-                    ss       float,
+                    tt       real,
+                    ff       real,
+                    rr       real,
+                    dd       real,
+                    rh       real,
+                    ss       real,
                     PRIMARY KEY (run_ts, location, time)
                 );
                 """

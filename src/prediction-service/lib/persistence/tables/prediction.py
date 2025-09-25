@@ -16,7 +16,7 @@ class PredictionTable(TimescaleTable):
                 (
                     run_ts    timestamptz NOT NULL,
                     time      timestamptz NOT NULL,
-                    temp_bern float       NOT NULL,
+                    temp_bern real        NOT NULL,
                     PRIMARY KEY (run_ts, time)
                 );
                 """

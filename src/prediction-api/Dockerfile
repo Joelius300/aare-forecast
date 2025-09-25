@@ -8,19 +8,21 @@ ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# copy just uv.lock and pyproject.toml to install deps without our source
+# copy just uv.lock and pyproject.toml to install deps without our source.
+# annoyingly, we need to copy all packages, otherwise it thinks the lock file is outdated.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=src/aare-shared/pyproject.toml,target=src/aare-shared/pyproject.toml \
     --mount=type=bind,source=src/aare-shared/README.md,target=src/aare-shared/README.md \
-    --mount=type=bind,source=src/prediction-service/pyproject.toml,target=src/prediction-api/pyproject.toml \
-    --mount=type=bind,source=src/prediction-service/README.md,target=src/prediction-api/README.md \
+    --mount=type=bind,source=src/prediction-service/pyproject.toml,target=src/prediction-service/pyproject.toml \
+    --mount=type=bind,source=src/prediction-service/README.md,target=src/prediction-service/README.md \
     --mount=type=bind,source=src/prediction-api/pyproject.toml,target=src/prediction-api/pyproject.toml \
     --mount=type=bind,source=src/prediction-api/README.md,target=src/prediction-api/README.md \
     uv sync --locked --no-install-project --no-dev --package=aare-oraku-prediction-api
 
-# which files/dirs are copied is controlled by the .dockerignore file
+# which files/dirs are copied is controlled by the .dockerignore file.
+# wouldn't need sources for prediction-service, but they carry almost no weight so whatever.
 COPY . /app
 
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts

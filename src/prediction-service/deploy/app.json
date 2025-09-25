@@ -1,7 +1,7 @@
 {
   "cron": [
     {
-      "command": "job",
+      "command": "python /app/src/prediction-service/main.py",
       "schedule": "*/15 * * * *"
     }
   ]

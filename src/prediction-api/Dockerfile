@@ -35,13 +35,17 @@ FROM python:3.12-slim-bookworm
 WORKDIR /app
 
 # copy the application and built venv from the builder
-COPY --from=builder --chown=app:app /app /app
+COPY --from=builder --chown=app:app /app/src/prediction-api /app
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
 ENV PATH="/app/.venv/bin:$PATH"
-COPY src/prediction-api/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY src/prediction-api/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 # TODO add app.json with healthcheck
 
+# just to document the default port
+EXPOSE 5000
+
 # use entrypoint to respect PORT variable by dokku
-CMD ["/entrypoint.sh"]
-# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["/app/entrypoint.sh"]
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] <- doesn't respect $PORT

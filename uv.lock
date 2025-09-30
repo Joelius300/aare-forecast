@@ -65,7 +65,6 @@ overrides = [
     { name = "cryptography", marker = "sys_platform == 'never'" },
     { name = "fonttools", marker = "sys_platform == 'never'" },
     { name = "networkx", marker = "sys_platform == 'never'" },
-    { name = "pygments", marker = "sys_platform == 'never'" },
     { name = "pyod", marker = "sys_platform == 'never'" },
     { name = "shap", marker = "sys_platform == 'never'" },
     { name = "statsforecast", marker = "sys_platform == 'never'" },
@@ -2080,7 +2079,7 @@ dependencies = [
     { name = "matplotlib-inline" },
     { name = "pexpect", marker = "(sys_platform != 'emscripten' and sys_platform != 'win32') or (sys_platform == 'emscripten' and extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (sys_platform == 'emscripten' and extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (sys_platform == 'emscripten' and extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (sys_platform == 'win32' and extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (sys_platform == 'win32' and extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (sys_platform == 'win32' and extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-gpu-auto' and extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'emscripten' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (sys_platform == 'win32' and extra != 'extra-11-aare-shared-cpu' and extra != 'extra-11-aare-shared-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
     { name = "prompt-toolkit" },
-    { name = "pygments", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygments" },
     { name = "stack-data" },
     { name = "traitlets" },
 ]
@@ -2094,7 +2093,7 @@ name = "ipython-pygments-lexers"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pygments", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygments" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ef/4c/5dd1d8af08107f88c7f741ead7a40854b8ac24ddf9ae850afbcf698aa552/ipython_pygments_lexers-1.1.1.tar.gz", hash = "sha256:09c0138009e56b6854f9535736f4171d855c8c08a563a0dcd8022f78355c7e81", size = 8393, upload-time = "2025-01-17T11:24:34.505Z" }
 wheels = [
@@ -2311,7 +2310,7 @@ dependencies = [
     { name = "jupyter-client" },
     { name = "jupyter-core" },
     { name = "prompt-toolkit" },
-    { name = "pygments", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygments" },
     { name = "pyzmq" },
     { name = "traitlets" },
 ]
@@ -3003,7 +3002,7 @@ dependencies = [
     { name = "nbformat" },
     { name = "packaging" },
     { name = "pandocfilters" },
-    { name = "pygments", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygments" },
     { name = "traitlets" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/59/f28e15fc47ffb73af68a8d9b47367a8630d76e97ae85ad18271b9db96fdf/nbconvert-7.16.6.tar.gz", hash = "sha256:576a7e37c6480da7b8465eefa66c17844243816ce1ccc372633c6b71c3c0f582", size = 857715, upload-time = "2025-01-28T09:29:14.724Z" }
@@ -4601,7 +4600,7 @@ version = "14.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "markdown-it-py" },
-    { name = "pygments", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu') or (extra == 'extra-21-aare-oraku-prediction-cpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto') or (extra == 'extra-21-aare-oraku-prediction-gpu' and extra == 'extra-21-aare-oraku-prediction-gpu-auto')" },
+    { name = "pygments" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fe/75/af448d8e52bf1d8fa6a9d089ca6c07ff4453d86c65c145d0a300bb073b9b/rich-14.1.0.tar.gz", hash = "sha256:e497a48b844b0320d45007cdebfeaeed8db2a4f4bcf49f15e455cfc4af11eaa8", size = 224441, upload-time = "2025-07-25T07:32:58.125Z" }
 wheels = [

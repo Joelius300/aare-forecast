@@ -47,6 +47,7 @@ pythonPlatform = "Linux"
 [tool.uv]
 package = false
 
+# can only have this in the top-level pyproject.toml, package-specific one are ignored
 override-dependencies = [
     # these are dependencies (of darts) with many deps that we're not using
     "xgboost; sys_platform == 'never'",
@@ -56,20 +57,19 @@ override-dependencies = [
     # these are large dependencies of packages that we (probably) cannot remove fully (e.g. matplotlib)
     # but don't break anything if removed
     "fontTools; sys_platform == 'never'",
-    "pygments; sys_platform == 'never'",
     "networkx; sys_platform == 'never'",
     "cryptography; sys_platform == 'never'",
     "aiohttp; sys_platform == 'never'",
     # many large packages we simply cannot remove like xarray, scipy, statsmodels, matplotlib
     # because darts or its dependencies import them
+    # these dependencies are only used during development, so they could be removed
+    # in the final images, but not here because then uv sync always ignores them.
+    # "pygments; sys_platform == 'never'",
+    # "pygit2; sys_platform == 'never'",
 ]
 
 [tool.uv.workspace]
-members = [
-    "src/aare-shared",
-    "src/prediction-service",
-    "src/prediction-api",
-]
+members = ["src/aare-shared", "src/prediction-service", "src/prediction-api"]
 
 [tool.uv.sources]
 aare-shared = { workspace = true }

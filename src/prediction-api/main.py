@@ -45,14 +45,15 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-async def get_conn():
+async def open_db():
     """Open connection in form of a generator to be used with FastAPI DI (Depends) -> open, return(yield), close."""
     async with pool.connection() as conn:
         yield conn
 
 
+# Yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
 @app.get("/config")
-def get_config() -> Config:
+async def get_config() -> Config:
     """Get the config the API is running with. Things like maximum_prediction_age, timezone, etc."""
     return Config(
         timezone=settings.timezone,
@@ -60,6 +61,11 @@ def get_config() -> Config:
         default_horizon=settings.default_horizon,
         maximum_horizon=settings.maximum_horizon,
     )
+
+
+@app.get("/")
+async def get_index() -> str:
+    return "«Bitte anthropomorphisier mi nid, i bi doch nume chli fancy Math u Statistik», seit ds Oraku"
 
 
 API_DESC = (
@@ -87,7 +93,7 @@ async def get_predictions(
         int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
     ] = settings.default_horizon,
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
-    conn=Depends(get_conn),
+    conn=Depends(open_db),
 ) -> PredictionPayload:
     if horizon > settings.maximum_horizon:
         raise HTTPException(

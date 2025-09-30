@@ -11,7 +11,7 @@ class ModelInfo(BaseModel):
 
 class PredictionMetadata(BaseModel):
     last_updated: Optional[datetime]
-    """Exact time the prediction was made (=last updated) or null if not prediction was returned."""
+    """Exact time the prediction was made (=last updated) or null if no prediction was returned."""
     model: Optional[ModelInfo]
 
 

@@ -1,11 +1,12 @@
 import logging
 from io import BytesIO
-from typing import cast
+from typing import cast, LiteralString, Optional
 
 import pandas as pd
 import psycopg
 from pandas._typing import WriteBuffer
 from psycopg import sql
+from psycopg.abc import Params
 from psycopg_pool import ConnectionPool
 from abc import ABC, abstractmethod
 
@@ -71,12 +72,14 @@ class TimescaleTable(ABC):
                 copy.write(csv)
 
     @staticmethod
-    def copy_to_df(conn: psycopg.Connection, query: sql.SQL):
+    def copy_to_df(conn: psycopg.Connection, query: sql.SQL | LiteralString, params: Optional[Params] = None):
         """Copy a Timescale query into a pandas DataFrame."""
+        if isinstance(query, str):
+            query = sql.SQL(query)
         with conn.cursor() as cur:
             with BytesIO() as bio:
                 # make sure the query doesn't end with ; somehow
-                with cur.copy(sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query)) as copy:
+                with cur.copy(sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query), params) as copy:
                     for data in copy:
                         bio.write(data)
                 bio.seek(0)

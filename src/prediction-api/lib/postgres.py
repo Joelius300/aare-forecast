@@ -1,7 +1,9 @@
 from io import BytesIO
+from typing import Optional, LiteralString
 
 import pandas as pd
 import psycopg
+from psycopg.abc import Params
 from psycopg.rows import dict_row
 from psycopg import sql
 from datetime import datetime, timedelta
@@ -10,11 +12,17 @@ from lib.dto import ModelInfo
 
 
 # duplicate code, I'm a (lazy) sinner
-async def copy_to_df(conn: psycopg.AsyncConnection, query: sql.SQL | sql.Composed) -> pd.DataFrame:
+async def copy_to_df(
+    conn: psycopg.AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Optional[Params] = None
+) -> pd.DataFrame:
     """Copy a Timescale query into a pandas DataFrame."""
+    if isinstance(query, str):
+        query = sql.SQL(query)
     async with conn.cursor() as cur:
         with BytesIO() as bio:
-            async with cur.copy(sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query)) as copy:
+            async with cur.copy(
+                sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query), params
+            ) as copy:
                 async for data in copy:
                     bio.write(data)
             bio.seek(0)
@@ -28,21 +36,20 @@ async def select_predictions(
     if isinstance(lookback, str):
         lookback = pd.to_timedelta(lookback).to_pytimedelta()
 
-    # TODO this is doing client side binding, we want server-side binding! otherwise preparation doesn't make sense.
     # TODO maybe truncate the values with TRUNC. or could round but that's more expensive.
     #  Could also round/trunc when inserting them.
-    query = sql.SQL("""
-    select distinct on (time)
-      run_ts,
-      time,
-      temp_bern
-    from prediction
-    where run_ts between {at} - {lookback} and {at}
-      and time >= {at}
-    order by time, run_ts desc
-    limit {horizon}
-    """).format(at=at, lookback=lookback, horizon=horizon)
-    df = await copy_to_df(conn, query)
+    query = """select distinct on (time)
+          run_ts,
+          time,
+          temp_bern
+        from prediction
+        where run_ts between %(at)s - %(lookback)s and %(at)s
+          and time >= %(at)s
+        order by time, run_ts desc
+        limit %(horizon)s
+    """
+    params = dict(at=at, lookback=lookback, horizon=horizon)
+    df = await copy_to_df(conn, query, params)
 
     return df
 

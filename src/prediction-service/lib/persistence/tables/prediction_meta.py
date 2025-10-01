@@ -96,14 +96,16 @@ class PredictionMetaTable(TimescaleTable):
                 sql.SQL(
                     """
                 UPDATE {table}
-                SET status = {status}, error = {error}, finished_at = {finished_at}
-                WHERE run_ts = {run_ts}
+                SET status = %(status)s, error = %(error)s, finished_at = %(finished_at)s
+                WHERE run_ts = %(run_ts)s
                 """
                 ).format(
                     table=sql.Identifier(self.table_name),
+                ),
+                dict(
                     status=status,
                     error=error,
                     run_ts=run_ts,
                     finished_at=finished_at,
-                )
+                ),
             )

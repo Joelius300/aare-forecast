@@ -35,5 +35,22 @@ build-api:
   docker build -f src/prediction-api/Dockerfile . -t aare-oraku-prediction-api:latest
 
 build:
-    just build-pred
-    just build-api
+  just build-pred
+  just build-api
+
+deploy-pred:
+  ./deploy/deploy-from-local.sh aare-oraku-prediction
+
+deploy-api:
+  ./deploy/deploy-from-local.sh aare-oraku-prediction-api
+
+deploy:
+  just deploy-pred
+  just deploy-api
+
+[working-directory: 'src/prediction-api']
+api:
+  uv run uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+
+predict:
+  uv run src/prediction-service/main.py

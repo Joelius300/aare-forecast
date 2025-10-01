@@ -55,14 +55,18 @@ def _median_filler(df: pd.DataFrame, limit: int):
     return df.rolling(window=n, min_periods=1, center=True).median()
 
 
+MEDIAN_METHOD_NAME = "median"
+
+
 @overload
 def fill_with_hard_limit(
     df_or_series: pd.DataFrame,
     limit: int,
-    fill_method="interpolate",
+    fill_func="interpolate",
+    method: Optional[str] = None,
     columns: Optional[list[str]] = None,
     add_was_filled=False,
-    **fill_method_kwargs,
+    **fill_func_kwargs,
 ) -> pd.DataFrame:
     pass
 
@@ -71,10 +75,11 @@ def fill_with_hard_limit(
 def fill_with_hard_limit(
     df_or_series: pd.Series,
     limit: int,
-    fill_method="interpolate",
+    fill_func="interpolate",
+    method: Optional[str] = None,
     columns: Optional[list[str]] = None,
     add_was_filled=False,
-    **fill_method_kwargs,
+    **fill_func_kwargs,
 ) -> pd.Series:
     pass
 
@@ -82,17 +87,19 @@ def fill_with_hard_limit(
 def fill_with_hard_limit(
     df_or_series: Union[pd.DataFrame, pd.Series],
     limit: int,
-    fill_method: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
+    fill_func: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
+    method: Optional[str] = None,
     columns: Optional[list[str]] = None,
     add_was_filled=False,
-    **fill_method_kwargs,
+    **fill_func_kwargs,
 ) -> Union[pd.DataFrame, pd.Series]:
     # adjusted from https://stackoverflow.com/a/66373000/10883465
-    """The fill methods from Pandas such as ``interpolate`` or ``bfill``
+    """
+    The fill methods from Pandas such as ``interpolate`` or ``bfill``
     will fill ``limit`` number of NaNs, even if the total number of
     consecutive NaNs is larger than ``limit``. This function instead
     does not fill any data when the number of consecutive NaNs
-    is > ``limit``. ``median`` is also supported.
+    is > ``limit``. ``median`` is also supported; either set fill_func or method.
 
     Adapted from: https://stackoverflow.com/a/30538371/11052174
 
@@ -101,11 +108,14 @@ def fill_with_hard_limit(
     :param limit: Maximum number of consecutive NaNs to allow. Any
         occurrences of more consecutive NaNs than ``limit`` will have no
         filling performed.
-    :param fill_method: Filling method to use, e.g. 'interpolate',
-        'bfill', etc. or a lambda taking 'limit' and potential fill_kwargs.
+    :param fill_func: Filling method to use, e.g. 'interpolate',
+        'bfill', etc. or a lambda taking 'limit' and potential method and fill_kwargs. 'linear', 'cubic', etc.
+        must be specified through the 'method' arg, not here.
+    :param method: The 'method' kwarg of the pandas 'interpolate' method (or the specified 'fill_func').
+        Only needs to be set if the fill_func takes 'method' as an argument.
     :param columns: Which columns so fill. Defaults to all.
-    :param fill_method_kwargs: Keyword arguments to pass to the
-        fill_method, in addition to the given limit.
+    :param fill_func_kwargs: Keyword arguments to pass to the
+        fill_func, in addition to the given limit and method.
 
     :returns: A filled version of the given df_or_series according
         to the given inputs.
@@ -140,15 +150,22 @@ def fill_with_hard_limit(
         # value in the original df is nan (which is obviously only the case in the short parts consisting only of nans).
         mask.loc[:, col] = (grp_counts <= limit) & to_interp[col].isna()
 
-    if fill_method == "median":  # custom moving median implementation
+    if "method" in fill_func_kwargs:
+        raise ValueError("Don't set 'method' in fill_func_kwargs, use the 'method' param directly.")
+    elif method:
+        # add method to kwargs, but only if it's not None
+        fill_func_kwargs["method"] = method
+
+    if fill_func == MEDIAN_METHOD_NAME or method == MEDIAN_METHOD_NAME:
+        # custom moving median implementation
         interpolated = _median_filler(to_interp, limit=limit)
-    elif isinstance(fill_method, str):
-        method = getattr(to_interp, fill_method)
-        interpolated = method(limit=limit, **fill_method_kwargs)
+    elif isinstance(fill_func, str):
+        interp_method = getattr(to_interp, fill_func)
+        interpolated = interp_method(limit=limit, **fill_func_kwargs)
     else:
         # ignore because kwargs aren't supported for Callable
         # noinspection PyArgumentList
-        interpolated = fill_method(to_interp, limit, **fill_method_kwargs)
+        interpolated = fill_func(to_interp, limit, **fill_func_kwargs)
 
     # only take those parts that were from NaN-only sections shorter than the specified limit
     interpolated = interpolated[mask]

@@ -188,6 +188,7 @@ class GRUTuning:
 
             # this is what will be minimized by optuna
             # TODO also minimize nr of params?
+            # TODO also minimize other metrics like (TODO) mean abs peak diff and time-weighted (day&year) MAE/RMSE
             return metrics.mae
 
 

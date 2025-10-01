@@ -13,8 +13,9 @@ class OutliersParams(TypedDict):
 
 
 class InterpolateParams(TypedDict):
-    linear_gap_bound: int
-    cubic_gap_bound: int
+    linear_gap_bound: NotRequired[int]
+    cubic_gap_bound: NotRequired[int]
+    median_gap_bound: NotRequired[int]
 
 
 class SplitParams(TypedDict):

@@ -39,7 +39,12 @@ class SingleFieldFeature(Feature):
             return df
 
         return interpolate_continuous(
-            df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled=True, columns=self.field.name
+            df,
+            params.get("linear_gap_bound"),
+            params.get("cubic_gap_bound"),
+            params.get("median_gap_bound"),
+            drop_filled=True,
+            columns=self.field.name,
         )
 
     def cleanup(self, df: pd.DataFrame) -> pd.DataFrame:

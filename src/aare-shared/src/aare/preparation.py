@@ -1,4 +1,4 @@
-from typing import cast, Optional
+from typing import cast, Optional, Literal
 
 import numpy as np
 import pandas as pd
@@ -70,15 +70,39 @@ def remove_outliers(
     return cast(pd.DataFrame, df[orig_cols])
 
 
+def _interpolate_continuous(
+    df: pd.DataFrame,
+    gap_bound: int,
+    method: str | Literal["linear", "cubic", "median"],
+    columns: list[str],
+):
+    """
+    Interpolate gaps in specified columns with a specific method, but only up to a specific gap size.
+    Populates a 'filled' column with the method that was used.
+    """
+    col_filled = [c + "_filled" for c in columns]
+    df_i = fill_with_hard_limit(df, limit=gap_bound, method=method, columns=columns, add_was_filled=True)
+    df[columns] = df_i[columns]
+    df.loc[df_i[col_filled].any(axis=1, bool_only=True), "filled"] = method
+
+    return df
+
+
 def interpolate_continuous(
     df: pd.DataFrame,
-    linear_gap_bound: int,
-    cubic_gap_bound: int,
+    linear_gap_bound: Optional[int],
+    cubic_gap_bound: Optional[int],
+    median_gap_bound: Optional[int],
     drop_filled: bool,
     columns: str | list[str] | None = TEMP,
 ) -> pd.DataFrame:
-    # TODO rework this so median, linear and cubic can all be specified optionally and the smallest
-    #  gap size is done first, then increasing. Hint: instead of mapping, just set it to "none" everywhere first
+    """
+    Interpolate gaps with different methods up to specified gap sizes.
+    Setting linear_gap_bound to 10 will fill all gaps from size 1 to size 10 with linear interpolation.
+    If another method is set to something lower, e.g. 5, then all gaps up to 5 will already be filled
+    and linear only does 6 through 10.
+    Populates a 'filled' column with the method that was used for each data point (or none if not interpolated).
+    """
     df = df.copy()
     if columns is None:
         columns = list(df.columns)
@@ -89,16 +113,26 @@ def interpolate_continuous(
     if TIME in columns:
         columns.remove(TIME)
 
-    col_filled = [c + "_filled" for c in columns]
-    df_i = fill_with_hard_limit(df, limit=linear_gap_bound, columns=columns, add_was_filled=True)
-    df[columns] = df_i[columns]
-    df["filled"] = cast(pd.Series, df_i[col_filled].any(axis=1, bool_only=True)).map({False: "none", True: "linear"})
-    df_i = fill_with_hard_limit(df, method="cubic", limit=cubic_gap_bound, columns=columns, add_was_filled=True)
-    df[columns] = df_i[columns]
-    df.loc[df_i[col_filled].any(axis=1, bool_only=True), "filled"] = "cubic"
+    methods = [
+        (linear_gap_bound, "linear") if linear_gap_bound else None,
+        (cubic_gap_bound, "cubic") if cubic_gap_bound else None,
+        (median_gap_bound, "median") if median_gap_bound else None,
+    ]
+    methods = [m for m in methods if m is not None]
+    if len(methods) == 0:
+        raise ValueError("Must specify the gap bound for at least one method.")
+
+    bounds = [m[0] for m in methods]
+    if len(bounds) != len(set(bounds)):
+        raise ValueError("Cannot specify the same size for multiple interpolation methods.")
+
+    df["filled"] = "none"
+
+    for gap_bound, method in sorted(methods, key=lambda t: t[0]):
+        df = _interpolate_continuous(df, gap_bound, method, columns)
 
     if drop_filled:
-        # still populating first for debugging purposed
+        # still populating first for debugging purposed, then drop before returning
         df = df.drop("filled", axis="columns")
 
     return df
@@ -135,7 +169,14 @@ def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | li
     if params is None:
         raise ValueError("Outlier config of temp_bern is not configured correctly.")
 
-    return interpolate_continuous(df, params["linear_gap_bound"], params["cubic_gap_bound"], drop_filled, columns)
+    return interpolate_continuous(
+        df,
+        params.get("linear_gap_bound"),
+        params.get("cubic_gap_bound"),
+        params.get("median_gap_bound"),
+        drop_filled,
+        columns,
+    )
 
 
 @deprecated("Work with WaterTempBern feature")

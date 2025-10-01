@@ -19,8 +19,7 @@ features:
       linear_gap_bound: 3
       cubic_gap_bound: 25
   ss_bern:
-    custom:
-      # TODO should be moved to interpolate
+    interpolate:
       median_gap_bound: 10
   flow_bern:
     outliers:

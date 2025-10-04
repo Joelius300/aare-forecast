@@ -26,10 +26,8 @@ class TimesFmDarts(GlobalForecastingModel):
         super().__init__()
 
         self.model_version = version
-        # todo make readonly properties
         self.forecast_horizon = forecast_horizon
 
-        # TODO experiment with 200m and 500m model, and with window_size, but I don't think that does any good.
         self.tfm = timesfm.TimesFm(
             hparams=timesfm.TimesFmHparams(
                 backend="gpu" if torch.cuda.is_available() else "cpu",

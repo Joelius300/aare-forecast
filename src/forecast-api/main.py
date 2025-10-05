@@ -95,6 +95,11 @@ async def get_forecasts(
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
     conn=Depends(open_db),
 ) -> ForecastPayload:
+    # TODO:
+    #  - /forecast
+    #  - option for row vs column format
+    #  - location parameter => how does that change the output data structure?
+
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"

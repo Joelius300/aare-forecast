@@ -1,5 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
+from enum import StrEnum
 from typing import Optional, Annotated
 
 import pandas as pd
@@ -8,18 +9,17 @@ import pytz
 from fastapi import FastAPI, HTTPException, Depends, Query
 from datetime import datetime, UTC
 
-
-from lib.settings import Settings
+from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
 from lib.dto import ForecastPayload, ForecastMetadata, Config
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
-settings = Settings()  # pyright: ignore[reportCallIssue]
-if settings.default_horizon > settings.maximum_horizon:
-    raise ValueError("default_horizon cannot be larger than maximum_horizon")
+settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
 
 logging.basicConfig(level=settings.logging_level)
+# dynamically create enum from specified supported cities. enums give automatic input validation and nicer swagger docs.
+CityEnum = StrEnum("CityEnum", settings.available_cities)
 
 tz = pytz.timezone(settings.timezone)
 
@@ -60,6 +60,7 @@ async def get_config() -> Config:
         maximum_forecast_age=settings.maximum_forecast_age,
         default_horizon=settings.default_horizon,
         maximum_horizon=settings.maximum_horizon,
+        available_cities=settings.available_cities,
     )
 
 
@@ -86,20 +87,18 @@ HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = on
 MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
 
 
-@app.get("/forecasts", description=API_DESC)
+@app.get("/forecast", description=API_DESC)
 async def get_forecasts(
     from_: Annotated[Optional[datetime], Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
         int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
     ] = settings.default_horizon,
+    city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
     conn=Depends(open_db),
 ) -> ForecastPayload:
     # TODO:
-    #  - /forecast
     #  - option for row vs column format
-    #  - location parameter => how does that change the output data structure?
-
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
@@ -118,15 +117,16 @@ async def get_forecasts(
             "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon)
+    df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon, city)
     if df.empty:
         # instead of an error, return an empty response.
         return ForecastPayload(
             time=[],
-            temp_bern=[],
+            temp=[],
             metadata=ForecastMetadata(
                 last_updated=None,
                 model=None,
+                city=city,
             ),
         )
 
@@ -142,9 +142,10 @@ async def get_forecasts(
 
     return ForecastPayload(
         time=times.to_list(),
-        temp_bern=df["temp_bern"].to_list(),
+        temp=df["temp"].to_list(),
         metadata=ForecastMetadata(
             last_updated=run_ts,
             model=model,
+            city=city,
         ),
     )

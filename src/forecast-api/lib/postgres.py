@@ -31,23 +31,26 @@ async def copy_to_df(
 
 
 async def select_forecasts(
-    conn: psycopg.AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int
+    conn: psycopg.AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int, city: str
 ) -> pd.DataFrame:
     if isinstance(lookback, str):
         lookback = pd.to_timedelta(lookback).to_pytimedelta()
 
-    # TODO maybe truncate the values with TRUNC. or could round but that's more expensive.
-    #  Could also round/trunc when inserting them.
-    query = """select distinct on (time)
+    if not (city.isascii() and city.isalpha()):
+        raise ValueError(f"Not sure how, but an invalid (potentially dangerous) city got through: {city}")
+    value_col = f"temp_{city}"
+
+    # precision is up to 6 digits after decimal point, could use TRUNC or ROUND here to avoid but why ¯\_(ツ)_/¯
+    query = sql.SQL("""select distinct on (time)
           run_ts,
           time,
-          temp_bern
+          {value_col} as temp
         from forecast
         where run_ts between %(at)s - %(lookback)s and %(at)s
           and time >= %(at)s
         order by time, run_ts desc
         limit %(horizon)s
-    """
+    """).format(value_col=sql.Identifier(value_col))
     params = dict(at=at, lookback=lookback, horizon=horizon)
     df = await copy_to_df(conn, query, params)
 

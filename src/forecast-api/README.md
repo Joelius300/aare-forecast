@@ -1,6 +1,6 @@
-# Prediction API
+# Forecast API
 
-This API serves the stored predictions from the timescaledb.
+This API serves the stored forecasts from the timescaledb.
 
 I initially wanted to build this with ASP.NET, so I finally get to use it again, but frankly it doesn't make sense.
 

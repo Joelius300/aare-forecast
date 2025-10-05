@@ -1,7 +1,7 @@
 [project]
 name = "aare-oraku-api"
 version = "0.1.0"
-description = "API to get data from the prediction database"
+description = "API to get data from the forecast database"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -123,7 +123,7 @@ def _historical_forecasts_parallel(
         return cast(
             list[list[TimeSeries]],
             # (most likely) uses extreme_lags to find where to start forecasting
-            # produces multiple predictions (TimeSeries) with the specified stride FOR EACH SUBSERIES
+            # produces multiple forecasts (TimeSeries) with the specified stride FOR EACH SUBSERIES
             model.historical_forecasts(
                 val,  # passing multiple ts so we get multiple sets of forecasts back
                 # future_covariates can handle slices like val but also just a big chunk with the relevant data
@@ -261,7 +261,7 @@ def evaluate_model(
 
     Random state is fixed at 42 by default for reproducibility.
 
-    Returns the aggregated metrics as well as the most average, best and worst prediction
+    Returns the aggregated metrics as well as the most average, best and worst forecast
     the model made (decided by MAE or whatever you specify).
     """
     if isinstance(val, TimeSeries):
@@ -275,9 +275,9 @@ def evaluate_model(
 
     (
         metrics,
-        (most_avg_prediction, most_avg_prediction_m),
-        (best_prediction, best_prediction_m),
-        (worst_prediction, worst_prediction_m),
+        (most_avg_forecast, most_avg_forecast_m),
+        (best_forecast, best_forecast_m),
+        (worst_forecast, worst_forecast_m),
     ) = _evaluate_model(
         model,
         val_subs,
@@ -294,13 +294,13 @@ def evaluate_model(
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
     most_avg_forecast = Forecast(
-        val, most_avg_prediction, lookback_hours, Metrics.from_ndarray(most_avg_prediction_m), future_cov=future_cov
+        val, most_avg_forecast, lookback_hours, Metrics.from_ndarray(most_avg_forecast_m), future_cov=future_cov
     )
     best_forecast = Forecast(
-        val, best_prediction, lookback_hours, Metrics.from_ndarray(best_prediction_m), future_cov=future_cov
+        val, best_forecast, lookback_hours, Metrics.from_ndarray(best_forecast_m), future_cov=future_cov
     )
     worst_forecast = Forecast(
-        val, worst_prediction, lookback_hours, Metrics.from_ndarray(worst_prediction_m), future_cov=future_cov
+        val, worst_forecast, lookback_hours, Metrics.from_ndarray(worst_forecast_m), future_cov=future_cov
     )
 
     sample = ForecastSamples(most_avg_forecast, best_forecast, worst_forecast)

@@ -10,8 +10,8 @@ from datetime import datetime, UTC
 
 
 from lib.settings import Settings
-from lib.postgres import select_predictions, get_model_info
-from lib.dto import PredictionPayload, PredictionMetadata, Config
+from lib.postgres import select_forecasts, get_model_info
+from lib.dto import ForecastPayload, ForecastMetadata, Config
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
@@ -54,10 +54,10 @@ async def open_db():
 # Yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
 @app.get("/config")
 async def get_config() -> Config:
-    """Get the config the API is running with. Things like maximum_prediction_age, timezone, etc."""
+    """Get the config the API is running with. Things like maximum_forecast_age, timezone, etc."""
     return Config(
         timezone=settings.timezone,
-        maximum_prediction_age=settings.maximum_prediction_age,
+        maximum_forecast_age=settings.maximum_forecast_age,
         default_horizon=settings.default_horizon,
         maximum_horizon=settings.maximum_horizon,
     )
@@ -69,12 +69,12 @@ async def get_index() -> str:
 
 
 API_DESC = (
-    "Get the latest predictions made before the specified time, or the most recent predictions if not specified.\n"
+    "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified.\n"
     "If the timestamp is specified without a timezone, it is interpreted as the timezone specified in /config "
     f"(currently '{settings.timezone}').\n"
     "You may optionally specify a horizon in hours if you want determinism or do not want the default.\n"
     "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
-    f"time ('from') and {settings.maximum_prediction_age} before that. If no forecast was made in that timeframe, "
+    f"time ('from') and {settings.maximum_forecast_age} before that. If no forecast was made in that timeframe, "
     f"an empty response is returned where 'last_updated' is null."
 )
 FROM_API_DESC = (
@@ -86,15 +86,15 @@ HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = on
 MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
 
 
-@app.get("/predictions", description=API_DESC)
-async def get_predictions(
+@app.get("/forecasts", description=API_DESC)
+async def get_forecasts(
     from_: Annotated[Optional[datetime], Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
         int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
     ] = settings.default_horizon,
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
     conn=Depends(open_db),
-) -> PredictionPayload:
+) -> ForecastPayload:
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
@@ -109,17 +109,17 @@ async def get_predictions(
     if from_ > now:
         raise HTTPException(
             400,
-            "Cannot request predictions made in the future. "
-            "If you want the latest predictions (furthest into the future), omit the 'from' parameter.",
+            "Cannot request forecasts made in the future. "
+            "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    df = await select_predictions(conn, from_, settings.maximum_prediction_age, horizon)
+    df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon)
     if df.empty:
         # instead of an error, return an empty response.
-        return PredictionPayload(
+        return ForecastPayload(
             time=[],
             temp_bern=[],
-            metadata=PredictionMetadata(
+            metadata=ForecastMetadata(
                 last_updated=None,
                 model=None,
             ),
@@ -135,10 +135,10 @@ async def get_predictions(
     # if speed is important, it's probably faster to use .dt.strftime() to convert pd.Timestamp directly to str
     times = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
 
-    return PredictionPayload(
+    return ForecastPayload(
         time=times.to_list(),
         temp_bern=df["temp_bern"].to_list(),
-        metadata=PredictionMetadata(
+        metadata=ForecastMetadata(
             last_updated=run_ts,
             model=model,
         ),

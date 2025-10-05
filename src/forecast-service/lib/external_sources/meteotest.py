@@ -9,7 +9,7 @@ from lib.external_sources.external_source import ExternalSource
 
 
 class MeteoTestSource(ExternalSource):
-    """Fetch predictions from Meteotest (internal Meteotest service)"""
+    """Fetch forecasts from Meteotest (internal Meteotest service)"""
 
     def __init__(self, url: str, locations: list[str]):
         self.url = url

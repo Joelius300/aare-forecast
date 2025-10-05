@@ -9,7 +9,7 @@ from aare.storage.metadata import AareModel
 from lib.persistence.timescale_table import TimescaleTable
 
 
-class PredictionMetaTable(TimescaleTable):
+class ForecastMetaTable(TimescaleTable):
     COLUMNS = [
         "run_ts",
         "model_name",
@@ -27,13 +27,13 @@ class PredictionMetaTable(TimescaleTable):
     ]
 
     def __init__(self, connection_pool: ConnectionPool):
-        super().__init__(connection_pool, "prediction_meta", self.COLUMNS)
+        super().__init__(connection_pool, "forecast_meta", self.COLUMNS)
 
     def ensure_table_exists(self):
         with self.connection_pool.connection() as conn:
             conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS prediction_meta
+                CREATE TABLE IF NOT EXISTS forecast_meta
                 (
                     run_ts              timestamptz   NOT NULL,
                     model_name          text          NOT NULL,

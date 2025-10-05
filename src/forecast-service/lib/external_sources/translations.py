@@ -1,6 +1,6 @@
 # Translation of measurements to external sources registered in the SourceRegistry.
 # If a field of a specified measurement (e.g. the 'tt' field of the 'smn' measurement)
-# is required in the future [for inference], then the prediction service will look in the
+# is required in the future [for inference], then the forecast service will look in the
 # here specified external source for it.
 # Maybe later it needs to be split because smn/ABC can be taken from meteotest,
 # but smn/XYZ needs to be taken from gugusglüngi. For now just measurements should be fine.

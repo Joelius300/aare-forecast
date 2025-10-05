@@ -5,7 +5,8 @@ description = "aare-forecast shared library"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "u8darts[torch]>=0.37.0",
+    # TODO update to darts 0.38.x
+    "u8darts[torch]~=0.37.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",
     "numpy>=1.26.4",

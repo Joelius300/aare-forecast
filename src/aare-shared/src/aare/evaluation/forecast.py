@@ -27,15 +27,16 @@ def _find_section(
 @dataclass
 class Forecast:
     actual: TimeSeries
-    prediction: TimeSeries
+    forecast: TimeSeries
     lookback: Timedelta
     metrics: Optional[Metrics]
     future_cov: TimeSeries | None = None
+    # TODO docstring and maybe rename to PastForecast, HistoricalForecast or EvalForecast
 
     def __init__(
         self,
         actual_full: TimeSeries | Sequence[TimeSeries],
-        prediction: TimeSeries,
+        forecast: TimeSeries,
         lookback_hours: int,
         metrics: Optional[Metrics] = None,
         add_metrics=True,
@@ -47,26 +48,26 @@ class Forecast:
         """
         assert lookback_hours >= 0, "lookback_hours must be positive"
         self.lookback = cast(Timedelta, Timedelta(hours=lookback_hours))  # cannot be NaT
-        pred_start = cast(Timestamp, prediction.start_time())
-        start, end = pred_start - self.lookback, prediction.end_time()
-        assert isinstance(end, Timestamp), "Passed prediction TimeSeries with range index?!"
+        pred_start = cast(Timestamp, forecast.start_time())
+        start, end = pred_start - self.lookback, forecast.end_time()
+        assert isinstance(end, Timestamp), "Passed forecast TimeSeries with range index?!"
 
         self.actual = cast(TimeSeries, _find_section(actual_full, start, end, none_ok=False))
         self.future_cov = _find_section(future_cov, start, end)
 
-        self.prediction = prediction
+        self.forecast = forecast
         self.metrics = metrics
         if add_metrics and metrics is None:
             self.calc_metrics()
 
     def calc_metrics(self):
         """Calculate and store the metrics for this instance. Also returns them for convenience."""
-        self.metrics = Metrics.from_series(self.actual, self.prediction)
+        self.metrics = Metrics.from_series(self.actual, self.forecast)
         return self.metrics
 
     def plot(self, title: str, ax: Optional[matplotlib.axes.Axes] = None, with_covariates: bool | list[str] = False):
         ax = self.actual.plot(label="actual", ax=ax)
-        self.prediction.plot(label="prediction", ax=ax)
+        self.forecast.plot(label="forecast", ax=ax)
         ax.set_xlabel("Time")
         ax.set_ylabel("Temperature [°C]")
 

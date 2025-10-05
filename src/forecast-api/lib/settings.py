@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     logging_level: str = "WARNING"
     default_horizon: int = 24
     maximum_horizon: int = 24
-    maximum_prediction_age: str = "1h"
+    maximum_forecast_age: str = "1h"
     timezone: str = "Europe/Zurich"
 
     model_config = SettingsConfigDict(env_prefix="oraku_", env_file=".env")

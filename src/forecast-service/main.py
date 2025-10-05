@@ -24,8 +24,8 @@ from lib.data.compile_data import get_inference_data, scale_inference_data
 from lib.data.inference_data import InferenceData
 from lib.external_sources.external_source import ExternalSource
 from lib.external_sources.registry import SourceRegistry, Sources
-from lib.persistence.tables.prediction import PredictionTable
-from lib.persistence.tables.prediction_meta import PredictionMetaTable
+from lib.persistence.tables.forecast import ForecastTable
+from lib.persistence.tables.forecast_meta import ForecastMetaTable
 from lib.persistence.timescale_table import TimescaleTable
 
 logger = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ def predict(
         raise ValueError(f"Model returned '{type(pred)}' instead of TimeSeries.")
 
     if pred.is_stochastic:
-        raise ValueError("Model returned a stochastic prediction; not supported yet")
+        raise ValueError("Model returned a stochastic forecast; not supported yet")
 
     if target_scaler:
         assert isinstance(target_scaler, (InvertibleDataTransformer, Pipeline))
@@ -84,14 +84,14 @@ def predict(
     return pred.to_dataframe().reset_index(names="time")
 
 
-def persist_prediction(run_ts: datetime, prediction: pd.DataFrame, table: TimescaleTable):
+def persist_forecast(run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable):
     table.ensure_table_exists()
-    to_store = prediction.copy()
+    to_store = forecast.copy()
     to_store["run_ts"] = run_ts
     table.insert(to_store)
 
 
-def make_prediction(
+def make_forecast(
     run_ts: datetime,
     model_meta: AareModel,
     model: GlobalForecastingModel,
@@ -108,9 +108,9 @@ def make_prediction(
     data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
     data = scale_inference_data(data, scalers)
 
-    # actually make and store prediction with loaded model
-    prediction = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
-    persist_prediction(run_ts, prediction, PredictionTable(conn_pool))
+    # actually make and store forecast with loaded model
+    forecast = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
+    persist_forecast(run_ts, forecast, ForecastTable(conn_pool))
 
 
 def get_args():
@@ -152,7 +152,7 @@ def main():
         connection_class=psycopg.Connection,
     )
     with conn_pool:
-        metadata_table = PredictionMetaTable(conn_pool)
+        metadata_table = ForecastMetaTable(conn_pool)
         metadata_table.ensure_table_exists()
         metadata_table.insert_metadata(run_ts, model_meta, args)
 
@@ -161,13 +161,13 @@ def main():
         error = None
         try:
             # do the hard part
-            make_prediction(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
+            make_forecast(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
         except Exception as e:
             # only catches error during fetching and predicting, mostly because fetching has external factors.
             # issues with the database or loading the model will only be visible in the app/container logs.
             status = "failure"
             error = str(e)
-            logger.exception("Couldn't finish the prediction run.", exc_info=True)
+            logger.exception("Couldn't finish the forecast run.", exc_info=True)
 
         finished_at = datetime.now(UTC)
 

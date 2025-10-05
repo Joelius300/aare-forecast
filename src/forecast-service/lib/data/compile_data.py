@@ -30,7 +30,7 @@ def _prepare_series(features: list[Feature], df: pd.DataFrame) -> TimeSeries:
     # need a single TimeSeries with all relevant components for inference
     series = darts.concatenate(tss, axis="component")
     if not series.gaps(mode="any").empty:
-        raise ValueError("There are (unfillable) gaps, cannot make a prediction!")
+        raise ValueError("There are (unfillable) gaps, cannot make a forecast!")
 
     return series
 
@@ -107,7 +107,7 @@ def get_inference_data(
 
             # Influx also returns a data point at the very end that's basically at run_ts. To remove it, we
             # can either just resample future_df_past (see above), or we could merge it together with the
-            # future prediction and take the mean. Here it's important that the data point at 01:00 only contains data
+            # future forecast and take the mean. Here it's important that the data point at 01:00 only contains data
             # from before (<= 01:00) and 08:45 is merged with 09:00, so closed and label must be set to 'right'.
             # THE REASON I'M JUST DROPPING INSTEAD OF MERGING is that at 08:50 it would probably increase accuracy
             # but at 08:10 it might decrease it because it pulls it to the earlier hour. For the sake of transparency

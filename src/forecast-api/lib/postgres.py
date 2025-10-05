@@ -30,7 +30,7 @@ async def copy_to_df(
             return pd.read_csv(bio)
 
 
-async def select_predictions(
+async def select_forecasts(
     conn: psycopg.AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int
 ) -> pd.DataFrame:
     if isinstance(lookback, str):
@@ -42,7 +42,7 @@ async def select_predictions(
           run_ts,
           time,
           temp_bern
-        from prediction
+        from forecast
         where run_ts between %(at)s - %(lookback)s and %(at)s
           and time >= %(at)s
         order by time, run_ts desc
@@ -55,10 +55,10 @@ async def select_predictions(
 
 
 async def get_model_info(conn: psycopg.AsyncConnection, run_ts: datetime) -> ModelInfo:
-    # could also just "join prediction_meta as meta on pred.run_ts=meta.run_ts" in select_predictions
+    # could also just "join forecast_meta as meta on pred.run_ts=meta.run_ts" in select_forecasts
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(
-            "select model_name as name, model_version as version from prediction_meta where run_ts=%s", [run_ts]
+            "select model_name as name, model_version as version from forecast_meta where run_ts=%s", [run_ts]
         )
         row = await cur.fetchone()
         assert row is not None, "got none when selecting model, what run_ts did you pass??"

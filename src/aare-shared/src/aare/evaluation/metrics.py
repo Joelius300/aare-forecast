@@ -42,9 +42,9 @@ class Metrics:
         return asdict(self)
 
     @classmethod
-    def from_series(cls, actual: TimeSeries, prediction: TimeSeries):
+    def from_series(cls, actual: TimeSeries, forecast: TimeSeries):
         """Returns a fully calculated set of metrics for a ground truth and forecast."""
-        metrics = {key: cast(float, metric(actual, prediction)) for (key, metric) in cls.METRICS.items()}
+        metrics = {key: cast(float, metric(actual, forecast)) for (key, metric) in cls.METRICS.items()}
 
         return Metrics(**metrics)
 

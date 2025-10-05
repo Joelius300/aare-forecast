@@ -64,7 +64,7 @@ def predict(
     horizon: int,
     num_samples: int,
 ) -> pd.DataFrame:
-    """use the fetched data to predict the coming temperature"""
+    """use the fetched data to predict the future temperature"""
     args = dict(n=horizon)
     if model.supports_probabilistic_prediction:
         args["num_samples"] = num_samples
@@ -163,7 +163,7 @@ def main():
             # do the hard part
             make_forecast(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
         except Exception as e:
-            # only catches error during fetching and predicting, mostly because fetching has external factors.
+            # only catches error during fetching and forecasting, mostly because fetching has external factors.
             # issues with the database or loading the model will only be visible in the app/container logs.
             status = "failure"
             error = str(e)

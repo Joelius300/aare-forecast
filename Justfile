@@ -37,7 +37,7 @@ optuna:
 track: mlflow optuna
 
 [group('build')]
-build-pred:
+build-service:
   docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:latest
 
 [group('build')]
@@ -47,10 +47,10 @@ build-api:
 # build all
 [group('build')]
 [parallel]
-build: build-pred build-api
+build: build-service build-api
 
 [group('deploy')]
-deploy-pred:
+deploy-service:
   ./deploy/deploy-from-local.sh aare-oraku-forecast
 
 [group('deploy')]
@@ -60,7 +60,7 @@ deploy-api:
 # deploy all
 [group('deploy')]
 [parallel]
-deploy: deploy-pred deploy-api
+deploy: deploy-service deploy-api
 
 [group('run')]
 [working-directory: 'src/forecast-api']
@@ -69,5 +69,5 @@ api:
 
 [parallel]
 [group('run')]
-predict:
+forecast:
   uv run src/forecast-service/main.py

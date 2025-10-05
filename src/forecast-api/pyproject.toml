@@ -1,5 +1,5 @@
 [project]
-name = "aare-oraku-prediction-api"
+name = "aare-oraku-api"
 version = "0.1.0"
 description = "API to get data from the prediction database"
 readme = "README.md"

@@ -38,11 +38,11 @@ track: mlflow optuna
 
 [group('build')]
 build-pred:
-  docker build -f src/prediction-service/Dockerfile . -t aare-oraku-prediction:latest
+  docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:latest
 
 [group('build')]
 build-api:
-  docker build -f src/prediction-api/Dockerfile . -t aare-oraku-prediction-api:latest
+  docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:latest
 
 # build all
 [group('build')]
@@ -51,11 +51,11 @@ build: build-pred build-api
 
 [group('deploy')]
 deploy-pred:
-  ./deploy/deploy-from-local.sh aare-oraku-prediction
+  ./deploy/deploy-from-local.sh aare-oraku-forecast
 
 [group('deploy')]
 deploy-api:
-  ./deploy/deploy-from-local.sh aare-oraku-prediction-api
+  ./deploy/deploy-from-local.sh aare-oraku-api
 
 # deploy all
 [group('deploy')]
@@ -63,11 +63,11 @@ deploy-api:
 deploy: deploy-pred deploy-api
 
 [group('run')]
-[working-directory: 'src/prediction-api']
+[working-directory: 'src/forecast-api']
 api:
   uv run uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 
 [parallel]
 [group('run')]
 predict:
-  uv run src/prediction-service/main.py
+  uv run src/forecast-service/main.py

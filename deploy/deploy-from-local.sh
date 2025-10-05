@@ -1,7 +1,7 @@
 #!/bin/bash
 # script to deploy local docker file to dokku without registry. DOKKU_HOST must be set.
 
-IMAGE_NAME=${1:-aare-oraku-prediction}
+IMAGE_NAME=${1:-aare-oraku-forecast}
 IMAGE_TAG=${2:-latest}
 IMAGE="$IMAGE_NAME:$IMAGE_TAG"
 IMAGE_ID=$(docker images --quiet "$IMAGE")

@@ -1,5 +1,5 @@
 [project]
-name = "aare-oraku-prediction"
+name = "aare-oraku-forecast"
 version = "0.1.0"
 description = "Prediction service to fetch external data and persist predictions to a DB"
 readme = "README.md"

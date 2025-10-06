@@ -7,7 +7,7 @@ class OrakuSettings(BaseSettings):
     logging_level: str = "WARNING"
     default_horizon: int = 24
     maximum_horizon: int = 24
-    maximum_forecast_age: str = "1h"
+    maximum_forecast_age: str = "1d"
     timezone: str = "Europe/Zurich"
     available_cities: list[str] = ["bern"]
     default_city: str = "bern"

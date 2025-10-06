@@ -11,7 +11,7 @@ from datetime import datetime, UTC
 
 from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
-from lib.dto import ForecastPayload, ForecastMetadata, Config
+from lib.dto import ForecastPayload, ForecastMetadata, Config, ForecastDataFormat, ForecastColumnData, ForecastRowData
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
@@ -95,10 +95,9 @@ async def get_forecasts(
     ] = settings.default_horizon,
     city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
+    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
     conn=Depends(open_db),
 ) -> ForecastPayload:
-    # TODO:
-    #  - option for row vs column format
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
@@ -121,12 +120,12 @@ async def get_forecasts(
     if df.empty:
         # instead of an error, return an empty response.
         return ForecastPayload(
-            time=[],
-            temp=[],
+            data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData(),
             metadata=ForecastMetadata(
                 last_updated=None,
                 model=None,
                 city=city,
+                format=format,
             ),
         )
 
@@ -138,14 +137,16 @@ async def get_forecasts(
     model = await get_model_info(conn, run_ts) if model_info else None
 
     # if speed is important, it's probably faster to use .dt.strftime() to convert pd.Timestamp directly to str
-    times = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
+    df["time"] = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
 
     return ForecastPayload(
-        time=times.to_list(),
-        temp=df["temp"].to_list(),
+        data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())
+        if format == ForecastDataFormat.COLUMN
+        else ForecastRowData.model_validate(df[["time", "temp"]].to_dict(orient="records")),
         metadata=ForecastMetadata(
             last_updated=run_ts,
             model=model,
             city=city,
+            format=format,
         ),
     )

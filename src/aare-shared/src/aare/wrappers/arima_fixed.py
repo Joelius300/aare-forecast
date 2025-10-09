@@ -15,7 +15,6 @@ class ARIMAFix(ARIMA):
         Optional[int],
         Optional[int],
         int,
-        Optional[int],
     ]:
         if not self._fit_called:
             # IIRC, the current extreme_lags implementation is just for training, not for inference
@@ -36,4 +35,4 @@ class ARIMAFix(ARIMA):
         # ergo, I think it must be added to the total.
         max_lookback = max(p, q) + d
 
-        return -max_lookback, -1, None, None, 0, 0, 0, None
+        return -max_lookback, -1, None, None, 0, 0, 0

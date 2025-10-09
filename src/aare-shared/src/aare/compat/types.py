@@ -13,12 +13,11 @@ class DataTransformers(TypedDict):
 
 
 ExtremeLags = tuple[
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    Optional[int],
-    int,
-    Optional[int],
+    Optional[int],  # min target lag,
+    Optional[int],  # max target lag,
+    Optional[int],  # min past covariate lag,
+    Optional[int],  # max past covariate lag,
+    Optional[int],  # min future covariate lag,
+    Optional[int],  # max future covariate lag,
+    int,  # output shift,
 ]

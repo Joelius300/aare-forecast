@@ -175,9 +175,8 @@ class TimesFmDarts(GlobalForecastingModel):
         Optional[int],
         Optional[int],
         int,
-        Optional[int],
     ]:
-        return -self.context_length, self.output_chunk_length - 1, None, None, None, None, 0, None
+        return -self.context_length, self.output_chunk_length - 1, None, None, None, None, 0
 
     @property
     def _model_encoder_settings(
@@ -191,3 +190,13 @@ class TimesFmDarts(GlobalForecastingModel):
         Optional[list[int]],
     ]:
         raise ValueError("MUST BOTHER WITH encoder settings :(")
+
+    @property
+    def min_train_samples(self) -> int:
+        raise ValueError("MUST DEAL WITH min_train_samples :(")
+        # return 1
+
+    @property
+    def _target_window_lengths(self) -> tuple[int, int]:
+        raise ValueError("MUST DEAL WITH _target_window_lengths :(")
+        #  return self.input_chunk_length, self.output_chunk_length # + self.output_chunk_shift

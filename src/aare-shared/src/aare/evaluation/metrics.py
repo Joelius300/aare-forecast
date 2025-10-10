@@ -8,6 +8,7 @@ from darts.metrics import mae, rmse
 
 @dataclass
 class Metrics:
+    # TODO rename to EvalMetric, in line with EvalForecast
     """Collection of applicable metrics for point forecasts on the temperature. MAE has prio."""
 
     METRICS = dict(mae=mae, rmse=rmse)

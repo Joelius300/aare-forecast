@@ -224,6 +224,7 @@ def to_ts(df: pd.DataFrame | pd.Series, col: Optional[str | list[str]] = None, f
     index = cast(pd.DatetimeIndex, tdf.index)
     # turn it into timezone-naive timestamps because that's what darts wants.
     # all the data is in UTC anyway, so a conversion is necessary on display no matter what.
+    # TODO check that _if_ the data has a timezone, it's UTC
     index = index.tz_localize(None)
 
     if index.freq is None:

@@ -2,11 +2,14 @@
 # first try without the decorators but you probably need them, not sure what you need to watch out for with numpy for example.
 # you should probably transform all points into their daily diff so that half a day gets weighted less when you then average over everything.
 # this should also help avoid dimensionality problems that might violate darts expectations of metric functions.
+# TODO unlike MAE and RMSE, reuse a single impl that calculates the peak diffs. Maybe even add a small layer of caching since often
+# we won't just have mean absolute daily peak diff but also root mean square daily peak diff.
 
 from collections.abc import Sequence
 from datetime import tzinfo
 from typing import Callable, Optional, Union
 
+import darts
 import numpy as np
 import pandas as pd
 
@@ -17,6 +20,29 @@ from darts.metrics.utils import (
     multi_ts_support,
     multivariate_support,
 )
+
+MONTH = pd.Timedelta(days=28)
+
+
+def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSeries:
+    """Add a 'day' attribute to the time series. Works with stochastic series."""
+    attribute = "day"
+
+    if ts.is_deterministic:
+        # simple case
+        # typing bug in darts: https://github.com/unit8co/darts/issues/2926
+        return ts.add_datetime_attribute(attribute, tz=tz)  # pyright: ignore[reportArgumentType]
+
+    ts_det = ts.with_values(ts.values(sample=0))  # take only first sample
+    # add_datetime_attribute works now as it's deterministic
+    with_date = ts_det.add_datetime_attribute(attribute, tz=tz)  # pyright: ignore[reportArgumentType]
+    # must create a ts that matches in sample dimension to add as a component
+    day_vals = with_date[attribute]
+    day_full = darts.concatenate(
+        [day_vals] * ts.n_samples, axis="sample", ignore_time_axis=True, ignore_static_covariates=True
+    )
+
+    return ts.concatenate(day_full, axis="component")
 
 
 @multi_ts_support
@@ -42,22 +68,21 @@ def admd(
     must be set via metric_kwargs.
     Dimensions are kept, so if a day TODO.
     """
-    assert isinstance(actual_series, TimeSeries), (
-        "actual_series is not a single TimeSeries, how do those decorators work??"
-    )
-    assert isinstance(pred_series, TimeSeries), "pred_series is not a single TimeSeries, how do those decorators work??"
-    assert isinstance(actual_series.duration, pd.Timedelta)
-    assert isinstance(pred_series.duration, pd.Timedelta)
-    month = pd.Timedelta(days=28)
-    if pred_series.duration >= month or actual_series.duration >= month:
-        raise ValueError(
-            "Metric currently only supports slices shorter than a month because I was lazy in the implementation."
-        )
+    assert isinstance(actual_series, TimeSeries), "actual_series is not a single TimeSeries, decorator fail?"
+    assert isinstance(pred_series, TimeSeries), "pred_series is not a single TimeSeries, decorator fail?"
+    assert intersect, "Why and where would intersect ever be false??"
+    shorter_dur = min(actual_series.duration, pred_series.duration)
+
+    assert isinstance(shorter_dur, pd.Timedelta)
+    if shorter_dur >= MONTH:
+        # the way we group with np.unique only works if the days are consecutive so 30,30,31,31,01,01,02,02 will work
+        # but 30,01,30 wouldn't work (unordered) and 31,01,...,30,31 (>= one month) also wouldn't work -> raise.
+        # since we're only interested in the intersection to calculate the metric, we can just validate the shorter seq
+        raise ValueError("Metric currently only supports slices shorter than a month because I was lazy.")
 
     # add the day as a component to group by when doing daily calculations on numpy array
-    # typing bug in darts: https://github.com/unit8co/darts/issues/2926
-    actual_series = actual_series.add_datetime_attribute("day", tz=tz)  # pyright: ignore[reportArgumentType]
-    pred_series = pred_series.add_datetime_attribute("day", tz=tz)  # pyright: ignore[reportArgumentType]
+    actual_series = _add_day_attribute(actual_series, tz)
+    pred_series = _add_day_attribute(pred_series, tz)
 
     y_true, y_pred = _get_values_or_raise(
         actual_series,
@@ -79,10 +104,11 @@ def admd(
     # could also use pandas but I imagine it's slower, despite loop (not tested at all smile)
     def _get_max(arr: np.ndarray):
         # https://stackoverflow.com/a/43094244
+        # only works because 'day' is guaranteed to be ordered (not sorted, but unique values will be after each other)
         days = np.split(arr[:, :-1, :], np.unique(arr[:, -1, :], return_index=True)[1][1:])
         max_days = []
         for day in days:
-            # max over time (= per component and sample, not sure about implications with those decorators)
+            # max over time (= per component and sample, but should be deterministic here)
             max_day = np.nanmax(day, axis=0)
             max_days.append(np.full_like(day, max_day))
 

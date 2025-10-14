@@ -16,12 +16,14 @@ import pandas as pd
 from darts import TimeSeries
 from darts.metrics.utils import (
     METRIC_OUTPUT_TYPE,
+    TIME_AX,
     _get_values_or_raise,
+    _get_wrapped_metric,
     multi_ts_support,
     multivariate_support,
 )
 
-MONTH = pd.Timedelta(days=28)
+SHORTEST_MONTH = pd.Timedelta(days=28)
 
 
 def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSeries:
@@ -47,7 +49,7 @@ def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSe
 
 @multi_ts_support
 @multivariate_support
-def admd(
+def dmd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -60,13 +62,14 @@ def admd(
     verbose: bool = False,
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
-    # signature copied from ae
-    """Absolute Daily Maximum Difference.
+    # signature copied from ae with tz added
+    """Daily Maximum Difference (DMD)
 
-    Absolute difference between the actual daily peak and the predicted daily peak. Day border is decided by
+    Difference between the actual daily peak and the predicted daily peak. Day border is decided by
     the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
     must be set via metric_kwargs.
-    Dimensions are kept, so if a day TODO.
+    Dimensions are kept and the daily difference is replicated across all time steps for the entire day.
+    This ensures consistency with other metrics and correct weighting when taking the mean (partial days should contribute less).
     """
     assert isinstance(actual_series, TimeSeries), "actual_series is not a single TimeSeries, decorator fail?"
     assert isinstance(pred_series, TimeSeries), "pred_series is not a single TimeSeries, decorator fail?"
@@ -74,9 +77,9 @@ def admd(
     shorter_dur = min(actual_series.duration, pred_series.duration)
 
     assert isinstance(shorter_dur, pd.Timedelta)
-    if shorter_dur >= MONTH:
+    if shorter_dur >= SHORTEST_MONTH:
         # the way we group with np.unique only works if the days are consecutive so 30,30,31,31,01,01,02,02 will work
-        # but 30,01,30 wouldn't work (unordered) and 31,01,...,30,31 (>= one month) also wouldn't work -> raise.
+        # but 30,01,30 wouldn't work (unordered) and 31,01,...,30,31 (>= one month) also wouldn't work AFAIK -> raise.
         # since we're only interested in the intersection to calculate the metric, we can just validate the shorter seq
         raise ValueError("Metric currently only supports slices shorter than a month because I was lazy.")
 
@@ -109,7 +112,7 @@ def admd(
         max_days = []
         for day in days:
             # max over time (= per component and sample, but should be deterministic here)
-            max_day = np.nanmax(day, axis=0)
+            max_day = np.nanmax(day, axis=TIME_AX)
             max_days.append(np.full_like(day, max_day))
 
         return np.concat(max_days)
@@ -117,4 +120,143 @@ def admd(
     max_true = _get_max(y_true)
     max_pred = _get_max(y_pred)
 
-    return np.abs(max_true - max_pred)
+    return max_true - max_pred
+
+
+@multi_ts_support
+@multivariate_support
+def admd(
+    actual_series: Union[TimeSeries, Sequence[TimeSeries]],
+    pred_series: Union[TimeSeries, Sequence[TimeSeries]],
+    intersect: bool = True,
+    *,
+    q: Optional[Union[float, list[float], tuple[np.ndarray, pd.Index]]] = None,
+    time_reduction: Optional[Callable[..., np.ndarray]] = None,
+    component_reduction: Optional[Callable[[np.ndarray], float]] = np.nanmean,
+    series_reduction: Optional[Callable[[np.ndarray], Union[float, np.ndarray]]] = None,
+    n_jobs: int = 1,
+    verbose: bool = False,
+    tz: str | tzinfo | None = None,
+) -> METRIC_OUTPUT_TYPE:
+    """Absolute Daily Maximum Difference (ADMD)
+
+    Absolute difference between the actual daily peak and the predicted daily peak. Day border is decided by
+    the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
+    must be set via metric_kwargs.
+    Dimensions are kept and the daily difference is replicated across all time steps for the entire day.
+    This ensures consistency with other metrics and correct weighting when taking the mean (partial days should contribute less).
+    """
+    return np.abs(
+        _get_wrapped_metric(dmd)(
+            actual_series,
+            pred_series,
+            intersect,
+            q=q,
+            tz=tz,
+        ),
+    )
+
+
+@multi_ts_support
+@multivariate_support
+def sdmd(
+    actual_series: Union[TimeSeries, Sequence[TimeSeries]],
+    pred_series: Union[TimeSeries, Sequence[TimeSeries]],
+    intersect: bool = True,
+    *,
+    q: Optional[Union[float, list[float], tuple[np.ndarray, pd.Index]]] = None,
+    time_reduction: Optional[Callable[..., np.ndarray]] = None,
+    component_reduction: Optional[Callable[[np.ndarray], float]] = np.nanmean,
+    series_reduction: Optional[Callable[[np.ndarray], Union[float, np.ndarray]]] = None,
+    n_jobs: int = 1,
+    verbose: bool = False,
+    tz: str | tzinfo | None = None,
+) -> METRIC_OUTPUT_TYPE:
+    """Squared Daily Maximum Difference (SDMD)
+
+    Squared difference between the actual daily peak and the predicted daily peak. Day border is decided by
+    the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
+    must be set via metric_kwargs.
+    Dimensions are kept and the daily difference is replicated across all time steps for the entire day.
+    This ensures consistency with other metrics and correct weighting when taking the mean (partial days should contribute less).
+    """
+    return np.power(
+        _get_wrapped_metric(dmd)(
+            actual_series,
+            pred_series,
+            intersect,
+            q=q,
+            tz=tz,
+        ),
+        2,
+    )
+
+
+@multi_ts_support
+@multivariate_support
+def madmd(
+    actual_series: Union[TimeSeries, Sequence[TimeSeries]],
+    pred_series: Union[TimeSeries, Sequence[TimeSeries]],
+    intersect: bool = True,
+    *,
+    q: Optional[Union[float, list[float], tuple[np.ndarray, pd.Index]]] = None,
+    time_reduction: Optional[Callable[..., np.ndarray]] = None,
+    component_reduction: Optional[Callable[[np.ndarray], float]] = np.nanmean,
+    series_reduction: Optional[Callable[[np.ndarray], Union[float, np.ndarray]]] = None,
+    n_jobs: int = 1,
+    verbose: bool = False,
+    tz: str | tzinfo | None = None,
+) -> METRIC_OUTPUT_TYPE:
+    """Mean Absolute Daily Maximum Difference (MADMD)
+
+    Mean absolute difference between the actual daily peak and the predicted daily peak over all days,
+    implicitly weighted by day length (important for partial days).
+    Day border is decided by the specified timezone (tz), or the underlying, timezone-naive data if None.
+    In backtest or similar, the timezone must be set via metric_kwargs.
+    """
+    return np.nanmean(
+        _get_wrapped_metric(admd)(
+            actual_series,
+            pred_series,
+            intersect,
+            q=q,
+            tz=tz,
+        ),
+        axis=TIME_AX,
+    )
+
+
+@multi_ts_support
+@multivariate_support
+def rmsdmd(
+    actual_series: Union[TimeSeries, Sequence[TimeSeries]],
+    pred_series: Union[TimeSeries, Sequence[TimeSeries]],
+    intersect: bool = True,
+    *,
+    q: Optional[Union[float, list[float], tuple[np.ndarray, pd.Index]]] = None,
+    time_reduction: Optional[Callable[..., np.ndarray]] = None,
+    component_reduction: Optional[Callable[[np.ndarray], float]] = np.nanmean,
+    series_reduction: Optional[Callable[[np.ndarray], Union[float, np.ndarray]]] = None,
+    n_jobs: int = 1,
+    verbose: bool = False,
+    tz: str | tzinfo | None = None,
+) -> METRIC_OUTPUT_TYPE:
+    """Root Mean Squared Daily Maximum Difference (RMSDMD)
+
+    Root of mean squared difference between the actual daily peak and the predicted daily peak over all days,
+    implicitly weighted by day length (important for partial days).
+    Day border is decided by the specified timezone (tz), or the underlying, timezone-naive data if None.
+    In backtest or similar, the timezone must be set via metric_kwargs.
+    """
+    return np.sqrt(
+        np.nanmean(
+            _get_wrapped_metric(sdmd)(
+                actual_series,
+                pred_series,
+                intersect,
+                q=q,
+                tz=tz,
+            ),
+            axis=TIME_AX,
+        )
+    )

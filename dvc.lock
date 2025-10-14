@@ -9,7 +9,7 @@ stages:
     outs:
     - path: data/scaler.pkl
       hash: md5
-      md5: 0c12493839f9856c208ecf2b4525ac60
+      md5: 6547aaa17c0d6547eca649c9bd551884
       size: 474
   establish-baselines:
     cmd: python scripts/establish_baselines.py
@@ -23,28 +23,28 @@ stages:
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: 2425b7fb114a58646b6326e5aa3d5930
-      size: 10529
+      md5: 070f331984b9416294f4cabc567be662
+      size: 10694
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: 877edbae302385e6f9dc52e5e128863a
-      size: 15722
+      md5: 72123d089976f290e574b035e0985f3a
+      size: 15887
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: ac01dac0a5c81265d91a358a7016468c
-      size: 10529
+      md5: e7d1ab4ccf9f3164bd2eb1cc0536f6e8
+      size: 10694
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: ed1baf95d5c461f74663fa8604dfc47a
-      size: 118
+      md5: 44cf609fc0ceab84d8ae99794d22b065
+      size: 180
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: deb923ced9722f0ce854f3432511128c
-      size: 118
+      md5: a4f700d7ff79b8add77a49a13f71219d
+      size: 180
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: a8532a4e6b88891c0a306e391a9cdd41
-      size: 118
+      md5: befeb87fb91f2136eb4c2a0ad2f732bf
+      size: 180
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -58,9 +58,9 @@ stages:
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: a13ef6c13fd332f32691319494826b5f
-      size: 28306
+      md5: d75a3c6b498f1e82fcbee0a26039ee24
+      size: 28475
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 3d9b95e5b616ef98019db37e10f0e966
-      size: 116
+      md5: 5fff280be3a8b2d9b9ffd7140b0ec69d
+      size: 179

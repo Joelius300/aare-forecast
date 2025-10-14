@@ -19,7 +19,7 @@ def main():
         "MEAN": GlobalNaiveAggregate(input_chunk_length=7 * 24, output_chunk_length=horizon),
     }
 
-    evaluation_pipeline_uni(models, horizon, params["validation"])
+    evaluation_pipeline_uni(models, horizon, params["validation"], params["general"]["timezone"])
 
 
 if __name__ == "__main__":

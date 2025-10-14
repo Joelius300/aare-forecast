@@ -2,6 +2,7 @@
 general:
   frequency: 1h  # this is used everywhere and integrated so tightly, that it cannot simply be changed
   forecast_horizon: 96
+  timezone: "Europe/Zurich"
 features:
   temp_bern:
     outliers:

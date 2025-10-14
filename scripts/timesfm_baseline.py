@@ -27,7 +27,7 @@ def main():
         "TIMESFM": TimesFmDarts(horizon, TimesFmDarts.Version(model_version)),
     }
 
-    evaluation_pipeline_uni(models, horizon, params["validation"])
+    evaluation_pipeline_uni(models, horizon, params["validation"], params["general"]["timezone"])
 
 
 if __name__ == "__main__":

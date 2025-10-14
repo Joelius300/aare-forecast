@@ -26,17 +26,28 @@ class Metrics:
     If these are the aggregate metrics for many forecast, it's the MEDIAN of all those RMSE.
     """
 
+    madpd: float
+    """
+    The mean absolute daily peak difference of all days in the forecast.
+
+    If these are the aggregate metrics for many forecast, it's the MEDIAN of all those MADPD.
+    """
+
     # Currently only std of many different forecasts, NOT std for the different point-errors within a forecast
     mae_std: Optional[float] = None
     """STD of MAE, if this is an aggregated metric over many forecasts."""
     rmse_std: Optional[float] = None
     """STD of RMSE, if this is an aggregated metric over many forecasts."""
+    madpd_std: Optional[float] = None
+    """STD of MADPD, if this is an aggregated metric over many forecasts."""
 
     def __repr__(self):
         return (
             f"MAE: {self.mae:.3f}{f' (STD: {self.mae_std:.2f})' if self.mae_std is not None else ''}"
             " / "
             f"RMSE: {self.rmse:.3f}{f' (STD: {self.rmse_std:.2f})' if self.rmse_std is not None else ''}"
+            " / "
+            f"MADPD: {self.madpd:.3f}{f' (STD: {self.madpd_std:.2f})' if self.madpd_std is not None else ''}"
         )
 
     def to_dict(self) -> dict[str, float]:
@@ -50,9 +61,15 @@ class Metrics:
         return Metrics(**metrics)
 
     @classmethod
-    def from_ndarray(cls, values: np.ndarray):
-        # noinspection PyTypeChecker
-        return Metrics(mae=values[0], rmse=values[1])
+    def from_ndarray(cls, values: np.ndarray, std: Optional[np.ndarray] = None):
+        return Metrics(
+            mae=values[0],
+            rmse=values[1],
+            madpd=values[2],
+            mae_std=std[0] if std is not None else None,
+            rmse_std=std[1] if std is not None else None,
+            madpd_std=std[2] if std is not None else None,
+        )
 
     @classmethod
     def from_dict(cls, value: dict[str, float]):

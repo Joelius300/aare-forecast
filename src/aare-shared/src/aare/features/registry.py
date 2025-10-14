@@ -1,5 +1,6 @@
 import re
 from collections.abc import Callable, Sequence
+from typing import overload
 
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
@@ -61,8 +62,19 @@ class FeatureRegistry:
     def __getitem__(self, item: str):
         return self._get_item(item)
 
-    def get_many(self, feature_keys: Sequence[str]):
-        """Get a list of features. Equiv to [reg[f] for f in features]"""
+    @overload
+    def get_many(self, feature_keys: None) -> None:
+        pass
+
+    @overload
+    def get_many(self, feature_keys: Sequence[str]) -> list[TransformedFeature | Feature]:
+        pass
+
+    def get_many(self, feature_keys: Sequence[str] | None) -> list[TransformedFeature | Feature] | None:
+        """Get a list of features. Equiv to [reg[f] for f in features] but handles None -> []"""
+        if not feature_keys:
+            return None
+
         # don't overload getitem because then it's typed as returning a union and that's annoying
         return [self._get_item(key) for key in feature_keys]
 

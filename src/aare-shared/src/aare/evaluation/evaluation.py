@@ -1,9 +1,11 @@
+from datetime import tzinfo
 import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
 from typing import Literal, Mapping, Optional, Sequence, cast
 
+from aare.evaluation.custom_metrics.daily_peak import madpd
 import numpy as np
 import torch
 from darts import TimeSeries
@@ -23,19 +25,24 @@ from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
 
 logger = logging.getLogger(__name__)
 
+used_metrics = [mae, rmse, madpd]
+metrics_idx = {"MAE": 0, "RMSE": 1, "MADPD": 2}
+MetricType = Literal["MAE", "RMSE", "MADPD"]
+
 
 def _evaluate_model(
     model: ForecastingModel,
     val: list[TimeSeries],
     horizon: int,
     stride: int,
-    metric: Literal["MAE", "RMSE"],
+    metric: MetricType,
     parallel: bool | int | Literal["auto"],
     verbose: bool,
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
     data_transformers: Optional[DataTransformers],
     random_state: Optional[int],
+    tz: str | tzinfo | None,
 ) -> tuple[Metrics, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")
@@ -63,9 +70,16 @@ def _evaluate_model(
     # run metric calculations on all those forecasts
     backtest = cast(
         list[np.ndarray],
-        model.backtest(val, historical_forecasts=historical_forecasts, metric=[mae, rmse], reduction=None),
+        model.backtest(
+            val,
+            historical_forecasts=historical_forecasts,
+            metric=used_metrics,
+            # must align order of kwargs with order of metrics
+            metric_kwargs=[{}, {}, dict(tz=tz)],
+            reduction=None,
+        ),
     )
-    metric_i = 0 if metric == "MAE" else (1 if metric == "RMSE" else None)
+    metric_i = metrics_idx.get(metric)
     if metric_i is None:
         raise ValueError(f"Invalid metric '{metric}'")
 
@@ -76,16 +90,21 @@ def _evaluate_model(
     backtest_flat = np.concatenate(backtest, axis=0)
     historical_forecasts_flat = [ts for ll in historical_forecasts for ts in ll]
 
+    # the function choice here (median, not mean) is written as info in the Metrics class.
     metrics_median = np.median(backtest_flat, axis=0).astype(float)
     metrics_std = np.std(backtest_flat, axis=0, dtype=float)
-    assert metrics_median.shape == (2,) and metrics_std.shape == (2,), "metric reduction is faulty"
-    metrics = Metrics(mae=metrics_median[0], rmse=metrics_median[1], mae_std=metrics_std[0], rmse_std=metrics_std[1])
+    assert metrics_median.shape == (len(used_metrics),) and metrics_std.shape == (len(used_metrics),), (
+        "metric reduction is faulty"
+    )
+    metrics = Metrics.from_ndarray(metrics_median, metrics_std)
 
     worst_index, best_index = np.argmax(backtest_flat, axis=0), np.argmin(backtest_flat, axis=0)
     most_avg_index = np.argmin(np.abs(backtest_flat - metrics_median), axis=0)
-    assert worst_index.shape == (2,) and best_index.shape == (2,) and most_avg_index.shape == (2,), (
-        "worst, best, most_avg index reduction is faulty"
-    )
+    assert (
+        worst_index.shape == (len(used_metrics),)
+        and best_index.shape == (len(used_metrics),)
+        and most_avg_index.shape == (len(used_metrics),)
+    ), "worst, best, most_avg index reduction is faulty"
     worst_index, best_index, most_avg_index = worst_index[metric_i], best_index[metric_i], most_avg_index[metric_i]
     # TODO could check and warn if MAE and RMSE result in different best/worst
 
@@ -245,6 +264,7 @@ def evaluate_model(
     num_samples=128,
     data_transformers: Optional[DataTransformers] = None,
     random_state=42,
+    tz: str | tzinfo | None = None,
 ):
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -260,6 +280,8 @@ def evaluate_model(
     pickleable, and it will multiply memory usage.
 
     Random state is fixed at 42 by default for reproducibility.
+
+    The timezone (tz) is used to calculate the mean absolute daily peak difference metric.
 
     Returns the aggregated metrics as well as the most average, best and worst forecast
     the model made (decided by MAE or whatever you specify).
@@ -290,6 +312,7 @@ def evaluate_model(
         num_samples=num_samples,
         data_transformers=data_transformers,
         random_state=random_state,
+        tz=tz,
     )
     lookback_hours = max(get_context_len(model), min_lookback_hours)
 
@@ -309,7 +332,10 @@ def evaluate_model(
 
 
 def evaluation_pipeline_uni(
-    models: Mapping[str, ForecastingModel], forecast_horizon: int, validation_params: ValidationParams
+    models: Mapping[str, ForecastingModel],
+    forecast_horizon: int,
+    validation_params: ValidationParams,
+    tz: str | tzinfo | None,
 ) -> None:
     """Evaluate all specified models on the validation data and write the results to the pre-defined folders."""
     dataset = AareDataset.from_conf()
@@ -325,7 +351,7 @@ def evaluation_pipeline_uni(
     FORECAST_SAMPLES_FOLDER.mkdir(exist_ok=True)
 
     for name, model in models.items():
-        metrics, sample = evaluate_model(model, val_subs, forecast_horizon, stride, min_lookback_hours)
+        metrics, sample = evaluate_model(model, val_subs, forecast_horizon, stride, min_lookback_hours, tz=tz)
 
         with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
             json.dump(metrics.to_dict(), metrics_file)

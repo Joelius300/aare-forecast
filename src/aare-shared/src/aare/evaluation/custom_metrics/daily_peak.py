@@ -40,11 +40,11 @@ def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSe
     return ts.concatenate(day_full, axis="component")
 
 
-# day component is added at end, so use -1 to refer to the last component
-# could also use pandas but I imagine it's slower, despite loop (not tested at all smile)
 def _get_peaks(arr: np.ndarray):
     # https://stackoverflow.com/a/43094244
     # only works because 'day' is guaranteed to be ordered (not sorted, but unique values will be after each other)
+    # day component is added at end, so use -1 to refer to the last component
+    # could also use pandas groupby but I imagine it's slower, despite loop (not tested at all smile)
     split_idx = np.unique(arr[:, -1, :], return_index=True)[1][1:]
     days = np.split(arr[:, :-1, :], split_idx)
 

@@ -108,12 +108,23 @@ def dmd(
     def _get_max(arr: np.ndarray):
         # https://stackoverflow.com/a/43094244
         # only works because 'day' is guaranteed to be ordered (not sorted, but unique values will be after each other)
-        days = np.split(arr[:, :-1, :], np.unique(arr[:, -1, :], return_index=True)[1][1:])
+        split_idx = np.unique(arr[:, -1, :], return_index=True)[1][1:]
+        days = np.split(arr[:, :-1, :], split_idx)
+
+        # instead of this loop, should be able to use np.repeat (see below)
         max_days = []
         for day in days:
             # max over time (= per component and sample, but should be deterministic here)
             max_day = np.nanmax(day, axis=TIME_AX)
             max_days.append(np.full_like(day, max_day))
+
+        # something like this should work too, but np.stack can't handle differently sized arrays (days)
+        # days_stack = np.stack(days)
+        # days_max = np.nanmax(days_stack, 1)
+        # instead of concat and diff, could use np.unique(return_counts=True)
+        # split_idx_full = np.concatenate([[0], split_idx, [arr.shape[0]]])
+        # counts = np.diff(split_idx_full)
+        # return np.repeat(days_max, counts, axis=0)
 
         return np.concat(max_days)
 

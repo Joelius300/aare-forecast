@@ -49,7 +49,7 @@ def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSe
 
 @multi_ts_support
 @multivariate_support
-def dmd(
+def dpd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -63,7 +63,7 @@ def dmd(
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
     # signature copied from ae with tz added
-    """Daily Maximum Difference (DMD)
+    """Daily Peak Difference (DPD)
 
     Difference between the actual daily peak and the predicted daily peak. Day border is decided by
     the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
@@ -136,7 +136,7 @@ def dmd(
 
 @multi_ts_support
 @multivariate_support
-def admd(
+def adpd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -149,7 +149,7 @@ def admd(
     verbose: bool = False,
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
-    """Absolute Daily Maximum Difference (ADMD)
+    """Absolute Daily Peak Difference (ADPD)
 
     Absolute difference between the actual daily peak and the predicted daily peak. Day border is decided by
     the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
@@ -158,7 +158,7 @@ def admd(
     This ensures consistency with other metrics and correct weighting when taking the mean (partial days should contribute less).
     """
     return np.abs(
-        _get_wrapped_metric(dmd)(
+        _get_wrapped_metric(dpd)(
             actual_series,
             pred_series,
             intersect,
@@ -170,7 +170,7 @@ def admd(
 
 @multi_ts_support
 @multivariate_support
-def sdmd(
+def sdpd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -183,7 +183,7 @@ def sdmd(
     verbose: bool = False,
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
-    """Squared Daily Maximum Difference (SDMD)
+    """Squared Daily Peak Difference (SDPD)
 
     Squared difference between the actual daily peak and the predicted daily peak. Day border is decided by
     the specified timezone (tz), or the underlying, timezone-naive data if None. In backtest or similar, the timezone
@@ -192,7 +192,7 @@ def sdmd(
     This ensures consistency with other metrics and correct weighting when taking the mean (partial days should contribute less).
     """
     return np.power(
-        _get_wrapped_metric(dmd)(
+        _get_wrapped_metric(dpd)(
             actual_series,
             pred_series,
             intersect,
@@ -205,7 +205,7 @@ def sdmd(
 
 @multi_ts_support
 @multivariate_support
-def madmd(
+def madpd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -218,7 +218,7 @@ def madmd(
     verbose: bool = False,
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
-    """Mean Absolute Daily Maximum Difference (MADMD)
+    """Mean Absolute Daily Peak Difference (MADPD)
 
     Mean absolute difference between the actual daily peak and the predicted daily peak over all days,
     implicitly weighted by day length (important for partial days).
@@ -226,7 +226,7 @@ def madmd(
     In backtest or similar, the timezone must be set via metric_kwargs.
     """
     return np.nanmean(
-        _get_wrapped_metric(admd)(
+        _get_wrapped_metric(adpd)(
             actual_series,
             pred_series,
             intersect,
@@ -239,7 +239,7 @@ def madmd(
 
 @multi_ts_support
 @multivariate_support
-def rmsdmd(
+def rmsdpd(
     actual_series: Union[TimeSeries, Sequence[TimeSeries]],
     pred_series: Union[TimeSeries, Sequence[TimeSeries]],
     intersect: bool = True,
@@ -252,7 +252,7 @@ def rmsdmd(
     verbose: bool = False,
     tz: str | tzinfo | None = None,
 ) -> METRIC_OUTPUT_TYPE:
-    """Root Mean Squared Daily Maximum Difference (RMSDMD)
+    """Root Mean Squared Daily Peak Difference (RMSDPD)
 
     Root of mean squared difference between the actual daily peak and the predicted daily peak over all days,
     implicitly weighted by day length (important for partial days).
@@ -261,7 +261,7 @@ def rmsdmd(
     """
     return np.sqrt(
         np.nanmean(
-            _get_wrapped_metric(sdmd)(
+            _get_wrapped_metric(sdpd)(
                 actual_series,
                 pred_series,
                 intersect,

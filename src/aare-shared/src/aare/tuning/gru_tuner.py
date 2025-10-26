@@ -87,7 +87,7 @@ class GRUTuner(BaseTuner):
         small = {
             "input_chunk_length": 1,
             "hidden_dim": 16,
-            "rnn_layers": 1,
+            "n_rnn_layers": 1,
             "dropout": 0,
             "lr": 1e-4,
             "add_day_enc": False,
@@ -96,7 +96,7 @@ class GRUTuner(BaseTuner):
         medium = {
             "input_chunk_length": 24,
             "hidden_dim": 32,
-            "rnn_layers": 2,
+            "n_rnn_layers": 2,
             "dropout": 0.05,
             "lr": 1e-4,
             "add_day_enc": False,

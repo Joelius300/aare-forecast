@@ -84,7 +84,7 @@ class BaseTuner(ABC):
         if pruning_var:
             callbacks.append(PyTorchLightningPruningCallback(trial, monitor=pruning_var))
 
-        # TODO add callback to do a full evaluation with our evaluate_model every 10-20 epochs
+        # TODO add callback to do a full evaluation with our evaluate_model every 10-20 epochs maybe?
 
         return {
             "logger": mlflow_logger,
@@ -92,7 +92,8 @@ class BaseTuner(ABC):
             "log_every_n_steps": log_every_n_steps,
         }
 
-    def suggest_add_encoders(self, trial: Trial) -> Optional[dict]:
+    @staticmethod
+    def suggest_add_encoders(trial: Trial) -> Optional[dict]:
         """
         Suggest values for 'add_encoders' with cyclic daily and yearly encoding.
 
@@ -115,9 +116,23 @@ class BaseTuner(ABC):
 
         return {"cyclic": {"future": enc}}
 
+    @staticmethod
+    def _prefix_dict(vals: dict, prefix: str):
+        prefix = prefix.removesuffix("_")
+        return {prefix + "_" + key: value for key, value in vals.items()}
+
     def log_params_prefix(self, params: dict, prefix: str):
         """Log all params in a dict with an added prefix"""
-        mlflow.log_params({prefix.removesuffix("_") + "_" + key: value for key, value in params.items()})
+        mlflow.log_params(self._prefix_dict(params, prefix))
+
+    def log_metrics_prefix(self, metrics: dict, prefix: str):
+        """Log all metrics in a dict with an added prefix"""
+        mlflow.log_metrics(self._prefix_dict(metrics, prefix))
+
+    @staticmethod
+    def prune_if_requested(trial: Trial):
+        if trial.should_prune():
+            raise TrialPruned()
 
     @abstractmethod
     def get_model(self, trial: Trial) -> ModelType:
@@ -184,14 +199,11 @@ class BaseTuner(ABC):
             data_transformers=self.scalers,
         )
 
-        self.log_params_prefix(metrics.to_dict(), "eval")
+        metrics_dict = metrics.to_dict()
+        self.log_metrics_prefix(metrics_dict, "eval")
         mlflow.log_figure(samples.plot(str(run.info.run_name)), artifact_file="samples.png")
 
         return metrics
-
-    def prune_if_requested(self, trial: Trial):
-        if trial.should_prune():
-            raise TrialPruned()
 
     def __call__(self, trial: Trial):
         with mlflow.start_run(nested=True, log_system_metrics=True) as run:

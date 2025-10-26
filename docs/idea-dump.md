@@ -10,3 +10,4 @@
   - Lug ono compression aa, so columnstore policy
 - Unterschied zwischen predicted peak temp und actual peak temp als gute Metrik (absolute)
 - Average diff zwischen pred peak und actual peak OHNE avg zeigt ob es einen bias hat zu über oder unterschätzen
+- Fehler von MeteoTest vorherage irgendwie einbeziehen. Geht erst wenn wir mehr MeteoTest Daten haben. Probabilistische Vorhersage liefern sie glaube ich nie :/

@@ -71,7 +71,7 @@ class FeatureRegistry:
         pass
 
     def get_many(self, feature_keys: Sequence[str] | None) -> list[TransformedFeature | Feature] | None:
-        """Get a list of features. Equiv to [reg[f] for f in features] but handles None -> []"""
+        """Get a list of features. Equiv to [reg[f] for f in features] but handles None -> None"""
         if not feature_keys:
             return None
 

@@ -12,3 +12,6 @@ TEMP = "temperature"
 
 ANYTIME = "0"
 """To be used as period start when querying influx. Starting at 0 just returns all the data."""
+
+RANDOM_SEED = 42
+"""Fixed random seed to make experiments reproducible"""

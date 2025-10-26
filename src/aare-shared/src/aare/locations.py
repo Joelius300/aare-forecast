@@ -33,7 +33,8 @@ def translate_location(loc: str | int, measurement: Optional[Literal["hydro", "s
 
     "BERN" -> "BER" or "2135" (depending on measurement). 2135 (int) -> "2135".
     """
-    assert measurement in ["smn", "hydro"], f"bad measurement: '{measurement}'"
+    assert measurement in [None, "smn", "hydro"], f"bad measurement: '{measurement}'"
+
     loc = str(loc).upper()
     if loc in LOC_ALIAS:
         if measurement:

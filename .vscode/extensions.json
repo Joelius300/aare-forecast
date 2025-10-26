@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "ms-toolsai.datawrangler",
+        "ms-toolsai.jupyter",
+        "ms-python.python",
+        "charliermarsh.ruff"
+    ]
+}

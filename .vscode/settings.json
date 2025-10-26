@@ -1,0 +1,12 @@
+{
+    "jupyter.notebookFileRoot": "${workspaceFolder}",
+    "python.terminal.activateEnvironment": false,
+    "ruff.interpreter": ["${workspaceFolder}/.venv/bin/python"],
+    "notebook.formatOnSave.enabled": true,
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "debugpy.debugJustMyCode": false,
+    "jupyter.debugJustMyCode": false
+}

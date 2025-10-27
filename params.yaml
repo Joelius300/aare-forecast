@@ -15,13 +15,6 @@ features:
       # They work often, but sometimes fail badly.
       linear_gap_bound: 3
       cubic_gap_bound: 25
-  tt_bern:
-    interpolate:
-      linear_gap_bound: 3
-      cubic_gap_bound: 25
-  ss_bern:
-    interpolate:
-      median_gap_bound: 10
   flow_bern:
     outliers:
       low_cutoff: 30
@@ -30,6 +23,29 @@ features:
     interpolate:
       linear_gap_bound: 3
       cubic_gap_bound: 23
+  tt_bern:
+    interpolate:
+      linear_gap_bound: 3
+      cubic_gap_bound: 25
+  ss_bern:
+    outliers:
+      low_cutoff: 0
+      high_cutoff: 60
+    interpolate:
+      median_gap_bound: 10
+  rr_bern:
+    outliers:
+      low_cutoff: 0
+      high_cutoff: 99999
+    interpolate:
+      median_gap_bound: 10
+  rh_bern:
+    outliers:
+      low_cutoff: 0
+      high_cutoff: 100
+    interpolate:
+      linear_gap_bound: 3
+      cubic_gap_bound: 10
 split:
   # 12 years in total (2013-2025)
   train_split: "2013-09-01"

@@ -5,6 +5,7 @@ from typing import Union, Optional, cast, overload, Callable
 
 import numpy as np
 import pandas as pd
+import darts
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
 
@@ -283,3 +284,15 @@ def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[Ti
         "val_n_subs": len(val_lens),
         "val_split": sum(val_lens) / (sum(val_lens) + sum(train_lens)),
     }
+
+
+def trunc_common(*tss: TimeSeries):
+    """
+    Truncate a set of time series with different components to the longest common continuous slice (no NaN).
+    Will return in the same order so x, y, z = trunc_common(x, y, z).
+    Make sure that there are no duplicate keys between the components.
+    """
+    full = darts.concatenate(tss, axis="component")
+    longest = full.longest_contiguous_slice(mode="any")
+
+    return tuple([longest[ts.components.to_list()] for ts in tss])

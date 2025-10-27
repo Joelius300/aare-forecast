@@ -32,6 +32,9 @@ def _make_ma(feature: Feature, n: int):
 class FeatureRegistry:
     """Stateless feature registry to create feature instances by name (including suffixes). Use like a dict with []."""
 
+    # TODO decouple variable from location and parse location here, so all features have to take a location parameter
+    # which is passed here and extracted from the string. We should be able to assume that different places generally
+    # follow the same rules and can be cleaned up the same way. If not, special handling is needed, but it should be the exception.
     def __init__(self):
         # lazy lookup -> classes (without init args) or param-less lambdas
         self.lookup: dict[str, Callable[[], Feature]] = {
@@ -39,11 +42,15 @@ class FeatureRegistry:
             "tt_bern": AirTempBern,
             "ss_bern": SunshineBern,
             "flow_bern": FlowBern,
+            # TODO rework this so there are different transformers depending on the suffix,
+            # so _ma, _sq, _cube, _sqrt are all treated the same with some transformation function looked up
             # must ensure that none of the transformations can result in NaN, Inf or anything of the sorts
             "tt_bern_log": lambda: TransformedFeature(
                 AirTempBern(), "_log", Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1))
             ),
+            "tt_bern_sq": lambda: TransformedFeature(AirTempBern(), "_sq", lambda ts: ts**2),
             "tt_bern_cube": lambda: TransformedFeature(AirTempBern(), "_cube", lambda ts: ts**3),
+            # note: signed sqrt = sign(x) * sqrt(abs(x))
             "tt_bern_sqrt": lambda: TransformedFeature(
                 AirTempBern(), "_sqrt", Mapper(lambda x: np.sign(x) * abs(x) ** 0.5)
             ),
@@ -51,6 +58,8 @@ class FeatureRegistry:
 
     def _get_item(self, item: str):
         assert isinstance(item, str), "item is not a str"
+
+        # check if the moving average of a feature is requested (suffix _ma{n})
         ma_match = re.search(r"^(\w+)_ma(\d+)$", item)
         if ma_match is not None:
             feature = ma_match.group(1)

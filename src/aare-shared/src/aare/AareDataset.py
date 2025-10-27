@@ -4,7 +4,10 @@ from aare.remote_existenz_store import RemoteExistenzStore
 
 
 class AareDataset:
-    """Direct access to the raw data for this project."""
+    """
+    Direct access to the raw train, val and test data for the target of this project (water temperature in berne).
+    Very inflexible, prefer RemoteExistenzStore, Feature and FeatureSet.
+    """
 
     def __init__(
         self,

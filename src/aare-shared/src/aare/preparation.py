@@ -36,11 +36,15 @@ def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
 def remove_outliers(
     df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float, col=TEMP
 ) -> pd.DataFrame:
+    """
+    Eliminates (sets to nan) values out of a specific range or with a larger diff than the specified threshold.
+    Cutoffs and threshold are INCLUSIVE and data will only be excluded when its higher or lower, not equal.
+    """
     df = df.copy()
     orig_cols = df.columns
 
     # eliminate all data points outside valid bound
-    df.loc[(df[col] <= low_cutoff) | (df[col] >= high_cutoff), col] = np.nan
+    df.loc[(df[col] < low_cutoff) | (df[col] > high_cutoff), col] = np.nan
 
     # One variant of outlier is at the start and end of measurement, so [NaN, outlier, normal measurement, ...] or reverse.
     # This is a common pattern in industry sensor data measurements at least from my experience.

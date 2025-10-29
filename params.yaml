@@ -15,7 +15,7 @@ features:
       # They work often, but sometimes fail badly.
       linear_gap_bound: 3
       cubic_gap_bound: 25
-  flow_bern:
+  flow:
     outliers:
       low_cutoff: 30
       high_cutoff: 99999
@@ -23,23 +23,23 @@ features:
     interpolate:
       linear_gap_bound: 3
       cubic_gap_bound: 23
-  tt_bern:
+  tt:
     interpolate:
       linear_gap_bound: 3
       cubic_gap_bound: 25
-  ss_bern:
+  ss:
     outliers:
       low_cutoff: 0
       high_cutoff: 60
     interpolate:
       median_gap_bound: 10
-  rr_bern:
+  rr:
     outliers:
       low_cutoff: 0
       high_cutoff: 99999
     interpolate:
       median_gap_bound: 10
-  rh_bern:
+  rh:
     outliers:
       low_cutoff: 0
       high_cutoff: 100

@@ -12,7 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class SingleFieldFeature(Feature):
+    """
+    Simplest form of a feature with a single field taken from influx or a corresponding external source.
+    Handles cleanup and interpolation according to the params.yaml config for this feature.
+    """
+
     def __init__(self, name: str, field: FieldRequest):
+        # you can argue that this will almost always be bound to a location, so could take and use one here
         super().__init__(name, field)
 
     @property

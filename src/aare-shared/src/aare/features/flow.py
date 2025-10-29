@@ -1,3 +1,4 @@
+from aare.constants import LOC_BERN
 import pandas as pd
 
 from aare.features.base.single_field_feature import SingleFieldFeature
@@ -5,14 +6,17 @@ from aare.preparation import remove_period
 from aare.remote_existenz_store import FieldRequest
 
 
-class FlowBern(SingleFieldFeature):
-    NAME = "flow_bern"
-    FIELD = FieldRequest.from_str("hydro/flow:mean_1h@bern")
+class Flow(SingleFieldFeature):
+    NAME = "flow"
 
-    def __init__(self):
-        super().__init__(self.NAME, self.FIELD)
+    def __init__(self, loc: str | int):
+        super().__init__(self.loc_name(loc), FieldRequest("hydro", "flow", "1h", "mean", loc))
 
     def _remove_faulty_periods(self, df: pd.DataFrame) -> pd.DataFrame:
+        # the periods below are for just for bern. once we want flow from other locations, rethink this.
+        if self.field.location != LOC_BERN:
+            return df
+
         df = df.copy()
 
         # seems to be the only part where the cleanup fails and interpolation makes everything worse

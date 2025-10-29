@@ -6,11 +6,17 @@ from darts.dataprocessing.transformers import Mapper
 
 from aare.features.base.feature import Feature
 
+MapperFuncType = Mapper | Callable[[TimeSeries], TimeSeries]
+
 
 class TransformedFeature(Feature):
     """Transformed version of existing feature, e.g. for squaring."""
 
-    def __init__(self, base_feature: Feature, suffix: str, transformer: Mapper | Callable[[TimeSeries], TimeSeries]):
+    @classmethod
+    def base_name(cls):
+        raise ValueError("TransformedFeature doesn't have a base name")
+
+    def __init__(self, base_feature: Feature, suffix: str, transformer: MapperFuncType):
         super().__init__(base_feature.name + suffix, base_feature.required_fields)
         self.base_feature = base_feature
         self._transformer = transformer

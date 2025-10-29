@@ -1,24 +1,3 @@
-"""
-General Idea:
-
-A feature is a transformation of 1 or more fields from the InfluxDB (and maybe other sources later on).
-Most features are just directly the field, so that's the default case.
-Features will be registered with a good string name so they can be used easily for hyperparameter tuning and
-testing out different models with different inputs easily. Don't overdo it as long as we don't need it yet, just
-implement the things we can use directly. At this point, this is just non-linear transformations of 1 influxdb field.
-Also, data cleanup is very important so removing outliers and doing imputation must also be part of this.
-Adding a property with the availability could also be helpful (e.g. bern_temp is 2001, but bern_tt is 2013).
-Maybe this structure could be helpful later for inference when data has to be pulled from other sources, but you'll
-probably want to reinvent things then anyway.
-
-Example:
-    feature_set:
-      - bern_temp
-      - bern_tt
-      - bern_tt_log
-      - bern_tt_cube
-"""
-
 from abc import ABC, abstractmethod
 import pandas as pd
 from darts import TimeSeries
@@ -28,10 +7,45 @@ from aare.remote_existenz_store import FieldRequest
 
 
 class Feature(ABC):
+    """
+    A feature is a transformation of 1 or more fields from a source like InfluxDB or an external source.
+    Most features are just a single field from influx, see SingleFieldFeature for that.
+    Features handle cleanup and preparation of the relevant data.
+    Features will be registered with a good string name so they can be used easily for hyperparameter tuning and
+    testing out different models with different inputs easily.
+
+    Example:
+        feature_set:
+        - bern_temp
+        - bern_tt
+        - bern_tt_log
+        - bern_tt_cube
+    """
+
     def __init__(self, name: str, required_fields: FieldRequest | list[FieldRequest]):
+        # name is kept generic since not all features are necessarily bound to a location.
+        # however, most features will be [bound to a location] so their names should reflect that,
+        # e.g. temp_bern and temp_thun should be different instances but the same class,
+        # unless they require different cleanup etc. -> IDEA: use the same class but when looking for
+        # cleanup params allow 'temp_bern' to override values of 'temp', then you don't need extra classes
         self._name = name
         self._required_fields = required_fields if isinstance(required_fields, list) else [required_fields]
         self.params = read_params()["features"].get(name)
+
+    @classmethod
+    def base_name(cls) -> str:
+        """
+        The base name of this feature without location identifier or similar.
+        Reads the 'NAME' constant if a class if defined. Allowed: [a-z0-9] (no underscore)
+        """
+        name = getattr(cls, "NAME", None)
+        if not name:
+            raise ValueError(f"The feature '{cls}' does not override base_name or specify a 'NAME' constant.")
+
+    @classmethod
+    def loc_name(cls, loc: str | int):
+        """Return the base name together with a location, since this is often how you want to identify."""
+        return cls.base_name() + f"_{loc}"
 
     @property
     def name(self) -> str:

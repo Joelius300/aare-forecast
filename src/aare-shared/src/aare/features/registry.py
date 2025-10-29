@@ -1,72 +1,121 @@
 import re
 from collections.abc import Callable, Sequence
-from typing import overload
+from typing import Any, TypeVar, cast, overload
 
+from aare.locations import LOC_ALIAS
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
 
-from aare.features.air_temp_bern import AirTempBern
+from aare.features.air_temp import AirTemp
 from aare.features.base.feature import Feature
-from aare.features.base.transformed_feature import TransformedFeature
-from aare.features.flow_bern import FlowBern
-from aare.features.sunshine_bern import SunshineBern
-from aare.features.water_temp_bern import WaterTempBern
+from aare.features.base.transformed_feature import MapperFuncType, TransformedFeature
+from aare.features.flow import Flow
+from aare.features.sunshine import Sunshine
+from aare.features.water_temp import WaterTemp
 
 
-def _make_ma(feature: Feature, n: int):
-    return TransformedFeature(
-        feature,
-        f"_ma{n}",
-        lambda ts: ts.window_transform(
-            {
-                "function": "mean",
-                "mode": "rolling",
-                "window": n,
-                "center": False,
-            },
-            keep_names=True,
-        ),
+def _get_ma_transform(n: str) -> MapperFuncType:
+    return lambda ts: ts.window_transform(
+        {
+            "function": "mean",
+            "mode": "rolling",
+            "window": int(n),
+            "center": False,
+        },
+        keep_names=True,
     )
 
 
-class FeatureRegistry:
-    """Stateless feature registry to create feature instances by name (including suffixes). Use like a dict with []."""
+def _make_feature(feature_cls: Callable[[str | int], Feature], location):
+    return feature_cls(location)
 
-    # TODO decouple variable from location and parse location here, so all features have to take a location parameter
-    # which is passed here and extracted from the string. We should be able to assume that different places generally
-    # follow the same rules and can be cleaned up the same way. If not, special handling is needed, but it should be the exception.
-    def __init__(self):
-        # lazy lookup -> classes (without init args) or param-less lambdas
-        self.lookup: dict[str, Callable[[], Feature]] = {
-            "temp_bern": WaterTempBern,
-            "tt_bern": AirTempBern,
-            "ss_bern": SunshineBern,
-            "flow_bern": FlowBern,
-            # TODO rework this so there are different transformers depending on the suffix,
-            # so _ma, _sq, _cube, _sqrt are all treated the same with some transformation function looked up
-            # must ensure that none of the transformations can result in NaN, Inf or anything of the sorts
-            "tt_bern_log": lambda: TransformedFeature(
-                AirTempBern(), "_log", Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1))
-            ),
-            "tt_bern_sq": lambda: TransformedFeature(AirTempBern(), "_sq", lambda ts: ts**2),
-            "tt_bern_cube": lambda: TransformedFeature(AirTempBern(), "_cube", lambda ts: ts**3),
+
+class FeatureRegistry:
+    """
+    Stateless feature registry to create feature instances by name (including suffixes).
+    Use like a dict with [] or call get_many(...).
+    """
+
+    def __init__(self, additional_features: list[type[Feature]] | None = None):
+        self._supported_features: list[type[Feature]] = [
+            WaterTemp,
+            AirTemp,
+            Sunshine,
+            Flow,
+        ]
+
+        if additional_features:
+            self._supported_features.extend(additional_features)
+
+        self._supported_locations = list(LOC_ALIAS.keys())
+        self._feature_lookup = {cls.base_name(): cls for cls in self._supported_features}
+
+        self._simple_transformers: dict[str, MapperFuncType] = {
+            "sq": lambda ts: ts**2,
+            "cube": lambda ts: ts**3,
             # note: signed sqrt = sign(x) * sqrt(abs(x))
-            "tt_bern_sqrt": lambda: TransformedFeature(
-                AirTempBern(), "_sqrt", Mapper(lambda x: np.sign(x) * abs(x) ** 0.5)
-            ),
+            "sqrt": Mapper(lambda x: np.sign(x) * abs(x) ** 0.5),
+            "log": Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1)),
         }
+
+        self._regex_transformers: dict[str, Callable[[Any], MapperFuncType]] = {
+            r"^ma(\d+)$": _get_ma_transform,
+        }
+
+    def _get_regex_transformer(self, split: str) -> MapperFuncType | None:
+        for pattern, factory in self._regex_transformers.items():
+            search = re.search(pattern, split)
+            if search:
+                return factory(*search.groups())
+
+        return None
+
+    def create_feature(self, specifier: str):
+        splits = specifier.split("_")
+
+        transformers = []
+        location: str | None = None
+        base_feature_name: str | None = None
+        for split in reversed(splits):
+            if split in self._simple_transformers:
+                transformers.append((split, self._simple_transformers[split]))
+            elif transformer := self._get_regex_transformer(split):
+                transformers.append((split, transformer))
+            elif split in self._supported_locations:
+                if location:
+                    raise ValueError(
+                        f"Duplicate location found: '{split}', but already found '{location}' in '{specifier}'"
+                    )
+                location = split
+            elif split in self._feature_lookup:
+                if base_feature_name:
+                    raise ValueError(
+                        f"Duplicate base feature found: '{split}', but already found '{base_feature_name}' in '{specifier}'"
+                    )
+
+                base_feature_name = split
+            else:
+                raise ValueError(
+                    f"Could not determine what the part '{split}' is in '{specifier}' (not transformer, location or base feature)"
+                )
+
+        if not base_feature_name:
+            raise ValueError(f"Missing base feature in '{specifier}'")
+        if not location:
+            raise ValueError(f"Missing location in '{specifier}'")
+
+        feature_cls = self._feature_lookup[base_feature_name]
+        # all classes in this dict can be created with just a location
+        feature_maker = cast(Callable[[str | int], Feature], feature_cls)
+        feature = feature_maker(location)  # if not, it will raise here
+        for name, transformer in reversed(transformers):
+            feature = TransformedFeature(feature, f"_{name}", transformer)
+
+        return feature
 
     def _get_item(self, item: str):
         assert isinstance(item, str), "item is not a str"
-
-        # check if the moving average of a feature is requested (suffix _ma{n})
-        ma_match = re.search(r"^(\w+)_ma(\d+)$", item)
-        if ma_match is not None:
-            feature = ma_match.group(1)
-            ma_len = int(ma_match.group(2))
-            return _make_ma(self.lookup[feature](), ma_len)
-
-        return self.lookup[item]()
+        return self.create_feature(item)
 
     def __getitem__(self, item: str):
         return self._get_item(item)

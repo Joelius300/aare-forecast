@@ -8,6 +8,7 @@ import pandas as pd
 import darts
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
+from darts.utils.ts_utils import retain_period_common_to_all
 
 from aare.constants import TIME
 
@@ -292,7 +293,9 @@ def trunc_common(*tss: TimeSeries):
     Will return in the same order so x, y, z = trunc_common(x, y, z).
     Make sure that there are no duplicate keys between the components.
     """
-    full = darts.concatenate(tss, axis="component")
-    longest = full.longest_contiguous_slice(mode="any")
+    tss = retain_period_common_to_all(tss)  # first truncate to the common time slice (regardless of nan)
+    full = darts.concatenate(tss, axis="component")  # then concat all of the components together
+    longest = full.longest_contiguous_slice(mode="any")  # then slice and only keep the longest period without nan
 
+    # then reconstruct the individual series
     return tuple([longest[ts.components.to_list()] for ts in tss])

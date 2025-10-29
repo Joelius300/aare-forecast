@@ -1,7 +1,9 @@
 import re
 from collections.abc import Callable, Sequence
-from typing import Any, TypeVar, cast, overload
+from typing import Any, cast, overload
 
+from aare.features.rainfall import Rainfall
+from aare.features.relative_humidity import RelativeHumidity
 from aare.locations import LOC_ALIAS
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
@@ -39,15 +41,17 @@ class FeatureRegistry:
     def __init__(self, additional_features: list[type[Feature]] | None = None):
         self._supported_features: list[type[Feature]] = [
             WaterTemp,
+            Flow,
             AirTemp,
             Sunshine,
-            Flow,
+            Rainfall,
+            RelativeHumidity,
         ]
 
         if additional_features:
             self._supported_features.extend(additional_features)
 
-        self._supported_locations = list(LOC_ALIAS.keys())
+        self._supported_locations = set([loc.lower() for loc in LOC_ALIAS.keys()])
         self._feature_lookup = {cls.base_name(): cls for cls in self._supported_features}
 
         self._simple_transformers: dict[str, MapperFuncType] = {

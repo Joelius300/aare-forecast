@@ -4,7 +4,7 @@ general:
   forecast_horizon: 96
   timezone: "Europe/Zurich"
 features:
-  temp_bern:
+  temp_bern:  # water temperature [°C]
     outliers:
       low_cutoff: 2.5
       high_cutoff: 25
@@ -15,7 +15,7 @@ features:
       # They work often, but sometimes fail badly.
       linear_gap_bound: 3
       cubic_gap_bound: 25
-  flow:
+  flow:  # flow [m3/s]
     outliers:
       low_cutoff: 30
       high_cutoff: 99999
@@ -23,23 +23,23 @@ features:
     interpolate:
       linear_gap_bound: 3
       cubic_gap_bound: 23
-  tt:
+  tt:  # air temperature [°C]
     interpolate:
       linear_gap_bound: 3
       cubic_gap_bound: 25
-  ss:
+  ss:  # sunshine duration (minutes)
     outliers:
       low_cutoff: 0
       high_cutoff: 60
     interpolate:
       median_gap_bound: 10
-  rr:
+  rr:  # total rainfall (mm)
     outliers:
       low_cutoff: 0
       high_cutoff: 99999
     interpolate:
       median_gap_bound: 10
-  rh:
+  rh:  # relative humidity (%)
     outliers:
       low_cutoff: 0
       high_cutoff: 100

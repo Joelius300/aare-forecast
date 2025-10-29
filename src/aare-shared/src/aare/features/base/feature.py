@@ -30,7 +30,12 @@ class Feature(ABC):
         # cleanup params allow 'temp_bern' to override values of 'temp', then you don't need extra classes
         self._name = name
         self._required_fields = required_fields if isinstance(required_fields, list) else [required_fields]
-        self.params = read_params()["features"].get(name)
+        feature_params = read_params()["features"]
+
+        self.base_params = feature_params.get(self.base_name(), {})
+        """Params specified in the features section of params.yaml under the base_name of this feature (e.g. tt)"""
+        self.params = self.base_params | feature_params.get(name, {})
+        """Params specified in the features section of params.yaml under the actual of this feature (e.g. tt_bern) combined with the base_params."""
 
     @classmethod
     def base_name(cls) -> str:
@@ -41,6 +46,8 @@ class Feature(ABC):
         name = getattr(cls, "NAME", None)
         if not name:
             raise ValueError(f"The feature '{cls}' does not override base_name or specify a 'NAME' constant.")
+
+        return name
 
     @classmethod
     def loc_name(cls, loc: str | int):

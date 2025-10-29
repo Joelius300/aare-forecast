@@ -13,8 +13,8 @@ class TransformedFeature(Feature):
     """Transformed version of existing feature, e.g. for squaring."""
 
     @classmethod
-    def base_name(cls):
-        raise ValueError("TransformedFeature doesn't have a base name")
+    def base_name(cls) -> str:
+        return "TRANSFORMED"
 
     def __init__(self, base_feature: Feature, suffix: str, transformer: MapperFuncType):
         super().__init__(base_feature.name + suffix, base_feature.required_fields)

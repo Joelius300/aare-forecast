@@ -65,16 +65,36 @@ class FeatureSet:
 
         # make all the features and combine them into a single wide series
         # to be able to extract all subseries by removing any missing values.
-        data = [f.make(df) for f in self._all_features]
-        data = retain_period_common_to_all(data)
-        data = darts.concatenate(data, axis="component")
-        data = extract_subseries(data, mode="any")
-        data = [sub for sub in data if len(sub) > 0]  # wild that this is needed
 
-        # then reconstruct the splits
-        targets = [part[[f.name for f in self._targets]] for part in data]
-        pc = [part[[f.name for f in self._past]] for part in data] if self._past else None
-        fc = [part[[f.name for f in self._future]] for part in data] if self._future else None
+        # every element of these arrays is a single TimeSeries instance with one or more components, potentially with NaNs
+        targets = [f.make(df) for f in self._targets]
+        pc = [f.make(df) for f in self._past] if self._past else None
+        fc = [f.make(df) for f in self._future] if self._future else None
+
+        # flat list of component names per feature type (target, past, future)
+        target_comp = [c for feat_ts in targets for c in feat_ts.components]
+        pc_comp = [c for feat_ts in pc for c in feat_ts.components] if pc else None
+        fc_comp = [c for feat_ts in fc for c in feat_ts.components] if fc else None
+
+        # components is a list of TimeSeries with unique components but (approximately) the same time periods
+        components = targets + (pc or []) + (fc or [])
+        # align times globally (only start and end, gaps are ignored)
+        components = retain_period_common_to_all(components)
+
+        # make a single TimeSeries with all components of all features
+        wide = darts.concatenate(components, axis="component")
+
+        # split into a list of TimeSeries (subseries) with all the same components but sliced to be non-overlapping periods without NaNs
+        subs = extract_subseries(wide, mode="any")
+
+        # fix the very weird case where splitting on gaps results in 0-length subseries ?!
+        subs = [sub for sub in subs if len(sub) > 0]
+
+        # reconstruct target, pc and fc so that there is one list per target/pc/fc with aligned TimeSeries that
+        # all contain all components of all features of that type (one feature may contain multiple components)
+        targets = [part[target_comp] for part in subs]
+        pc = [part[pc_comp] for part in subs] if pc_comp else None
+        fc = [part[fc_comp] for part in subs] if fc_comp else None
 
         # now targets, pc and fc all have the same number of subseries, all aligned (same time period), and no nans.
         return targets, pc, fc

@@ -26,15 +26,15 @@ def main():
         "future": [
             f"{feat}_bern{suffix}"
             for feat, suffix in itertools.product(
-                ["tt", "ss", "rr", "rh"], ["", "_log", "_sq", "_cube", "_sqrt", "_ma3", "_ma6"]
+                ["tt", "ss", "rr", "rh", "wind"], ["", "_log", "_sq", "_cube", "_sqrt", "_ma3", "_ma6"]
             )
         ],
     }
 
     model_name = "LR"
-    run_name = "tune-LR2"
+    run_name = "tune-LR-elastic"
 
-    tuner = LRTuner(model_name, params, features)
+    tuner = LRTuner(model_name, params, features, enabled_regularizations="elastic")
 
     study = optuna.create_study(
         study_name=run_name,

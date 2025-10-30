@@ -28,6 +28,7 @@ def main():
             "ss_bern",
             "rr_bern",
             "rh_bern",
+            "wind_bern",
         ],
     }
 

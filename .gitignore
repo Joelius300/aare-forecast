@@ -170,3 +170,4 @@ res_locf_mstl.png
 data/optuna-trials.db
 data/models
 model_mount
+data/optuna-trials.db-journal

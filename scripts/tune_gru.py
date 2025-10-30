@@ -26,6 +26,8 @@ def main():
         "future": [
             "tt_bern",
             "ss_bern",
+            "rr_bern",
+            "rh_bern",
         ],
     }
 

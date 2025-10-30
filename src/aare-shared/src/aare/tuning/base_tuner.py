@@ -11,6 +11,7 @@ from mlflow import ActiveRun
 from optuna import Trial, TrialPruned
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import MLFlowLogger
+from matplotlib import pyplot as plt
 
 from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare.evaluation.evaluation import evaluate_model
@@ -201,7 +202,9 @@ class BaseTuner(ABC):
 
         metrics_dict = metrics.to_dict()
         self.log_metrics_prefix(metrics_dict, "eval")
-        mlflow.log_figure(samples.plot(str(run.info.run_name)), artifact_file="samples.png")
+        sample_fig = samples.plot(str(run.info.run_name))
+        mlflow.log_figure(sample_fig, artifact_file="samples.png")
+        plt.close(sample_fig)  # otherwise it's kept in memory, well done matplotlib
 
         return metrics
 

@@ -35,7 +35,7 @@ class SingleFieldFeature(Feature):
             return df
 
         return remove_outliers(
-            df, params["low_cutoff"], params["high_cutoff"], params["diff_threshold"], col=self.field.name
+            df, params["low_cutoff"], params["high_cutoff"], params.get("diff_threshold"), col=self.field.name
         )
 
     def interpolate(self, df: pd.DataFrame) -> pd.DataFrame:

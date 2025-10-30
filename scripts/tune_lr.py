@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 from aare.constants import RANDOM_SEED
@@ -23,16 +24,15 @@ def main():
     features: FeatureIdentifiers = {
         "targets": ["temp_bern"],
         "future": [
-            "tt_bern",
-            "tt_bern_log",
-            "tt_bern_cube",
-            "tt_bern_sqrt",
-            "tt_bern_ma3",
+            f"{feat}_bern{suffix}"
+            for feat, suffix in itertools.product(
+                ["tt", "ss", "rr", "rh"], ["", "_log", "_sq", "_cube", "_sqrt", "_ma3", "_ma6"]
+            )
         ],
     }
 
     model_name = "LR"
-    run_name = "tune-LR"
+    run_name = "tune-LR1"
 
     tuner = LRTuner(model_name, params, features)
 

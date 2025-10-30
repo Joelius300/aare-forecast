@@ -19,7 +19,28 @@ def _find_section(
 
     if not isinstance(ts, TimeSeries):
         assert isinstance(ts, Sequence), "ts is something other than None, TimeSeries or Sequence"
-        ts = next(s for s in ts if start in s and end in s)
+        # if ts is a sequence, none of them will overlap, so only one can contain the end time.
+        # what can happen is that the min_lookback is greater than the context length of the model
+        # which means the section we're trying to find here might be larger than the slices can offer.
+        # in those cases, we need to truncate the start. if the lookback was never larger than the context length,
+        # both start and end times should be inside of exactly one slice given the constraints of darts.
+
+        slice = next((s for s in ts if end in s), None)
+        if not slice:
+            raise ValueError(
+                f"Unable to find a slice for ({start}, {end}) in ["
+                + ",".join(f"({s.start_time()}, {s.end_time()})" for s in ts)
+                + "]"
+            )
+
+        ts = slice
+
+    # truncate if requested start is earlier than start time of this subseries
+    slice_start = cast(Timestamp, ts.start_time())
+    new_start = max(start, slice_start)
+    assert new_start < end, (
+        f"Start got moved from '{start}' to '{new_start}' because of slice period ({ts.start_time()}, {ts.end_time()}) and is now after '{end}'!"
+    )
 
     return ts[start:end]
 

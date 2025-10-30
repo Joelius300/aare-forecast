@@ -34,7 +34,7 @@ def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
 
 
 def remove_outliers(
-    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float, col=TEMP
+    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float | None, col=TEMP
 ) -> pd.DataFrame:
     """
     Eliminates (sets to nan) values out of a specific range or with a larger diff than the specified threshold.
@@ -52,24 +52,25 @@ def remove_outliers(
     # Another is a random drop or spike so [normal, outlier, normal]. These have both diffs above threshold.
     # All of these variants appear in the data (see EDA).
 
-    df["_diff_to_prev"] = df[col].diff().abs()
-    df["_diff_to_next"] = df[col].diff(-1).abs()
+    if diff_threshold is not None:
+        df["_diff_to_prev"] = df[col].diff().abs()
+        df["_diff_to_next"] = df[col].diff(-1).abs()
 
-    # variant 1a
-    df.loc[
-        (df["_diff_to_prev"].isna() | (df["_diff_to_prev"] == 0)) & (df["_diff_to_next"] > diff_threshold),
-        col,
-    ] = np.nan
-    # variant 1b
-    df.loc[
-        (df["_diff_to_next"].isna() | (df["_diff_to_next"] == 0)) & (df["_diff_to_prev"] > diff_threshold),
-        col,
-    ] = np.nan
-    # variant 2
-    df.loc[
-        (df["_diff_to_prev"] > diff_threshold) & (df["_diff_to_next"] > diff_threshold),
-        col,
-    ] = np.nan
+        # variant 1a
+        df.loc[
+            (df["_diff_to_prev"].isna() | (df["_diff_to_prev"] == 0)) & (df["_diff_to_next"] > diff_threshold),
+            col,
+        ] = np.nan
+        # variant 1b
+        df.loc[
+            (df["_diff_to_next"].isna() | (df["_diff_to_next"] == 0)) & (df["_diff_to_prev"] > diff_threshold),
+            col,
+        ] = np.nan
+        # variant 2
+        df.loc[
+            (df["_diff_to_prev"] > diff_threshold) & (df["_diff_to_next"] > diff_threshold),
+            col,
+        ] = np.nan
 
     return cast(pd.DataFrame, df[orig_cols])
 

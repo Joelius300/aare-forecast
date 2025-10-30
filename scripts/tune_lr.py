@@ -32,7 +32,7 @@ def main():
     }
 
     model_name = "LR"
-    run_name = "tune-LR1"
+    run_name = "tune-LR2"
 
     tuner = LRTuner(model_name, params, features)
 

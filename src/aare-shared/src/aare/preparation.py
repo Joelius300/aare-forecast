@@ -34,7 +34,7 @@ def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
 
 
 def remove_outliers(
-    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float | None, col=TEMP
+    df: pd.DataFrame, low_cutoff: float, high_cutoff: float, diff_threshold: float | None = None, col=TEMP
 ) -> pd.DataFrame:
     """
     Eliminates (sets to nan) values out of a specific range or with a larger diff than the specified threshold.

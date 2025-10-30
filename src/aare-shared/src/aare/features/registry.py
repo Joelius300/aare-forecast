@@ -4,6 +4,7 @@ from typing import Any, cast, overload
 
 from aare.features.rainfall import Rainfall
 from aare.features.relative_humidity import RelativeHumidity
+from aare.features.wind import Wind
 from aare.locations import LOC_ALIAS
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
@@ -46,6 +47,7 @@ class FeatureRegistry:
             Sunshine,
             Rainfall,
             RelativeHumidity,
+            Wind,
         ]
 
         if additional_features:

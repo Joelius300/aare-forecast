@@ -29,10 +29,6 @@ def _get_ma_transform(n: str) -> MapperFuncType:
     )
 
 
-def _make_feature(feature_cls: Callable[[str | int], Feature], location):
-    return feature_cls(location)
-
-
 class FeatureRegistry:
     """
     Stateless feature registry to create feature instances by name (including suffixes).
@@ -62,6 +58,9 @@ class FeatureRegistry:
             # note: signed sqrt = sign(x) * sqrt(abs(x))
             "sqrt": Mapper(lambda x: np.sign(x) * abs(x) ** 0.5),
             "log": Mapper(lambda x: np.sign(x) * np.log(np.abs(x) + 1)),
+            "diff": lambda ts: ts.diff(),
+            "abs": lambda ts: abs(ts),
+            "neg": lambda ts: -ts,
         }
 
         self._regex_transformers: dict[str, Callable[[Any], MapperFuncType]] = {

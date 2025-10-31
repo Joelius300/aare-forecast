@@ -65,7 +65,6 @@ overrides = [
     { name = "cryptography", marker = "sys_platform == 'never'" },
     { name = "fonttools", marker = "sys_platform == 'never'" },
     { name = "pyod", marker = "sys_platform == 'never'" },
-    { name = "shap", marker = "sys_platform == 'never'" },
     { name = "statsforecast", marker = "sys_platform == 'never'" },
     { name = "xgboost", marker = "sys_platform == 'never'" },
 ]
@@ -3187,8 +3186,8 @@ name = "numba"
 version = "0.62.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "llvmlite", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "numpy", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
+    { name = "llvmlite" },
+    { name = "numpy" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/a3/20/33dbdbfe60e5fd8e3dbfde299d106279a33d9f8308346022316781368591/numba-0.62.1.tar.gz", hash = "sha256:7b774242aa890e34c21200a1fc62e5b5757d5286267e71103257f4e2af0d5161", size = 2749817, upload-time = "2025-09-29T10:46:31.551Z" }
 wheels = [
@@ -5140,16 +5139,16 @@ name = "shap"
 version = "0.48.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cloudpickle", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "numba", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "numpy", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "packaging", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "pandas", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "scikit-learn", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "scipy", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "slicer", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "tqdm", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
-    { name = "typing-extensions", marker = "sys_platform != 'darwin' or extra != 'extra-11-aare-shared-cpu' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
+    { name = "cloudpickle" },
+    { name = "numba" },
+    { name = "numpy" },
+    { name = "packaging" },
+    { name = "pandas" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "slicer" },
+    { name = "tqdm" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6c/79/edeb71f5ee8a936a1d40413188000640ab91da72771e837f1ded141a0ed4/shap-0.48.0.tar.gz", hash = "sha256:f169dc73fe144e70a0331b5507f9fd290d7695a3c7935fa8e4862e376321baf9", size = 3061913, upload-time = "2025-06-12T13:05:35.055Z" }
 wheels = [
@@ -5833,7 +5832,7 @@ dependencies = [
     { name = "requests" },
     { name = "scikit-learn" },
     { name = "scipy" },
-    { name = "shap", marker = "sys_platform == 'never' or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
+    { name = "shap" },
     { name = "statsmodels" },
     { name = "tqdm" },
     { name = "typing-extensions" },

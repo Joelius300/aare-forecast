@@ -52,7 +52,6 @@ override-dependencies = [
     # these are dependencies (of darts) with many deps that we're not using
     "xgboost; sys_platform == 'never'",
     "statsforecast; sys_platform == 'never'",
-    "shap; sys_platform == 'never'",
     "pyod; sys_platform == 'never'",
     # these are large dependencies of packages that we (probably) cannot remove fully (e.g. matplotlib)
     # but don't break anything if removed
@@ -66,6 +65,7 @@ override-dependencies = [
     # "networkx; sys_platform == 'never'",
     # "pygments; sys_platform == 'never'",
     # "pygit2; sys_platform == 'never'",
+    # "shap; sys_platform == 'never'",
 ]
 
 [tool.uv.workspace]

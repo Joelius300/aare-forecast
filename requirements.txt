@@ -1264,7 +1264,7 @@ lightning-utilities==0.15.2 \
     # via
     #   pytorch-lightning
     #   torchmetrics
-llvmlite==0.45.1 ; sys_platform == 'never' \
+llvmlite==0.45.1 \
     --hash=sha256:080e6f8d0778a8239cd47686d402cb66eb165e421efa9391366a9b7e5810a38b \
     --hash=sha256:09430bb9d0bb58fc45a45a57c7eae912850bedc095cd0810a57de109c69e1c32 \
     --hash=sha256:1a53f4b74ee9fd30cb3d27d904dadece67a7575198bd80e687ee76474620735f \
@@ -1585,7 +1585,7 @@ notebook-shim==0.2.4 \
     # via
     #   jupyterlab
     #   notebook
-numba==0.62.1 ; sys_platform == 'never' \
+numba==0.62.1 \
     --hash=sha256:1b743b32f8fa5fff22e19c2e906db2f0a340782caf024477b97801b918cf0494 \
     --hash=sha256:44a1412095534a26fb5da2717bc755b57da5f3053965128fe3dc286652cc6a92 \
     --hash=sha256:44e3aa6228039992f058f5ebfcfd372c83798e9464297bdad8cc79febcf7891e \
@@ -2956,7 +2956,7 @@ setuptools==80.9.0 \
     #   torch
     #   triton
     #   zc-lockfile
-shap==0.48.0 ; sys_platform == 'never' \
+shap==0.48.0 \
     --hash=sha256:14ddf529a628902b93c19e59431c5054b8c7be55d7b9d6c6064763b2275e1e56 \
     --hash=sha256:279890f9649566bbb82622f87ac35f29081fe9aa1e32e02af956e4f33c456b0f \
     --hash=sha256:7277690f2240ccbdd0725f1f654f7ecb09944c330122e7464a83a24e337ddbd6 \
@@ -2992,7 +2992,7 @@ six==1.17.0 \
     #   flatten-dict
     #   python-dateutil
     #   rfc3339-validator
-slicer==0.0.8 ; sys_platform == 'never' \
+slicer==0.0.8 \
     --hash=sha256:2e7553af73f0c0c2d355f4afcc3ecf97c6f2156fcf4593955c3f56cf6c4d6eb7 \
     --hash=sha256:6c206258543aecd010d497dc2eca9d2805860a0b3758673903456b7df7934dc3
     # via shap

@@ -53,9 +53,12 @@ class LRTuner(BaseTuner):
 
     @override
     def get_model(self, trial: Trial) -> ModelType:
-        lag_max = trial.suggest_int("lag_max", 1, 24)
-        lag_step = trial.suggest_int("lag_step", 1, 12)
-        output_chunk_length = trial.suggest_int("output_chunk_length", 1, 24, log=True)
+        # lag_max = trial.suggest_int("lag_max", 1, 24)
+        # lag_step = trial.suggest_int("lag_step", 1, 12)
+        lag_max = trial.suggest_int("lag_max", 22, 24)
+        lag_step = trial.suggest_int("lag_step", 1, 3)
+        # output_chunk_length = trial.suggest_int("output_chunk_length", 1, 24, log=True)
+        output_chunk_length = trial.suggest_int("output_chunk_length", 1, 1, log=True)
 
         lags_raw = list(range(-lag_max, -1, lag_step))
         trial.set_user_attr("lags_raw", lags_raw)
@@ -75,7 +78,7 @@ class LRTuner(BaseTuner):
         }
 
         if regularization != "none":
-            hparams_sk_model["alpha"] = trial.suggest_float("alpha", 0.1, 10, step=0.1)
+            hparams_sk_model["alpha"] = trial.suggest_float("alpha", 0.01, 2, log=True)
         else:
             hparams_sk_model["n_jobs"] = -1
 
@@ -123,11 +126,22 @@ class LRTuner(BaseTuner):
         }
 
         yield {
-            "lag_max": 24,
-            "lag_step": 6,
+            "lag_max": 4,
+            "lag_step": 3,
             "add_day_enc": False,
             "add_year_enc": False,
             "output_chunk_length": 1,
             "regularization": "lasso",
-            "alpha": 0.5,
+            "alpha": 0.1,
+        }
+
+        yield {
+            "lag_max": 4,
+            "lag_step": 3,
+            "add_day_enc": False,
+            "add_year_enc": False,
+            "output_chunk_length": 1,
+            "regularization": "elastic",
+            "alpha": 0.01,
+            "l1_ratio": 0.5,
         }

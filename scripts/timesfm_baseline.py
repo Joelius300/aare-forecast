@@ -6,6 +6,7 @@
 #     "dvc",
 #     "influxdb-client",
 #     "pandas",
+#     "numpy>=2.0.0",
 #     "timesfm[torch]",
 # ]
 #

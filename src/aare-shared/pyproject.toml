@@ -8,7 +8,7 @@ dependencies = [
     "u8darts[torch]~=0.38.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",
-    "numpy>=1.26.4",
+    "numpy>=2.0.0",
     "pandas>=2.2.3",
     "scikit-learn>=1.5.2",
 ]

@@ -10,8 +10,8 @@ install-kernel:
   uv run -m ipykernel install --user --name aare-forecast
 
 [group('dev')]
-repro:
-  uv run dvc repro
+repro *FLAGS:
+  uv run dvc repro {{FLAGS}}
 
 [group('dev')]
 lint:
@@ -23,11 +23,11 @@ lint:
 format:
   uv run ruff format
 
-[group('experiment tracking')]
+[group('ML')]
 mlflow:
   uv run mlflow ui
 
-[group('experiment tracking')]
+[group('ML')]
 optuna:
   uv run optuna-dashboard sqlite:///data/optuna-trials.db
 
@@ -50,17 +50,17 @@ build-api:
 build: build-service build-api
 
 [group('deploy')]
-deploy-service:
-  ./deploy/deploy-from-local.sh aare-oraku-forecast
+deploy-service tag='latest':
+  ./deploy/deploy-from-local.sh aare-oraku-forecast {{tag}}
 
 [group('deploy')]
-deploy-api:
-  ./deploy/deploy-from-local.sh aare-oraku-api
+deploy-api tag='latest':
+  ./deploy/deploy-from-local.sh aare-oraku-api {{tag}}
 
-# deploy all
+# deploy latest of service and api
 [group('deploy')]
 [parallel]
-deploy: deploy-service deploy-api
+deploy-latest: deploy-service deploy-api
 
 [group('run')]
 [working-directory: 'src/forecast-api']

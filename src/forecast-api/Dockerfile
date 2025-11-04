@@ -43,9 +43,10 @@ COPY src/forecast-api/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 COPY src/forecast-api/deploy/app.json /app/app.json
 
-# just to document the default port
-EXPOSE 5000
+# MUST NOT EXPOSE, otherwise dokku will want to deploy on that port
+# EXPOSE 5000
 
 # use entrypoint to respect PORT variable by dokku
 CMD ["/app/entrypoint.sh"]
+# could probably also do this with the procfile, there it would respect $PORT
 # CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] <- doesn't respect $PORT

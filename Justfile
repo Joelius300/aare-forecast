@@ -37,12 +37,12 @@ optuna:
 track: mlflow optuna
 
 [group('build')]
-build-service:
-  docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:latest
+build-service tag='latest':
+  docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:{{tag}}
 
 [group('build')]
-build-api:
-  docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:latest
+build-api tag='latest':
+  docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:{{tag}}
 
 # build all
 [group('build')]

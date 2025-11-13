@@ -10,4 +10,16 @@
   - Lug ono compression aa, so columnstore policy
 - Unterschied zwischen predicted peak temp und actual peak temp als gute Metrik (absolute)
 - Average diff zwischen pred peak und actual peak OHNE avg zeigt ob es einen bias hat zu über oder unterschätzen
-- Fehler von MeteoTest vorherage irgendwie einbeziehen. Geht erst wenn wir mehr MeteoTest Daten haben. Probabilistische Vorhersage liefern sie glaube ich nie :/
+- Fehler von MeteoTest Vorherage irgendwie einbeziehen. Geht erst wenn wir mehr MeteoTest Daten haben. Probabilistische Vorhersage liefern sie glaube ich nie :/
+- Model wo nume high und low temperatur vode nächste 6-14 Täg predicted. Bzw. zersch mau brainstorme wie sone "next few days" wi ir MeteoSwiss App füre Aare Guru chönnt usgseh.
+  - MeteoSwiss het
+    - es Icon für Sunne/Rege/Wuuche
+    - när low und high Temperatur
+    - när statischs icon für räge wo erklärt was när d Milimeter rechts drvo ussäge,
+    - dert hets ner erwarteti mm Rege und ä mm range.
+  - Füre Aare Guru gsuchi
+    - Höchsttemperatur (töifst interessiert gloub niemer)
+    - Temperatur Erwartigs-Range, glich wi dr Rege bi MeteoSwiss
+    - Grundsätzlechs Wättersymbou wi bi MeteoSwiss
+    - Azau Sunnestung
+    - Mängi Wasser (mit Sicherheits-Icon) -> müesstemer haut ono afa vorhärsäge wenn die vom BAFU nume 3-4 Täg vorussgeit

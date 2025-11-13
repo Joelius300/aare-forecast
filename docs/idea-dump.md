@@ -11,6 +11,8 @@
 - Unterschied zwischen predicted peak temp und actual peak temp als gute Metrik (absolute)
 - Average diff zwischen pred peak und actual peak OHNE avg zeigt ob es einen bias hat zu über oder unterschätzen
 - Fehler von MeteoTest Vorherage irgendwie einbeziehen. Geht erst wenn wir mehr MeteoTest Daten haben. Probabilistische Vorhersage liefern sie glaube ich nie :/
+  - Sobald wir genügend MeteoTest Daten haben (vor allem welche vom Sommer), könnte man ein model fine-tunen mit diesen. Viel Spass beim Data Loader :)
+  - Spannend wäre auch zu analysieren, was die Error-Verteilung von den Prognosen sind (abhängig von Tageszeit vermutlich) und basierend darauf die Trainingsdaten mit noise zu versehen, damit die Trainingsbedingungen ähnlicher werden wie die Live-Bedingungen. Damit könnte man allenfalls auch den Bias bei der Evaluation etwas reduzieren.
 - Model wo nume high und low temperatur vode nächste 6-14 Täg predicted. Bzw. zersch mau brainstorme wie sone "next few days" wi ir MeteoSwiss App füre Aare Guru chönnt usgseh.
   - MeteoSwiss het
     - es Icon für Sunne/Rege/Wuuche

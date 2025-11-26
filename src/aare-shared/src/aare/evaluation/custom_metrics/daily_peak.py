@@ -19,24 +19,27 @@ from darts.metrics.utils import (
 SHORTEST_MONTH = pd.Timedelta(days=28)
 
 
-def _add_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSeries:
-    """Add a 'day' attribute to the time series. Works with stochastic series."""
-    attribute = "day"
+def _add_unique_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) -> TimeSeries:
+    """
+    Add an attribute to the end of the time series which is a number identifying the day and year uniquely
+    in ascending order. The number is YYYYDDD.
+    Works with stochastic series unlike ts.add_datetime_attribute.
+    """
+    ts_det = ts if ts.is_deterministic else ts.with_values(ts.values(sample=0))  # take only first sample
 
-    if ts.is_deterministic:
-        # simple case
-        # typing bug in darts: https://github.com/unit8co/darts/issues/2926
-        return ts.add_datetime_attribute(attribute, tz=tz)  # pyright: ignore[reportArgumentType]
-
-    ts_det = ts.with_values(ts.values(sample=0))  # take only first sample
     # add_datetime_attribute works now as it's deterministic
-    with_date = ts_det.add_datetime_attribute(attribute, tz=tz)  # pyright: ignore[reportArgumentType]
+    # typing bug in darts: https://github.com/unit8co/darts/issues/2926
+    with_year_day = ts_det.add_datetime_attribute("day_of_year", tz=tz).add_datetime_attribute("year", tz=tz)  # pyright: ignore[reportArgumentType]
+
+    # create unique day id that's still human-readable just in case
+    day_vals = with_year_day["year"] * 1000 + with_year_day["day_of_year"]
+    day_vals = day_vals.with_columns_renamed("year", "day_id")
     # must create a ts that matches in sample dimension to add as a component
-    day_vals = with_date[attribute]
     day_full = darts.concatenate(
         [day_vals] * ts.n_samples, axis="sample", ignore_time_axis=True, ignore_static_covariates=True
     )
 
+    # add day_id column to original ts
     return ts.concatenate(day_full, axis="component")
 
 
@@ -44,17 +47,13 @@ def _get_peaks(arr: np.ndarray):
     # https://stackoverflow.com/a/43094244
     # only works because 'day' is guaranteed to be ordered (not sorted, but unique values will be after each other)
     # day component is added at end, so use -1 to refer to the last component
-    # could also use pandas groupby but I imagine it's slower, despite loop (not tested at all smile)
+    # could also use pandas groupby, but I imagine it's slower, despite loop (not tested at all smile)
     split_idx = np.unique(arr[:, -1, :], return_index=True)[1][1:]
     days = np.split(arr[:, :-1, :], split_idx)
 
     # instead of this loop, should be able to use np.repeat (see below)
     max_days = []
     for day in days:
-        # skip if it's an empty day, also no need to add something to concat
-        if day.shape[0] == 0:
-            continue
-
         # max over time (= per component and sample, but should be deterministic here)
         max_day = np.nanmax(day, axis=TIME_AX)
         max_days.append(np.full_like(day, max_day))
@@ -67,9 +66,16 @@ def _get_peaks(arr: np.ndarray):
     # counts = np.diff(split_idx_full)
     # return np.repeat(days_max, counts, axis=0)
 
-    return np.concat(max_days)
+    out = np.concat(max_days)
+
+    assert out.shape[0] == arr.shape[0], "Calculated peaks array does not have the same length as original one"
+
+    return out
 
 
+# TODO Unit test
+# TODO perf optimize this, since it's called once for every historical forecast once
+#  I assume adding the day_id col is the bottleneck.
 @multi_ts_support
 @multivariate_support
 def dpd(
@@ -108,22 +114,22 @@ def dpd(
         raise ValueError("Metric currently only supports slices shorter than a month because I was lazy.")
 
     # add the day as a component to group by when doing daily calculations on numpy array
-    actual_series = _add_day_attribute(actual_series, tz)
-    pred_series = _add_day_attribute(pred_series, tz)
+    actual_series = _add_unique_day_attribute(actual_series, tz)
+    pred_series = _add_unique_day_attribute(pred_series, tz)
 
     y_true, y_pred = _get_values_or_raise(
         actual_series,
         pred_series,
         intersect,
         # IIRC remove_nan_union should be set to true when you do calculations with just one of the two like with
-        # the relative/scaled metrics that for example devide by the mean of y_true. In that case, it's important that
+        # the relative/scaled metrics that for example divide by the mean of y_true. In that case, it's important that
         # both series have NaN values in the same places otherwise gaps will influence the metric. For metrics that only
         # operate on both series together, e.g. subtracting one from the other can leave this on false, since X - NaN
         # is always NaN so you don't need to make the extra effort to align all the gaps.
         # In this metric, it must be set to true because the daily calculation is done per series, so gaps could influence
-        # the maximum in one series but not the other, which we dont want! I hope I understood this correctly..
+        # the maximum in one series but not the other, which we don't want! I hope I understood this correctly..
         remove_nan_union=True,
-        # not sure how darts does this internally because the types don't match here but it seems to work..
+        # not sure how darts does this internally because the types don't match here, but it seems to work..
         q=q,  # pyright: ignore[reportArgumentType]
     )
 

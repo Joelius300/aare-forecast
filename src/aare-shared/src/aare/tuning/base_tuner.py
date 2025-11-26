@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 
 from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare.evaluation.evaluation import evaluate_model
-from aare.evaluation.metrics import Metrics
+from aare.evaluation.eval_metric import EvalMetric
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.feature_set import FeatureSet
 from aare.features.registry import FEATURES
@@ -143,7 +143,7 @@ class BaseTuner(ABC):
         """
         pass
 
-    def get_optim_vars(self, metrics: Metrics, model: ModelType):
+    def get_optim_vars(self, metrics: EvalMetric, model: ModelType):
         """Get the metric(s) that optuna should minimize."""
         return metrics.mae
 
@@ -189,7 +189,7 @@ class BaseTuner(ABC):
         # I'm impressed how much it can statically derive, but somehow it still thinks this is wrong
         return model.fit(**fit_args)  # pyright: ignore[reportArgumentType]
 
-    def evaluate(self, model: ModelType, run: ActiveRun) -> Metrics:
+    def evaluate(self, model: ModelType, run: ActiveRun) -> EvalMetric:
         metrics, samples = evaluate_model(
             model,
             self.val_target_subs,

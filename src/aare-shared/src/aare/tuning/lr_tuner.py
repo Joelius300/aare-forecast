@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import Literal, override
 
 from aare.constants import RANDOM_SEED
-from aare.evaluation.metrics import Metrics
+from aare.evaluation.eval_metric import EvalMetric
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.params.params_types import Params
 from aare.tuning.base_tuner import BaseTuner, ModelType
@@ -101,7 +101,7 @@ class LRTuner(BaseTuner):
         return SKLearnModel(model=sk_model, **hparams_darts_model)
 
     @override
-    def get_optim_vars(self, metrics: Metrics, model: ModelType):
+    def get_optim_vars(self, metrics: EvalMetric, model: ModelType):
         # see comments in GRUTuner
         return metrics.mae
 

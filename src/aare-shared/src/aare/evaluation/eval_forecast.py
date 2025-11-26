@@ -5,7 +5,7 @@ import matplotlib.axes
 from darts import TimeSeries
 from pandas import Timedelta, Timestamp
 
-from aare.evaluation.metrics import Metrics
+from aare.evaluation.eval_metric import EvalMetric
 
 
 def _find_section(
@@ -46,20 +46,20 @@ def _find_section(
 
 
 @dataclass
-class Forecast:
+class EvalForecast:
     actual: TimeSeries
     forecast: TimeSeries
     lookback: Timedelta
-    metrics: Optional[Metrics]
+    metrics: Optional[EvalMetric]
     future_cov: TimeSeries | None = None
-    # TODO docstring and maybe rename to PastForecast, HistoricalForecast or EvalForecast
+    """A forecast that was created as part of a model evaluation with actual/known data and resulting metrics."""
 
     def __init__(
         self,
         actual_full: TimeSeries | Sequence[TimeSeries],
         forecast: TimeSeries,
         lookback_hours: int,
-        metrics: Optional[Metrics] = None,
+        metrics: Optional[EvalMetric] = None,
         add_metrics=True,
         future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
     ):
@@ -83,7 +83,7 @@ class Forecast:
 
     def calc_metrics(self):
         """Calculate and store the metrics for this instance. Also returns them for convenience."""
-        self.metrics = Metrics.from_series(self.actual, self.forecast)
+        self.metrics = EvalMetric.from_series(self.actual, self.forecast)
         return self.metrics
 
     def plot(self, title: str, ax: Optional[matplotlib.axes.Axes] = None, with_covariates: bool | list[str] = False):

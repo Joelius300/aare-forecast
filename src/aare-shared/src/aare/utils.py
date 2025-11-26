@@ -287,14 +287,14 @@ def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[Ti
     }
 
 
-def trunc_common(*tss: TimeSeries):
+def trunc_common(*ts: TimeSeries):
     """
     Truncate a set of time series with different components to the longest common continuous slice (no NaN).
     Will return in the same order so x, y, z = trunc_common(x, y, z).
     Make sure that there are no duplicate keys between the components.
     """
-    # incorrect typing in darts, retain_period_common_to_all can take any iterable
-    tss: list[TimeSeries]
+    # incorrect typing in darts, retain_period_common_to_all could take any iterable
+    tss = list(ts)
     tss = retain_period_common_to_all(tss)  # first truncate to the common time slice (regardless of nan)
     full = darts.concatenate(tss, axis="component")  # then concat all of the components together
     longest = full.longest_contiguous_slice(mode="any")  # then slice and only keep the longest period without nan

@@ -1,7 +1,7 @@
 from typing import override
 
 from aare.constants import RANDOM_SEED
-from aare.evaluation.metrics import Metrics
+from aare.evaluation.eval_metric import EvalMetric
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.params.params_types import Params
 from aare.tuning.base_tuner import BaseTuner, ModelType
@@ -74,7 +74,7 @@ class GRUTuner(BaseTuner):
         return RNNModel(**hparams_model)  # pyright: ignore [reportArgumentType]
 
     @override
-    def get_optim_vars(self, metrics: Metrics, model: ModelType):
+    def get_optim_vars(self, metrics: EvalMetric, model: ModelType):
         # this is what will be minimized by optuna
         # TODO also minimize nr of params? will need a optim_direction property in base_tuner when doing multi-obj
         # TODO also minimize other metrics like mean abs peak diff and time-weighted (day&year) MAE/RMSE

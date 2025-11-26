@@ -7,8 +7,7 @@ from darts.metrics import mae, rmse
 
 
 @dataclass
-class Metrics:
-    # TODO rename to EvalMetric, in line with EvalForecast
+class EvalMetric:
     """Collection of applicable metrics for point forecasts on the temperature. MAE has prio."""
 
     METRICS = dict(mae=mae, rmse=rmse)
@@ -58,11 +57,11 @@ class Metrics:
         """Returns a fully calculated set of metrics for a ground truth and forecast."""
         metrics = {key: cast(float, metric(actual, forecast)) for (key, metric) in cls.METRICS.items()}
 
-        return Metrics(**metrics)
+        return EvalMetric(**metrics)
 
     @classmethod
     def from_ndarray(cls, values: np.ndarray, std: Optional[np.ndarray] = None):
-        return Metrics(
+        return EvalMetric(
             mae=values[0],
             rmse=values[1],
             madpd=values[2],
@@ -73,4 +72,4 @@ class Metrics:
 
     @classmethod
     def from_dict(cls, value: dict[str, float]):
-        return Metrics(**value)
+        return EvalMetric(**value)

@@ -2,21 +2,21 @@ from dataclasses import dataclass
 
 from matplotlib import pyplot as plt
 
-from aare.evaluation.forecast import Forecast
+from aare.evaluation.eval_forecast import EvalForecast
 
 
 @dataclass
 class ForecastSamples:
-    most_avg_forecast: Forecast
+    most_avg_forecast: EvalForecast
     """
     The most average forecast of a set of forecasts (usually all of validation).
 
     The forecast with the closest metric as the mean metric of all the forecasts (= hopefully representable).
     """
 
-    best_forecast: Forecast
+    best_forecast: EvalForecast
     """Forecast with the minimum MAE of a set of forecasts (usually all of validation)."""
-    worst_forecast: Forecast
+    worst_forecast: EvalForecast
     """Forecast with the maximum MAE of a set of forecasts (usually all of validation)."""
 
     def plot(self, title: str, with_covariates: bool | list[str] = False):

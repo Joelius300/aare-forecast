@@ -40,6 +40,7 @@ EXTRA_PAST_HOURS = 2
 
 # TODO refactor this a bit to reduce duplications and function size
 #  This function has some overlap with FeatureSet, but not sure if it can be consolidated.
+# TODO Unit test
 def get_inference_data(
     features: FeatureIdentifiers,
     extreme_lags: ExtremeLags,

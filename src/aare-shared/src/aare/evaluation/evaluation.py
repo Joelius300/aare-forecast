@@ -5,11 +5,13 @@ import pickle
 from concurrent.futures.process import ProcessPoolExecutor
 from typing import Literal, Mapping, Optional, Sequence, cast
 
-from aare.evaluation.custom_metrics.daily_peak import madpd
+import pandas as pd
+
+from aare.evaluation.custom_metrics.daily_peak import madpd, dpd
 import numpy as np
 import torch
 from darts import TimeSeries
-from darts.metrics import mae, rmse
+from darts.metrics import mae, rmse, err
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.global_baseline_models import _GlobalNaiveModel
 from darts.utils.missing_values import extract_subseries
@@ -30,6 +32,7 @@ metrics_idx = {"MAE": 0, "RMSE": 1, "MADPD": 2}
 MetricType = Literal["MAE", "RMSE", "MADPD"]
 
 
+# TODO Unit test
 def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],
@@ -125,15 +128,58 @@ def _evaluate_model(
     random_state: Optional[int],
     tz: str | tzinfo | None,
 ) -> tuple[EvalMetric, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
-    historical_forecasts = _historical_forecasts(
-        model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers, random_state
+    hf = historical_forecasts(
+        model, val, horizon, stride, parallel, verbose, future_cov, num_samples, data_transformers, random_state
     )
 
     metric_i = metrics_idx.get(metric)
     if metric_i is None:
         raise ValueError(f"Invalid metric '{metric}'")
 
-    return _get_agg_metrics(model, historical_forecasts, val, metric_i, tz)
+    return _get_agg_metrics(model, hf, val, metric_i, tz)
+
+
+def _get_raw_metrics(
+    model: ForecastingModel,
+    hf: list[list[TimeSeries]],
+    val: list[TimeSeries],
+    tz: str | tzinfo | None,
+    run_ts_delta=pd.Timedelta(1, "s"),
+):
+    bt = cast(
+        list[np.ndarray],
+        model.backtest(
+            val,
+            historical_forecasts=hf,
+            # using the darts dpd metric here is really slow (20x err), but simple.
+            # it might be faster to convert hf to a dataframe, join with true data
+            # (either with outside data or by adding err back) and then calculating
+            # dpd across all hf directly with the dataframe.
+            metric=[err, dpd],
+            # must align order of kwargs with order of metrics
+            metric_kwargs=[{}, dict(tz=tz)],
+            reduction=None,
+        ),
+    )
+
+    # combined all sets of historical forecasts into one array
+    bt = np.concatenate(bt, axis=0)
+    # flatten into (n_hf x horizon, n_metrics)
+    bt = bt.reshape(-1, bt.shape[-1])
+    # extract times, shape (n_hf, horizon)
+    times = np.stack([fc.time_index.values for fc_l in hf for fc in fc_l])
+    # construct fake run_ts by subtracting delta from first ts and repeating each for {horizon}
+    run_ts = times[:, 0] - run_ts_delta
+    run_ts = run_ts.repeat(times.shape[1])
+    # flatten times to align with bt
+    times = times.ravel()
+
+    # create final dataframe with errors
+    df = pd.DataFrame(bt, index=times, columns=["err", "dpd"])
+    df = df.reset_index(names="time")
+    df.insert(0, "run_ts", run_ts)  # add run_ts as first col
+
+    return df
 
 
 def _get_agg_metrics(
@@ -189,18 +235,19 @@ def _get_agg_metrics(
     )
 
 
-def _historical_forecasts(
+def historical_forecasts(
     model: ForecastingModel,
     val: list[TimeSeries],
-    stride: int,
     horizon: int,
-    parallel: bool | int | Literal["auto"],
-    verbose: bool,
-    future_cov: TimeSeries | Sequence[TimeSeries] | None,
-    num_samples: int,
-    data_transformers: DataTransformers | None,
-    random_state: int | None,
+    stride: int,
+    parallel: bool | int | Literal["auto"] = False,
+    verbose=False,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
+    num_samples=128,
+    data_transformers: Optional[DataTransformers] = None,
+    random_state: Optional[int] = 42,
 ) -> list[list[TimeSeries]]:
+    """Simulate historical forecasts with a pre-trained model on one or more validation series, optionally in parallel."""
     # does some validation and prep, then uses _historical_forecasts_parallel
     if len(val) == 0:
         raise ValueError("Must pass at least one validation series")

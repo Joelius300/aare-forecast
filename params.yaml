@@ -55,7 +55,7 @@ split:
   test_split: "2023-09-01"
   # 1.6+ years test -> expected to eval at ~2y
 validation:
-  stride: 24  # one eval per day
+  stride: 24  # one eval per day, anything coprime with 24 will make sure all hours are used as starts equally
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.
   min_lookback_hours: 24
 timesfm:

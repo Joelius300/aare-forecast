@@ -3,7 +3,7 @@ import json
 import logging
 import pickle
 from concurrent.futures.process import ProcessPoolExecutor
-from typing import Literal, Mapping, Optional, Sequence, cast
+from typing import Literal, Mapping, Optional, Sequence, cast, overload
 
 import pandas as pd
 
@@ -32,6 +32,50 @@ metrics_idx = {"MAE": 0, "RMSE": 1, "MADPD": 2}
 MetricType = Literal["MAE", "RMSE", "MADPD"]
 
 
+@overload
+def evaluate_model(
+    model: ForecastingModel,
+    val: TimeSeries | list[TimeSeries],
+    horizon: int,
+    stride=24,
+    min_lookback_hours=-1,
+    *,
+    metric: MetricType = "MAE",
+    parallel: bool | int | Literal["auto"] = False,
+    verbose=False,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
+    num_samples=128,
+    data_transformers: Optional[DataTransformers] = None,
+    random_state=42,
+    tz: str | tzinfo | None = None,
+    get_raw: Literal[False] = False,
+    run_ts_delta=pd.Timedelta(1, "s"),
+) -> tuple[EvalMetric, ForecastSamples]:
+    pass
+
+
+@overload
+def evaluate_model(
+    model: ForecastingModel,
+    val: TimeSeries | list[TimeSeries],
+    horizon: int,
+    stride=24,
+    min_lookback_hours=-1,
+    *,
+    metric: MetricType = "MAE",
+    parallel: bool | int | Literal["auto"] = False,
+    verbose=False,
+    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
+    num_samples=128,
+    data_transformers: Optional[DataTransformers] = None,
+    random_state=42,
+    tz: str | tzinfo | None = None,
+    get_raw: Literal[True],
+    run_ts_delta=pd.Timedelta(1, "s"),
+) -> tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
+    pass
+
+
 # TODO Unit test
 def evaluate_model(
     model: ForecastingModel,
@@ -40,7 +84,7 @@ def evaluate_model(
     stride=24,
     min_lookback_hours=-1,
     *,
-    metric: Literal["MAE", "RMSE"] = "MAE",
+    metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
@@ -48,7 +92,9 @@ def evaluate_model(
     data_transformers: Optional[DataTransformers] = None,
     random_state=42,
     tz: str | tzinfo | None = None,
-):
+    get_raw: bool = False,
+    run_ts_delta=pd.Timedelta(1, "s"),
+) -> tuple[EvalMetric, ForecastSamples] | tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
     Pass a list of subseries without NaNs. If passing a single series, it will be split using extract_subseries.
@@ -68,6 +114,7 @@ def evaluate_model(
 
     Returns the aggregated metrics as well as the most average, best and worst forecast
     the model made (decided by MAE or whatever you specify).
+    Optionally get the raw err and dpd metrics.
     """
     if isinstance(val, TimeSeries):
         if future_cov is not None:
@@ -79,10 +126,11 @@ def evaluate_model(
         val_subs = val
 
     (
-        metrics,
-        (most_avg_forecast, most_avg_forecast_m),
-        (best_forecast, best_forecast_m),
-        (worst_forecast, worst_forecast_m),
+        (
+            metrics,
+            samples,
+        ),
+        raw_metrics,
     ) = _evaluate_model(
         model,
         val_subs,
@@ -96,20 +144,21 @@ def evaluate_model(
         data_transformers=data_transformers,
         random_state=random_state,
         tz=tz,
+        get_raw=get_raw,
+        run_ts_delta=run_ts_delta,
     )
+
     lookback_hours = max(get_context_len(model), min_lookback_hours)
-
-    most_avg_forecast = EvalForecast(
-        val, most_avg_forecast, lookback_hours, EvalMetric.from_ndarray(most_avg_forecast_m), future_cov=future_cov
-    )
-    best_forecast = EvalForecast(
-        val, best_forecast, lookback_hours, EvalMetric.from_ndarray(best_forecast_m), future_cov=future_cov
-    )
-    worst_forecast = EvalForecast(
-        val, worst_forecast, lookback_hours, EvalMetric.from_ndarray(worst_forecast_m), future_cov=future_cov
+    sample = ForecastSamples(
+        *(
+            EvalForecast(val, fc, lookback_hours, EvalMetric.from_ndarray(fc_m), future_cov=future_cov)
+            for fc, fc_m in samples
+        )
     )
 
-    sample = ForecastSamples(most_avg_forecast, best_forecast, worst_forecast)
+    if get_raw:
+        assert raw_metrics is not None, "raw metrics were none?!"
+        return metrics, sample, raw_metrics
 
     return metrics, sample
 
@@ -127,7 +176,9 @@ def _evaluate_model(
     data_transformers: Optional[DataTransformers],
     random_state: Optional[int],
     tz: str | tzinfo | None,
-) -> tuple[EvalMetric, tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]:
+    get_raw: bool,
+    run_ts_delta: pd.Timedelta,
+):
     hf = historical_forecasts(
         model, val, horizon, stride, parallel, verbose, future_cov, num_samples, data_transformers, random_state
     )
@@ -136,7 +187,11 @@ def _evaluate_model(
     if metric_i is None:
         raise ValueError(f"Invalid metric '{metric}'")
 
-    return _get_agg_metrics(model, hf, val, metric_i, tz)
+    # historical forecasts are reused, but raw err and dpd metrics are calculated twice.
+    # TODO it's a fight between abstractions, but we could definitely reuse the raw metrics for MAE, RMSE and MADPD!
+    return _get_agg_metrics(model, hf, val, metric_i, tz), (
+        _get_raw_metrics(model, hf, val, tz, run_ts_delta) if get_raw else None
+    )
 
 
 def _get_raw_metrics(
@@ -184,7 +239,7 @@ def _get_raw_metrics(
 
 def _get_agg_metrics(
     model: ForecastingModel,
-    historical_forecasts: list[list[TimeSeries]],
+    hf: list[list[TimeSeries]],
     val: list[TimeSeries],
     metric_i: int,
     tz: str | tzinfo | None,
@@ -194,7 +249,7 @@ def _get_agg_metrics(
         list[np.ndarray],
         model.backtest(
             val,
-            historical_forecasts=historical_forecasts,
+            historical_forecasts=hf,
             metric=used_metrics,
             # must align order of kwargs with order of metrics
             metric_kwargs=[{}, {}, dict(tz=tz)],
@@ -207,7 +262,7 @@ def _get_agg_metrics(
     # are weighed the same as very long series with much more samples -> not all samples
     # are weighted equally overall.
     backtest_flat = cast(np.ndarray, np.concatenate(backtest, axis=0))
-    historical_forecasts_flat = [ts for ll in historical_forecasts for ts in ll]
+    hf_flat = [ts for ll in hf for ts in ll]
 
     # the function choice here (median, not mean) is written as info in the Metrics class.
     metrics_median = np.median(backtest_flat, axis=0).astype(float)
@@ -229,9 +284,11 @@ def _get_agg_metrics(
 
     return (
         agg_metrics,
-        (historical_forecasts_flat[most_avg_index], backtest_flat[most_avg_index]),
-        (historical_forecasts_flat[best_index], backtest_flat[best_index]),
-        (historical_forecasts_flat[worst_index], backtest_flat[worst_index]),
+        (
+            (hf_flat[most_avg_index], backtest_flat[most_avg_index]),
+            (hf_flat[best_index], backtest_flat[best_index]),
+            (hf_flat[worst_index], backtest_flat[worst_index]),
+        ),
     )
 
 
@@ -268,11 +325,9 @@ def historical_forecasts(
         model.fit(val[0])
 
     # simulate historical forecasts (without retraining!)
-    historical_forecasts = _historical_forecasts_parallel(
+    return _historical_forecasts_parallel(
         model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers, random_state
     )
-
-    return historical_forecasts
 
 
 def _historical_forecasts_parallel(
@@ -383,6 +438,8 @@ def _validate_parallel(parallel: bool | int | Literal["auto"], model: Forecastin
     # Thank you, Python, you did it again... bool is a subclass of int OMFG
     if parallel == "auto":
         # not sure if this is a good heuristic, but probably not too bad for us
+        # TODO could add a guard that it still uses parallelization if horizon > output_chunk_length
+        #  because AR is never optimized IIRC.
         parallel = False if model.supports_optimized_historical_forecasts else True
     elif parallel is False:
         if not model.supports_optimized_historical_forecasts and len(val) > 1:

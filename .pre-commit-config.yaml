@@ -5,7 +5,7 @@ repos:
     -   id: pre-commit-update
         fail_fast: true
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.13
+    rev: 0.9.17
     hooks:
     -   id: uv-lock
     -   id: uv-export
@@ -32,6 +32,6 @@ repos:
         pass_filenames: true
         require_serial: true
 -   repo: https://github.com/iterative/dvc
-    rev: 3.64.0
+    rev: 3.64.2
     hooks:
     -   id: dvc-pre-commit

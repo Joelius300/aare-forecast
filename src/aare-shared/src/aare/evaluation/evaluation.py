@@ -77,6 +77,11 @@ def evaluate_model(
 
 
 # TODO Unit test
+# TODO refactor completely; evaluation should happen on historical forecasts in the same table format as they are
+#  stored during inference. This way you only need to call historical_forecasts and transform them into the table format
+#  to use all the fancy evaluation and potentially reporting functionality designed for both past and continuous validation.
+#  The forecasts dataframe can be joined with ground truth for comparison (evaluation). The evaluation logic should be
+#  pandas or polars, not using darts metrics and numpy. This will be much faster and more agnostic=useful. Use TDD for this.
 def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],

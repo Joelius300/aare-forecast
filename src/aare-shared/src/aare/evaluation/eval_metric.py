@@ -60,7 +60,7 @@ class EvalMetric:
         return EvalMetric(**metrics)
 
     @classmethod
-    def from_ndarray(cls, values: np.ndarray, std: Optional[np.ndarray] = None):
+    def from_row(cls, values: np.ndarray, std: Optional[np.ndarray] = None):
         return EvalMetric(
             mae=values[0],
             rmse=values[1],

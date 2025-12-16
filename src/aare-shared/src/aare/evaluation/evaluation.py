@@ -154,7 +154,7 @@ def evaluate_model(
     lookback_hours = max(get_context_len(model), min_lookback_hours)
     sample = ForecastSamples(
         *(
-            EvalForecast(val, fc, lookback_hours, EvalMetric.from_ndarray(fc_m), future_cov=future_cov)
+            EvalForecast(val, fc, lookback_hours, EvalMetric.from_row(fc_m), future_cov=future_cov)
             for fc, fc_m in samples
         )
     )
@@ -201,8 +201,9 @@ def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricTyp
 
     metric_df = metric_df[metric_names]
     metrics_median = np.median(metric_df, axis=0).astype(float)
-    metrics_std = np.std(metric_df, axis=0, dtype=float)
-    agg_metrics = EvalMetric.from_ndarray(metrics_median, metrics_std)
+    metrics_std = np.std(metric_df, axis=0).astype(float)
+    # interestingly median returns an ndarray, std returns a series
+    agg_metrics = EvalMetric.from_row(metrics_median, metrics_std.values)
 
     worst_index, best_index = np.argmax(metric_df, axis=0), np.argmin(metric_df, axis=0)
     most_avg_index = np.argmin(np.abs(metric_df - metrics_median), axis=0)
@@ -218,9 +219,10 @@ def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricTyp
     return (
         agg_metrics,
         (
-            (hf[most_avg_index], metric_df.iloc[most_avg_index]),
-            (hf[best_index], metric_df.iloc[best_index]),
-            (hf[worst_index], metric_df.iloc[worst_index]),
+            # forecast with corresponding row of metrics
+            (hf[most_avg_index], metric_df.iloc[most_avg_index].values),
+            (hf[best_index], metric_df.iloc[best_index].values),
+            (hf[worst_index], metric_df.iloc[worst_index].values),
         ),
     )
 

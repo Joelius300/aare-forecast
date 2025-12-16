@@ -1,5 +1,6 @@
 import logging
 import os
+from datetime import tzinfo
 from pathlib import Path
 from typing import Union, Optional, cast, overload, Callable
 
@@ -248,6 +249,14 @@ def to_ts(df: pd.DataFrame | pd.Series, col: Optional[str | list[str]] = None, f
     ts = ts.astype(np.float32)  # pyright: ignore [reportArgumentType]
 
     return ts
+
+
+def relocalize_times(col: pd.Series, tz: str | tzinfo):
+    """Assume naive timestamps are UTC, then convert to the specified timezone. Do nothing if already aware."""
+    if col.dt.tz is None:
+        return col.dt.tz_localize("UTC").dt.tz_convert(tz)
+
+    return col
 
 
 def get_context_len(model: ForecastingModel) -> int:

@@ -44,6 +44,7 @@ class BaseTuner(ABC):
         self.train = ds.get_train()
         self.val = ds.get_val()
 
+        self.tz = params["general"]["timezone"]
         self.train_target_subs, self.train_fc_subs = self.train[0], self.train[2]
         self.val_target_subs, self.val_fc_subs = self.val[0], self.val[2]
         self.scalers = get_scalers(self.train_target_subs, train_fc_subs=self.train_fc_subs)
@@ -198,6 +199,7 @@ class BaseTuner(ABC):
             self.min_lookback_hours,
             future_cov=self.val_fc_subs,
             data_transformers=self.scalers,
+            tz=self.tz,
         )
 
         metrics_dict = metrics.to_dict()

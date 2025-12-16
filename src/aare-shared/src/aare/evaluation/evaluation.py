@@ -7,11 +7,10 @@ from typing import Literal, Mapping, Optional, Sequence, cast, overload
 
 import pandas as pd
 
-from aare.evaluation.custom_metrics.daily_peak import madpd, dpd
+from aare.constants import TEMP
 import numpy as np
 import torch
 from darts import TimeSeries
-from darts.metrics import mae, rmse, err
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.models.forecasting.global_baseline_models import _GlobalNaiveModel
 from darts.utils.missing_values import extract_subseries
@@ -23,12 +22,12 @@ from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.eval_metric import EvalMetric
 from aare.params import ValidationParams
 from aare.preparation import prepare_ts_aare_temp
-from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len
+from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len, relocalize_times
 
 logger = logging.getLogger(__name__)
 
-used_metrics = [mae, rmse, madpd]
 metrics_idx = {"MAE": 0, "RMSE": 1, "MADPD": 2}
+metric_names = list(metrics_idx.keys())
 MetricType = Literal["MAE", "RMSE", "MADPD"]
 
 
@@ -40,6 +39,7 @@ def evaluate_model(
     stride=24,
     min_lookback_hours=-1,
     *,
+    tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
@@ -47,7 +47,6 @@ def evaluate_model(
     num_samples=128,
     data_transformers: Optional[DataTransformers] = None,
     random_state=42,
-    tz: str | tzinfo | None = None,
     get_raw: Literal[False] = False,
     run_ts_delta=pd.Timedelta(1, "s"),
 ) -> tuple[EvalMetric, ForecastSamples]:
@@ -62,6 +61,7 @@ def evaluate_model(
     stride=24,
     min_lookback_hours=-1,
     *,
+    tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
@@ -69,7 +69,6 @@ def evaluate_model(
     num_samples=128,
     data_transformers: Optional[DataTransformers] = None,
     random_state=42,
-    tz: str | tzinfo | None = None,
     get_raw: Literal[True],
     run_ts_delta=pd.Timedelta(1, "s"),
 ) -> tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
@@ -89,6 +88,7 @@ def evaluate_model(
     stride=24,
     min_lookback_hours=-1,
     *,
+    tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
     verbose=False,
@@ -96,7 +96,6 @@ def evaluate_model(
     num_samples=128,
     data_transformers: Optional[DataTransformers] = None,
     random_state=42,
-    tz: str | tzinfo | None = None,
     get_raw: bool = False,
     run_ts_delta=pd.Timedelta(1, "s"),
 ) -> tuple[EvalMetric, ForecastSamples] | tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
@@ -149,7 +148,6 @@ def evaluate_model(
         data_transformers=data_transformers,
         random_state=random_state,
         tz=tz,
-        get_raw=get_raw,
         run_ts_delta=run_ts_delta,
     )
 
@@ -180,123 +178,121 @@ def _evaluate_model(
     num_samples: int,
     data_transformers: Optional[DataTransformers],
     random_state: Optional[int],
-    tz: str | tzinfo | None,
-    get_raw: bool,
+    tz: str | tzinfo,
     run_ts_delta: pd.Timedelta,
 ):
     hf = historical_forecasts(
         model, val, horizon, stride, parallel, verbose, future_cov, num_samples, data_transformers, random_state
     )
+    hf = [fc for fc_l in hf for fc in fc_l]
 
-    metric_i = metrics_idx.get(metric)
-    if metric_i is None:
-        raise ValueError(f"Invalid metric '{metric}'")
+    hf_df = hf_to_table(hf, tz, run_ts_delta)
+    hf_df = join_true_data(hf_df, val, tz)
+    hf_df["err"] = get_err(hf_df)
+    hf_df["dpd"] = get_dpd(hf_df)
+    metric_df = get_metrics(hf_df)
 
-    # historical forecasts are reused, but raw err and dpd metrics are calculated twice.
-    # TODO it's a fight between abstractions, but we could definitely reuse the raw metrics for MAE, RMSE and MADPD!
-    return _get_agg_metrics(model, hf, val, metric_i, tz), (
-        _get_raw_metrics(model, hf, val, tz, run_ts_delta) if get_raw else None
-    )
-
-
-def _get_raw_metrics(
-    model: ForecastingModel,
-    hf: list[list[TimeSeries]],
-    val: list[TimeSeries],
-    tz: str | tzinfo | None,
-    run_ts_delta=pd.Timedelta(1, "s"),
-):
-    bt = cast(
-        list[np.ndarray],
-        model.backtest(
-            val,
-            historical_forecasts=hf,
-            # using the darts dpd metric here is really slow (20x err), but simple.
-            # it might be faster to convert hf to a dataframe, join with true data
-            # (either with outside data or by adding err back) and then calculating
-            # dpd across all hf directly with the dataframe.
-            metric=[err, dpd],
-            # must align order of kwargs with order of metrics
-            metric_kwargs=[{}, dict(tz=tz)],
-            reduction=None,
-        ),
-    )
-
-    # combined all sets of historical forecasts into one array
-    bt = np.concatenate(bt, axis=0)
-    # flatten into (n_hf x horizon, n_metrics)
-    bt = bt.reshape(-1, bt.shape[-1])
-    # extract times, shape (n_hf, horizon)
-    times = np.stack([fc.time_index.values for fc_l in hf for fc in fc_l])
-    # construct fake run_ts by subtracting delta from first ts and repeating each for {horizon}
-    run_ts = times[:, 0] - run_ts_delta
-    run_ts = run_ts.repeat(times.shape[1])
-    # flatten times to align with bt
-    times = times.ravel()
-
-    # create final dataframe with errors
-    df = pd.DataFrame(bt, index=times, columns=["err", "dpd"])
-    df = df.reset_index(names="time")
-    df.insert(0, "run_ts", run_ts)  # add run_ts as first col
-
-    return df
+    return get_samples(hf, metric_df, metric), hf_df
 
 
-def _get_agg_metrics(
-    model: ForecastingModel,
-    hf: list[list[TimeSeries]],
-    val: list[TimeSeries],
-    metric_i: int,
-    tz: str | tzinfo | None,
-):
-    # run metric calculations on all historical forecasts
-    backtest = cast(
-        list[np.ndarray],
-        model.backtest(
-            val,
-            historical_forecasts=hf,
-            metric=used_metrics,
-            # must align order of kwargs with order of metrics
-            metric_kwargs=[{}, {}, dict(tz=tz)],
-            reduction=None,
-        ),
-    )
+def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricType = "MAE"):
+    """Get best, worst and most avg samples together with aggregated median metrics."""
+    assert len(hf) == metric_df.shape[0], "historical forecast don't match metric df"
 
-    # flatten so all historical forecasts are treated the same, despite multiple val series.
-    # this is really important because otherwise, short series with only a few evaluations
-    # are weighed the same as very long series with much more samples -> not all samples
-    # are weighted equally overall.
-    backtest_flat = cast(np.ndarray, np.concatenate(backtest, axis=0))
-    hf_flat = [ts for ll in hf for ts in ll]
-
-    # the function choice here (median, not mean) is written as info in the Metrics class.
-    metrics_median = np.median(backtest_flat, axis=0).astype(float)
-    metrics_std = np.std(backtest_flat, axis=0, dtype=float)
-    assert metrics_median.shape == (len(used_metrics),) and metrics_std.shape == (len(used_metrics),), (
-        "metric reduction is faulty"
-    )
+    metric_df = metric_df[metric_names]
+    metrics_median = np.median(metric_df, axis=0).astype(float)
+    metrics_std = np.std(metric_df, axis=0, dtype=float)
     agg_metrics = EvalMetric.from_ndarray(metrics_median, metrics_std)
 
-    worst_index, best_index = np.argmax(backtest_flat, axis=0), np.argmin(backtest_flat, axis=0)
-    most_avg_index = np.argmin(np.abs(backtest_flat - metrics_median), axis=0)
+    worst_index, best_index = np.argmax(metric_df, axis=0), np.argmin(metric_df, axis=0)
+    most_avg_index = np.argmin(np.abs(metric_df - metrics_median), axis=0)
     assert (
-        worst_index.shape == (len(used_metrics),)
-        and best_index.shape == (len(used_metrics),)
-        and most_avg_index.shape == (len(used_metrics),)
+        worst_index.shape == (len(metric_names),)
+        and best_index.shape == (len(metric_names),)
+        and most_avg_index.shape == (len(metric_names),)
     ), "worst, best, most_avg index reduction is faulty"
+
+    metric_i = metrics_idx[metric]
     worst_index, best_index, most_avg_index = worst_index[metric_i], best_index[metric_i], most_avg_index[metric_i]
-    # TODO could check and warn if MAE and RMSE result in different best/worst
 
     return (
         agg_metrics,
         (
-            (hf_flat[most_avg_index], backtest_flat[most_avg_index]),
-            (hf_flat[best_index], backtest_flat[best_index]),
-            (hf_flat[worst_index], backtest_flat[worst_index]),
+            (hf[most_avg_index], metric_df.iloc[most_avg_index]),
+            (hf[best_index], metric_df.iloc[best_index]),
+            (hf[worst_index], metric_df.iloc[worst_index]),
         ),
     )
 
 
+def hf_to_table(hf: list[TimeSeries], tz: str | tzinfo, run_ts_delta=pd.Timedelta(1, "s")) -> pd.DataFrame:
+    """Convert a list of historical forecasts to table format with run_ts, time and pred. tz needed to make times aware."""
+    times = np.stack([fc.time_index.values for fc in hf])
+
+    run_ts = times[:, 0] - run_ts_delta
+    run_ts = run_ts.repeat(times.shape[1])
+
+    pred = np.concat([fc.values() for fc in hf])
+
+    hf_df = pd.DataFrame(pred, index=times.ravel(), columns=["pred"])
+    hf_df = hf_df.reset_index(names="time")
+    hf_df.insert(0, "run_ts", run_ts)  # add run_ts as first col
+
+    hf_df["time"] = relocalize_times(hf_df["time"], tz)
+    hf_df["run_ts"] = relocalize_times(hf_df["run_ts"], tz)
+
+    return hf_df
+
+
+def join_true_data(hf_df: pd.DataFrame, true_target: list[TimeSeries] | pd.DataFrame, tz: str | tzinfo):
+    """
+    Add 'actual' column to the historical forecast dataframe for evaluation. Either supply a dataframe directly
+    or a list of time series with the target value (e.g. val slices). tz needed to make true times aware.
+    """
+    if isinstance(true_target, list):
+        true_target = pd.concat([v.to_dataframe() for v in true_target])
+
+    if TEMP in true_target.columns:
+        true_target = true_target.rename(columns={TEMP: "actual"})
+
+    assert "actual" in true_target.columns, "'actual' column missing in true df"
+
+    if "time" not in true_target.columns:
+        true_target = true_target.reset_index(names="time")
+
+    # make sure joining with aware timestamps
+    true_target["time"] = relocalize_times(true_target["time"], tz)
+
+    return hf_df.join(true_target[["time", "actual"]].set_index("time"), on="time")
+
+
+def get_dpd(hf_df: pd.DataFrame):
+    """Calculate the raw dpd metric from the 'actual' and 'pred' columns together with 'time'."""
+    assert hf_df["time"].dt.tz is not None, "Naive timestamps in dpd, will likely introduce alignment errors!"
+    # group by run and date of the predicted time
+    daily_max = hf_df[["actual", "pred"]].groupby([hf_df["run_ts"], hf_df["time"].dt.date]).transform("max")
+
+    return daily_max["actual"] - daily_max["pred"]
+
+
+def get_err(hf_df: pd.DataFrame):
+    """Calculate the raw y_true - y_pred errors."""
+    return hf_df["actual"] - hf_df["pred"]
+
+
+def get_metrics(hf_df: pd.DataFrame):
+    """Calculate MAE, RMSE and MADPD per forecast."""
+    x = hf_df[["run_ts", "err", "dpd"]].copy()
+    x["err_sq"] = x["err"] ** 2
+    x[["err", "dpd"]] = x[["err", "dpd"]].abs()
+
+    df_agg = x.groupby("run_ts").agg("mean").rename(columns=dict(err="MAE", err_sq="RMSE", dpd="MADPD"))
+    df_agg["RMSE"] = np.sqrt(df_agg["RMSE"])
+
+    return df_agg
+
+
+# TODO extract into own file for historical forecasts
 def historical_forecasts(
     model: ForecastingModel,
     val: list[TimeSeries],
@@ -475,7 +471,7 @@ def evaluation_pipeline_uni(
     models: Mapping[str, ForecastingModel],
     forecast_horizon: int,
     validation_params: ValidationParams,
-    tz: str | tzinfo | None,
+    tz: str | tzinfo,
 ) -> None:
     """Evaluate all specified models on the validation data and write the results to the pre-defined folders."""
     dataset = AareDataset.from_conf()

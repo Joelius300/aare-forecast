@@ -7,7 +7,6 @@ from typing import Literal, Mapping, Optional, Sequence, cast, overload
 
 import pandas as pd
 
-from aare.constants import TEMP
 import numpy as np
 import torch
 from darts import TimeSeries
@@ -254,10 +253,14 @@ def join_true_data(hf_df: pd.DataFrame, true_target: list[TimeSeries] | pd.DataF
     if isinstance(true_target, list):
         true_target = pd.concat([v.to_dataframe() for v in true_target])
 
-    if TEMP in true_target.columns:
-        true_target = true_target.rename(columns={TEMP: "actual"})
+    if "actual" not in true_target.columns:
+        non_time_cols = [c for c in true_target.columns if c not in ("time", "_time")]
+        assert len(non_time_cols) == 1, (
+            f"more than 1 non-time column in true target data! cannot handle: {non_time_cols}"
+        )
+        true_target = true_target.rename(columns={non_time_cols[0]: "actual"})
 
-    assert "actual" in true_target.columns, "'actual' column missing in true df"
+    assert "actual" in true_target.columns, f"'actual' column missing in true df (has {true_target.columns})"
 
     if "time" not in true_target.columns:
         true_target = true_target.reset_index(names="time")

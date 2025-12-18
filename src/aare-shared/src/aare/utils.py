@@ -15,6 +15,8 @@ from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 
+# TODO split to avoid darts import in general utils, especially for paths
+
 
 def find_project_root(raise_not_found=True, allow_env=True) -> Path:
     """Traverse CWD up to the project root and return its path. Take PROJECT_ROOT env if set."""

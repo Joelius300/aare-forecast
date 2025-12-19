@@ -78,6 +78,7 @@ def main():
                 study.enqueue_trial(params, user_attrs={"initial_trial_of": tuner.model_name})
 
         # TODO add callback to store new best model (here's probably best place, but idk)
+        #  alternatively, store all models and metrics from finished models (unpromising should be pruned anyway).
         study.optimize(tuner)
 
 
@@ -89,4 +90,5 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
 
     # TODO add some "force initial" to always suggest initial trials maybe?
+    # TODO add simple way to train/repro a single model with specific parameters (and store all artifacts) (no pruning).
     main()

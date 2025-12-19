@@ -70,6 +70,7 @@ def main():
         study.optimize(tuner)
 
 
+# TODO see todos and improvement ideas in tune_gru
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     torch.set_float32_matmul_precision("medium")

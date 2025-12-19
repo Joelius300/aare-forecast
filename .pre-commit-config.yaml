@@ -11,12 +11,12 @@ repos:
     -   id: uv-export
 -   repo: local
     hooks:
-    -   id: pyright-local
-        language: system
-        name: pyright-local
-        entry: uv run pyright
-        types_or: [python, pyi, jupyter]
-        pass_filenames: false
+        # -   id: pyright-local
+        # language: system
+        # name: pyright-local
+        # entry: uv run basedpyright
+        # types_or: [python, pyi, jupyter]
+        # pass_filenames: false
     -   id: ruff-check-local
         language: system
         name: ruff-check-local

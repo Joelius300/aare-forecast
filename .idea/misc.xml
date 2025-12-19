@@ -21,4 +21,7 @@
     </entry>
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 virtualenv at ~/projects/aare-forecast/.venv" project-jdk-type="Python SDK" />
+  <component name="PyrightConfiguration">
+    <option name="enabled" value="true" />
+  </component>
 </project>

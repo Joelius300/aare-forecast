@@ -1,6 +1,6 @@
 import logging
 from datetime import tzinfo, datetime
-from typing import Union, Optional, cast, overload, Callable
+from typing import cast, overload, Callable
 
 import pandas as pd
 
@@ -21,10 +21,10 @@ MEDIAN_METHOD_NAME = "median"
 def fill_with_hard_limit(
     df_or_series: pd.DataFrame,
     limit: int,
-    fill_func="interpolate",
-    method: Optional[str] = None,
-    columns: Optional[list[str]] = None,
-    add_was_filled=False,
+    fill_func: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
+    method: str | None = None,
+    columns: list[str] | None = None,
+    add_was_filled: bool = False,
     **fill_func_kwargs,
 ) -> pd.DataFrame:
     pass
@@ -34,24 +34,24 @@ def fill_with_hard_limit(
 def fill_with_hard_limit(
     df_or_series: pd.Series,
     limit: int,
-    fill_func="interpolate",
-    method: Optional[str] = None,
-    columns: Optional[list[str]] = None,
-    add_was_filled=False,
+    fill_func: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
+    method: str | None = None,
+    columns: list[str] | None = None,
+    add_was_filled: bool = False,
     **fill_func_kwargs,
 ) -> pd.Series:
     pass
 
 
 def fill_with_hard_limit(
-    df_or_series: Union[pd.DataFrame, pd.Series],
+    df_or_series: pd.DataFrame | pd.Series,
     limit: int,
     fill_func: str | Callable[[pd.DataFrame, int], pd.DataFrame] = "interpolate",
-    method: Optional[str] = None,
-    columns: Optional[list[str]] = None,
-    add_was_filled=False,
+    method: str | None = None,
+    columns: list[str] | None = None,
+    add_was_filled: bool = False,
     **fill_func_kwargs,
-) -> Union[pd.DataFrame, pd.Series]:
+) -> pd.DataFrame | pd.Series:
     # adjusted from https://stackoverflow.com/a/66373000/10883465
     """
     The fill methods from Pandas such as ``interpolate`` or ``bfill``
@@ -75,6 +75,7 @@ def fill_with_hard_limit(
     :param columns: Which columns so fill. Defaults to all.
     :param fill_func_kwargs: Keyword arguments to pass to the
         fill_func, in addition to the given limit and method.
+    :param add_was_filled: Add 'filled' indicator column.
 
     :returns: A filled version of the given df_or_series according
         to the given inputs.
@@ -86,7 +87,7 @@ def fill_with_hard_limit(
         df = df_or_series
     assert isinstance(df, pd.DataFrame), "df isn't a DataFrame after check?!"
 
-    to_interp = cast(pd.DataFrame, df[columns] if columns else df)
+    to_interp = df[columns] if columns else df
     columns = list(to_interp.columns)
 
     # Initialize our mask.

@@ -39,6 +39,7 @@ line-length = 120
 pythonVersion = "3.12"
 reportRedeclaration = "warning"
 reportMissingImports = "error"
+reportUnusedCallResult = "information"
 # fixes `lib` absolute imports, but not sure if that's the correct way, since those are self-contained projects
 extraPaths = ["src/aare-shared/", "src/forecast-api/", "src/forecast-service/"]
 

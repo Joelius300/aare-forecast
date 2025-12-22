@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, cast
+from typing import cast
 
 import darts
 import numpy as np
@@ -14,7 +14,7 @@ from aare.utils import ensure_frame
 logger = logging.getLogger(__name__)
 
 
-def to_ts(df: pd.DataFrame | pd.Series, col: Optional[str | list[str]] = None, freq=None) -> TimeSeries:
+def to_ts(df: pd.DataFrame | pd.Series, col: str | list[str] | None = None, freq: str | None = None) -> TimeSeries:
     """
     Transforms a dataframe into a darts TimeSeries using the predefined TIME column (or index).
     Remove all time zone information.
@@ -66,14 +66,16 @@ def get_context_len(model: ForecastingModel) -> int:
     extreme_lags = model.extreme_lags
     abs_min_target_lag = abs(extreme_lags[0]) if extreme_lags[0] is not None else None
     if hasattr(model, "context_length"):
-        context_len = model.context_length  # pyright: ignore [reportAttributeAccessIssue]
+        context_len = model.context_length  # pyright: ignore [reportAttributeAccessIssue, reportUnknownMemberType]
     elif hasattr(model, "input_chunk_length"):
-        context_len = model.input_chunk_length  # pyright: ignore [reportAttributeAccessIssue]
+        context_len = model.input_chunk_length  # pyright: ignore [reportAttributeAccessIssue, reportUnknownMemberType]
     else:
         context_len = abs_min_target_lag
 
     if context_len is None:
         raise ValueError("Could not determine context_len of model")
+
+    assert isinstance(context_len, int), "context_len is not int"
 
     assert abs_min_target_lag is None or context_len == abs_min_target_lag, (
         "Context Length must be indicated by extreme_lags[0]"

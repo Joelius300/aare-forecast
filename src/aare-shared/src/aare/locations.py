@@ -49,7 +49,7 @@ def translate_location(loc: str | int, measurement: Optional[Literal["hydro", "s
     if measurement:
         logger.warning(
             f"Location '{loc}' is not a known alias and returned verbatim, "
-            f"but measurement '{measurement}' was specified."
+            + f"but measurement '{measurement}' was specified."
         )
 
     return loc

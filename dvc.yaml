@@ -1,11 +1,4 @@
 stages:
-  fit-scaler:
-    cmd: python scripts/fit_scaler.py
-    params:
-      - split.train_split
-      - split.val_split
-    outs:
-      - data/scaler.pkl
   establish-baselines:
     cmd: python scripts/establish_baselines.py
     params:

@@ -10,7 +10,7 @@ from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 
 from aare.constants import TIME
-from aare.utils import to_ts
+from aare.darts_utils import to_ts
 
 
 class TimesFmDarts(GlobalForecastingModel):

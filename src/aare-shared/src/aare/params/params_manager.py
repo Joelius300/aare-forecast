@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, cast
 
 from aare.params.params_types import Params
-from aare.utils import PROJECT_ROOT
+from aare.paths import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 

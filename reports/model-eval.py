@@ -15,7 +15,7 @@ def _():
     import polars.selectors as cs
 
     from aare.params import read_params
-    from aare.utils import METRICS_FOLDER
+    from aare.paths import METRICS_FOLDER
 
     return METRICS_FOLDER, cs, go, mo, pl, px, read_params, timedelta
 

@@ -12,8 +12,7 @@ from optuna.samplers import TPESampler
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
 from aare.tuning.tsmixer_tuner import TSMixerTuner
-from aare.utils import OPTUNA_STORE_URI
-
+from aare.paths import OPTUNA_STORE_URI
 
 logger = logging.getLogger(__name__)
 

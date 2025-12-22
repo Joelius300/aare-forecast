@@ -15,7 +15,8 @@ from aare.evaluation.eval_forecast import EvalForecast
 from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.eval_metric import EvalMetric
 from aare.evaluation.historical_forecasts import historical_forecasts
-from aare.utils import get_context_len, relocalize_times
+from aare.utils import relocalize_times
+from aare.darts_utils import get_context_len
 
 logger = logging.getLogger(__name__)
 

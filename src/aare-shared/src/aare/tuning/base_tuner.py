@@ -21,7 +21,7 @@ from aare.feature_set import FeatureSet
 from aare.features.registry import FEATURES
 from aare.normalization import get_scalers
 from aare.params import read_params, Params
-from aare.utils import get_data_stats
+from aare.darts_utils import get_data_stats
 
 ModelType = TorchForecastingModel | SKLearnModel
 

@@ -6,7 +6,7 @@ from darts.dataprocessing.transformers import Scaler
 from sklearn.preprocessing import StandardScaler
 
 from aare.compat.types import DataTransformers
-from aare.utils import DATA_FOLDER
+from aare.paths import DATA_FOLDER
 
 SCALER_PATH = DATA_FOLDER / "scaler.pkl"
 

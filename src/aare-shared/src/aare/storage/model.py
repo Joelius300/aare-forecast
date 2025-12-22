@@ -10,7 +10,7 @@ from aare.compat.types import DataTransformers
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
 from aare.storage.metadata import AareModel, get_mlflow_info, serialize_model_info, load_model_info
-from aare.utils import MODELS_FOLDER
+from aare.paths import MODELS_FOLDER
 
 # Using with_suffix on paths with multipart suffixes will give you wrong paths because it only changes the last part.
 META_SUFFIX = ".json"

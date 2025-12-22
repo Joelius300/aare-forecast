@@ -8,7 +8,8 @@ from typing_extensions import deprecated
 
 from aare.constants import TEMP, TIME
 from aare.params import read_params
-from aare.utils import between, fill_with_hard_limit, to_ts
+from aare.utils import between, fill_with_hard_limit
+from aare.darts_utils import to_ts
 
 
 def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:

@@ -2,7 +2,7 @@ from typing import override
 from aare.features.base.feature import Feature
 from aare.preparation import interpolate_continuous, remove_outliers, remove_period
 from aare.remote_existenz_store import FieldRequest
-from aare.utils import to_ts
+from aare.darts_utils import to_ts
 from darts import TimeSeries
 import numpy as np
 from pandas import DataFrame

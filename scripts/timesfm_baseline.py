@@ -15,7 +15,7 @@
 # ///
 import logging
 
-from aare.evaluation.evaluation import evaluation_pipeline_uni
+from aare.evaluation.pipeline import evaluation_pipeline_uni
 from aare.params import read_params
 from aare.wrappers.timesfm import TimesFmDarts
 

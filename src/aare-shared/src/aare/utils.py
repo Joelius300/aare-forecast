@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import tzinfo
+from datetime import tzinfo, datetime
 from pathlib import Path
 from typing import Union, Optional, cast, overload, Callable
 
@@ -192,7 +192,7 @@ def fill_with_hard_limit(
     return out
 
 
-def between(df, from_, to_):
+def between(df: pd.DataFrame, from_: str | datetime | pd.Timestamp, to_: str | datetime | pd.Timestamp):
     """Returns a boolean mask for a time period selection. Assumes '_time' as time column and falls back to index."""
     if TIME in df.columns:
         return (df[TIME] >= from_) & (df[TIME] < to_)
@@ -257,6 +257,10 @@ def relocalize_times(col: pd.Series, tz: str | tzinfo):
     """Assume naive timestamps are UTC, then convert to the specified timezone. Do nothing if already aware."""
     if col.dt.tz is None:
         return col.dt.tz_localize("UTC").dt.tz_convert(tz)
+
+    assert (isinstance(tz, tzinfo) and col.dt.tz == tz) or (isinstance(tz, str) and col.dt.tz.tzname(None) == tz), (
+        f"Times are already aware but the timezone is {col.dt.tz} instead of the requested {tz}!"
+    )
 
     return col
 

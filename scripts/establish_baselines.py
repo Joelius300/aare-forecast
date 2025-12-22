@@ -2,7 +2,7 @@ import logging
 
 from darts.models import GlobalNaiveSeasonal, GlobalNaiveAggregate
 
-from aare.evaluation.evaluation import evaluation_pipeline_uni
+from aare.evaluation.pipeline import evaluation_pipeline_uni
 from aare.params import read_params
 
 logger = logging.getLogger(__name__)

@@ -1,27 +1,21 @@
 from datetime import tzinfo
-import json
 import logging
-import pickle
-from concurrent.futures.process import ProcessPoolExecutor
-from typing import Literal, Mapping, Optional, Sequence, cast, overload
+from typing import Literal, Optional, overload
+from collections.abc import Sequence
 
 import pandas as pd
 
 import numpy as np
-import torch
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
-from darts.models.forecasting.global_baseline_models import _GlobalNaiveModel
 from darts.utils.missing_values import extract_subseries
 
-from aare.AareDataset import AareDataset
 from aare.compat.types import DataTransformers
 from aare.evaluation.eval_forecast import EvalForecast
 from aare.evaluation.forecast_samples import ForecastSamples
 from aare.evaluation.eval_metric import EvalMetric
-from aare.params import ValidationParams
-from aare.preparation import prepare_ts_aare_temp
-from aare.utils import FORECAST_SAMPLES_FOLDER, METRICS_FOLDER, get_context_len, relocalize_times
+from aare.evaluation.historical_forecasts import historical_forecasts
+from aare.utils import get_context_len, relocalize_times
 
 logger = logging.getLogger(__name__)
 
@@ -75,11 +69,6 @@ def evaluate_model(
 
 
 # TODO Unit test
-# TODO refactor completely; evaluation should happen on historical forecasts in the same table format as they are
-#  stored during inference. This way you only need to call historical_forecasts and transform them into the table format
-#  to use all the fancy evaluation and potentially reporting functionality designed for both past and continuous validation.
-#  The forecasts dataframe can be joined with ground truth for comparison (evaluation). The evaluation logic should be
-#  pandas or polars, not using darts metrics and numpy. This will be much faster and more agnostic=useful. Use TDD for this.
 def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],
@@ -113,7 +102,7 @@ def evaluate_model(
 
     Random state is fixed at 42 by default for reproducibility.
 
-    The timezone (tz) is used to calculate the mean absolute daily peak difference metric.
+    The timezone (tz) is used to relocalize the times and calculate the mean absolute daily peak difference metric.
 
     Returns the aggregated metrics as well as the most average, best and worst forecast
     the model made (decided by MAE or whatever you specify).
@@ -194,6 +183,7 @@ def _evaluate_model(
     return get_samples(hf, metric_df, metric), hf_df
 
 
+# TODO implement evaluating only specific months, rename, fix types
 def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricType = "MAE"):
     """Get best, worst and most avg samples together with aggregated median metrics."""
     assert len(hf) == metric_df.shape[0], "historical forecast don't match metric df"
@@ -204,6 +194,7 @@ def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricTyp
     # interestingly median returns an ndarray, std returns a series
     agg_metrics = EvalMetric.from_row(metrics_median, metrics_std.values)
 
+    # TODO use argsort, take first, last and the one in the middle as index
     worst_index, best_index = np.argmax(metric_df, axis=0), np.argmin(metric_df, axis=0)
     most_avg_index = np.argmin(np.abs(metric_df - metrics_median), axis=0)
     assert (
@@ -295,207 +286,3 @@ def get_metrics(hf_df: pd.DataFrame):
     df_agg["RMSE"] = np.sqrt(df_agg["RMSE"])
 
     return df_agg
-
-
-# TODO extract into own file for historical forecasts
-def historical_forecasts(
-    model: ForecastingModel,
-    val: list[TimeSeries],
-    horizon: int,
-    stride: int,
-    parallel: bool | int | Literal["auto"] = False,
-    verbose=False,
-    future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
-    num_samples=128,
-    data_transformers: Optional[DataTransformers] = None,
-    random_state: Optional[int] = 42,
-) -> list[list[TimeSeries]]:
-    """Simulate historical forecasts with a pre-trained model on one or more validation series, optionally in parallel."""
-    # does some validation and prep, then uses _historical_forecasts_parallel
-    if len(val) == 0:
-        raise ValueError("Must pass at least one validation series")
-
-    if not model.supports_transferable_series_prediction:
-        raise ValueError("Cannot evaluate a model which doesn't support transferable prediction.")
-
-    # could break in any release since it's not public api
-    if not model._supports_non_retrainable_historical_forecasts:
-        # currently (24.03) the only models that support transferable series prediction but not
-        # non-retrainable historical forecasts are local ensemble models IIRC.
-        raise ValueError("Cannot evaluate a model which doesn't support non-retrainable historical forecasts.")
-
-    parallel = _validate_parallel(parallel, model, val)
-
-    if isinstance(model, _GlobalNaiveModel):
-        # only takes the components etc. global naive don't care about the values
-        model.fit(val[0])
-
-    # simulate historical forecasts (without retraining!)
-    return _historical_forecasts_parallel(
-        model, val, stride, horizon, parallel, verbose, future_cov, num_samples, data_transformers, random_state
-    )
-
-
-def _historical_forecasts_parallel(
-    model: ForecastingModel,
-    val: list[TimeSeries],
-    stride: int,
-    horizon: int,
-    parallel: bool | int,
-    verbose: bool,
-    future_cov: TimeSeries | Sequence[TimeSeries] | None,
-    num_samples: int,
-    data_transformers: Optional[DataTransformers],
-    random_state: Optional[int],
-) -> list[list[TimeSeries]]:
-    if (
-        future_cov is not None
-        and not isinstance(future_cov, TimeSeries)
-        and isinstance(future_cov, Sequence)
-        and len(future_cov) != len(val)
-    ):
-        raise ValueError("When passing future_cov as a list, it must have the same number of entries as val")
-
-    actual_num_samples = num_samples if model.supports_probabilistic_prediction else 1
-
-    if not parallel:
-        return cast(
-            list[list[TimeSeries]],
-            # (most likely) uses extreme_lags to find where to start forecasting
-            # produces multiple forecasts (TimeSeries) with the specified stride FOR EACH SUBSERIES
-            model.historical_forecasts(
-                val,  # passing multiple ts so we get multiple sets of forecasts back
-                # future_covariates can handle slices like val but also just a big chunk with the relevant data
-                future_covariates=future_cov,
-                stride=stride,
-                forecast_horizon=horizon,
-                last_points_only=False,
-                retrain=False,
-                num_samples=actual_num_samples,
-                verbose=verbose,  # seemingly only for retraining, so probably useless
-                data_transformers=data_transformers,
-                random_state=random_state,
-            ),
-        )
-
-    # keep track of the index so order can be reconstructed
-    val_idx = list(enumerate(val))
-    # longest series first
-    prioritized = sorted(val_idx, key=lambda i_ts: len(i_ts[1]), reverse=True)
-
-    # prepare covariates for both split and unified series
-    if future_cov is None or isinstance(future_cov, TimeSeries):
-        future_covs = [future_cov] * len(prioritized)
-    else:
-        assert isinstance(future_cov, Sequence), "future_cov is not a sequence?!"
-        future_covs = []
-        for i, _ in prioritized:
-            future_covs.append(future_cov[i])
-
-    logger.debug(f"Creating historical forecasts for [{', '.join((str(len(i_ts[1])) for i_ts in prioritized))}]")
-
-    with ProcessPoolExecutor(max_workers=None if parallel is True else parallel) as pool:
-        hf = pool.map(
-            _parallel_forecast_step,
-            prioritized,
-            [model] * len(prioritized),
-            [stride] * len(prioritized),
-            [horizon] * len(prioritized),
-            [actual_num_samples] * len(prioritized),
-            future_covs,
-            [data_transformers] * len(prioritized),
-            [random_state] * len(prioritized),
-        )
-
-        hf = list(hf)  # makes it easier and the overhead is nothing
-        # restore original order
-        return [i_ts[1] for i_ts in sorted(hf, key=lambda iv: iv[0])]
-
-
-def _parallel_forecast_step(
-    i_ts: tuple[int, TimeSeries],
-    model: ForecastingModel,
-    stride: int,
-    horizon: int,
-    num_samples: int,
-    future_cov: TimeSeries | None,
-    data_transformers: Optional[DataTransformers],
-    random_state: Optional[int],
-):
-    assert future_cov is None or isinstance(future_cov, TimeSeries), "Invalid type of future_cov"
-    i, ts = i_ts
-    forecasts = model.historical_forecasts(
-        ts,  # passing now a single ts -> get a single set of forecasts
-        future_covariates=future_cov,  # must now be a single series
-        stride=stride,
-        forecast_horizon=horizon,
-        last_points_only=False,
-        retrain=False,
-        num_samples=num_samples,
-        verbose=False,  # no need in another process
-        data_transformers=data_transformers,
-        random_state=random_state,
-    )
-
-    return i, cast(list[TimeSeries], forecasts)
-
-
-def _validate_parallel(parallel: bool | int | Literal["auto"], model: ForecastingModel, val: list) -> bool | int:
-    # Thank you, Python, you did it again... bool is a subclass of int OMFG
-    if parallel == "auto":
-        # not sure if this is a good heuristic, but probably not too bad for us
-        # TODO could add a guard that it still uses parallelization if horizon > output_chunk_length
-        #  because AR is never optimized IIRC.
-        parallel = False if model.supports_optimized_historical_forecasts else True
-    elif parallel is False:
-        if not model.supports_optimized_historical_forecasts and len(val) > 1:
-            logger.warning(
-                "Model does not support optimized historical forecasts and you're evaluating multiple "
-                "validation series; you might benefit from parallelized evaluation."
-            )
-    elif parallel is True or type(parallel) is int:
-        if model.supports_optimized_historical_forecasts:
-            logger.warning(
-                "Model already supports optimized forecasts, unclear if parallelization improves performance"
-            )
-        if len(val) == 1:
-            logger.warning("Only evaluating on a single validation slice, parallelization does not make sense.")
-            parallel = False
-        if type(parallel) is int and parallel < 2:
-            raise ValueError("Parallelization must be of degree 2 or higher")
-    else:
-        raise ValueError(f"Invalid option for parallel: {parallel}")
-
-    # now parallel can only be True, False or an int > 2
-    assert type(parallel) in (bool, int), "parallel is something other than bool or int?!"
-
-    return cast(bool | int, parallel)
-
-
-def evaluation_pipeline_uni(
-    models: Mapping[str, ForecastingModel],
-    forecast_horizon: int,
-    validation_params: ValidationParams,
-    tz: str | tzinfo,
-) -> None:
-    """Evaluate all specified models on the validation data and write the results to the pre-defined folders."""
-    dataset = AareDataset.from_conf()
-    stride = validation_params["stride"]
-    min_lookback_hours = validation_params["min_lookback_hours"]
-    val = prepare_ts_aare_temp(dataset.get_val())
-    val_subs = extract_subseries(val)
-
-    # mostly to suppress the torch notice, darts has bad support for this
-    torch.set_float32_matmul_precision("medium")
-
-    METRICS_FOLDER.mkdir(exist_ok=True)
-    FORECAST_SAMPLES_FOLDER.mkdir(exist_ok=True)
-
-    for name, model in models.items():
-        metrics, sample = evaluate_model(model, val_subs, forecast_horizon, stride, min_lookback_hours, tz=tz)
-
-        with open(METRICS_FOLDER / f"{name}.json", "wt") as metrics_file:
-            json.dump(metrics.to_dict(), metrics_file)
-
-        with open(FORECAST_SAMPLES_FOLDER / f"{name}.pkl", "wb") as forecast_sample_file:
-            pickle.dump(sample, forecast_sample_file)

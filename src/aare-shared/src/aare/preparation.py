@@ -1,4 +1,5 @@
-from typing import cast, Optional, Literal
+from datetime import datetime
+from typing import Optional, Literal
 
 import numpy as np
 import pandas as pd
@@ -29,7 +30,10 @@ def resample(df: pd.DataFrame, freq: Optional[str] = None) -> pd.DataFrame:
     return _resample(df, freq)
 
 
-def remove_period(df: pd.DataFrame, from_, to_, col: str) -> None:
+def remove_period(
+    df: pd.DataFrame, from_: str | datetime | pd.Timestamp, to_: str | datetime | pd.Timestamp, col: str
+) -> None:
+    """Set a specific time period in the dataframe to nan."""
     df.loc[between(df, from_, to_), col] = np.nan
 
 
@@ -72,7 +76,7 @@ def remove_outliers(
             col,
         ] = np.nan
 
-    return cast(pd.DataFrame, df[orig_cols])
+    return df[orig_cols]
 
 
 def _interpolate_continuous(

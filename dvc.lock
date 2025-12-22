@@ -23,28 +23,40 @@ stages:
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: 60c0007b8c3fa6eda61d303238eea345
+      md5: ffda2f0b15483f91477fdc46f4e93766
       size: 10611
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: b0a4a1e936c83f4a18e0cbdd985130aa
+      md5: 444c69b8efa1e6321f90e114537f33a5
       size: 15804
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: c0f0b46975e230100becb1cccd79877c
+      md5: 50d325648b138db98be3606f2e76c8bb
       size: 10611
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: cd5ede3c2d95a894819009b4af11ebaa
+      md5: 19c2619feb19fc41bb83fec468429f79
       size: 180
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: c51614cca5a2f2cbe6a9e2f8cdbea85f
-      size: 180
+      md5: 1143b70178cfd854cc3a2691d345399a
+      size: 178
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 4d2bea2d84584940e94c199b3d518171
-      size: 179
+      md5: 6ed3c773d199c422cb8200340495f753
+      size: 178
+    - path: data/metrics/raw/LOCF.csv
+      hash: md5
+      md5: 06dbdbda036879668306415ec237f7b9
+      size: 6641670
+    - path: data/metrics/raw/MEAN.csv
+      hash: md5
+      md5: 33db0aab556f8e06bfebb4fe0e8cdd32
+      size: 6708260
+    - path: data/metrics/raw/SNAIVE.csv
+      hash: md5
+      md5: af96f5809bc765cb7666c5fa25f7c52c
+      size: 6685345
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -58,9 +70,13 @@ stages:
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 430de35eb830d1c34852654ec41e5d12
+      md5: f56f913c2db9fa2b6c916a7ddb51a5cf
       size: 28389
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: e6403b6891c6e794f768094cfe430e15
-      size: 177
+      md5: daf751bb78dd76cfb9deb94568a4478d
+      size: 179
+    - path: data/metrics/raw/TIMESFM.csv
+      hash: md5
+      md5: 03f58d95a96c1906a86231a555d67fb8
+      size: 6599597

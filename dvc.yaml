@@ -11,6 +11,9 @@ stages:
       - data/forecast_samples/LOCF.pkl
       - data/forecast_samples/SNAIVE.pkl
       - data/forecast_samples/MEAN.pkl
+      - data/metrics/raw/LOCF.csv
+      - data/metrics/raw/SNAIVE.csv
+      - data/metrics/raw/MEAN.csv
     metrics:
       - data/metrics/LOCF.json
       - data/metrics/SNAIVE.json
@@ -26,5 +29,6 @@ stages:
       - timesfm.version
     outs:
       - data/forecast_samples/TIMESFM.pkl
+      - data/metrics/raw/TIMESFM.csv
     metrics:
       - data/metrics/TIMESFM.json

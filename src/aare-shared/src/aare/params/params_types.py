@@ -5,6 +5,9 @@ class GeneralParams(TypedDict):
     frequency: str  # this is used everywhere and integrated so tightly, that it cannot simply be changed
     forecast_horizon: int
     timezone: str
+    # season in months
+    season_start: int
+    season_end: int
 
 
 class OutliersParams(TypedDict):

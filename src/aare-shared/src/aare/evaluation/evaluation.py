@@ -1,6 +1,7 @@
+import itertools
 from datetime import tzinfo
 import logging
-from typing import Literal, overload, cast
+from typing import Literal, overload
 from collections.abc import Sequence
 
 import pandas as pd
@@ -43,6 +44,7 @@ def evaluate_model(
     random_state: int = 42,
     get_raw: Literal[False] = False,
     run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s"),
+    month_filter: tuple[int, int] | None = None,
 ) -> tuple[EvalMetric, ForecastSamples]:
     pass
 
@@ -65,6 +67,7 @@ def evaluate_model(
     random_state: int = 42,
     get_raw: Literal[True],
     run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s"),
+    month_filter: tuple[int, int] | None = None,
 ) -> tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
     pass
 
@@ -204,10 +207,16 @@ def get_median_and_samples(
 
     if month_filter:
         # only look at forecasts that start and end within the season
-        month_start, month_end = month_filter
-        month_idx = (metric_df["start"].dt.month >= month_start) & (metric_df["end"].dt.month <= month_end)
+        filter_start_month, filter_end_month = month_filter
+        start_months = metric_df["start"].dt.month
+        end_months = metric_df["end"].dt.month
+        # make sure to also exclude those that start in december and end in january with the end >= start clause
+        month_idx = (
+            (start_months >= filter_start_month) & (end_months <= filter_end_month) & (end_months >= start_months)
+        )
+        # select from df and list based on boolean index
         metric_df = metric_df[month_idx]
-        hf = cast(list[TimeSeries], np.array(hf)[month_idx].tolist())
+        hf = list(itertools.compress(hf, month_idx))
 
     argsort = metric_df[metric].argsort()
     # using len // 2 results in taking the worst of the 2 median ones if n is even (pessimistic)

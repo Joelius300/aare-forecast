@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 def main():
     params = read_params()
 
+    # TODO allow tuning features somehow (optuna or feature elimination)
     features: FeatureIdentifiers = {
         "targets": ["temp_bern"],
         "future": [
@@ -90,4 +91,5 @@ if __name__ == "__main__":
 
     # TODO add some "force initial" to always suggest initial trials maybe?
     # TODO add simple way to train/repro a single model with specific parameters (and store all artifacts) (no pruning).
+    # TODO make script more agnostic so it can be used to tune different models without re-implementing the script.
     main()

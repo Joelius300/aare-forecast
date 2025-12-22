@@ -27,11 +27,11 @@ stages:
       size: 10611
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: 1a9f202841625e6c6d5f2a166ee11ead
+      md5: b0a4a1e936c83f4a18e0cbdd985130aa
       size: 15804
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 97ec4b10c0b917ebe4cc9b72f4deb486
+      md5: c0f0b46975e230100becb1cccd79877c
       size: 10611
     - path: data/metrics/LOCF.json
       hash: md5

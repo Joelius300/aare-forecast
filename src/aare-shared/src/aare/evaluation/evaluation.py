@@ -1,6 +1,6 @@
 from datetime import tzinfo
 import logging
-from typing import Literal, Optional, overload
+from typing import Literal, overload, cast
 from collections.abc import Sequence
 
 import pandas as pd
@@ -30,19 +30,19 @@ def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],
     horizon: int,
-    stride=24,
-    min_lookback_hours=-1,
+    stride: int = 24,
+    min_lookback_hours: int = -1,
     *,
     tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
-    verbose=False,
+    verbose: bool = False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
-    num_samples=128,
-    data_transformers: Optional[DataTransformers] = None,
-    random_state=42,
+    num_samples: int = 128,
+    data_transformers: DataTransformers | None = None,
+    random_state: int = 42,
     get_raw: Literal[False] = False,
-    run_ts_delta=pd.Timedelta(1, "s"),
+    run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s"),
 ) -> tuple[EvalMetric, ForecastSamples]:
     pass
 
@@ -52,19 +52,19 @@ def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],
     horizon: int,
-    stride=24,
-    min_lookback_hours=-1,
+    stride: int = 24,
+    min_lookback_hours: int = -1,
     *,
     tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
-    verbose=False,
+    verbose: bool = False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
-    num_samples=128,
-    data_transformers: Optional[DataTransformers] = None,
-    random_state=42,
+    num_samples: int = 128,
+    data_transformers: DataTransformers | None = None,
+    random_state: int = 42,
     get_raw: Literal[True],
-    run_ts_delta=pd.Timedelta(1, "s"),
+    run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s"),
 ) -> tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
     pass
 
@@ -74,19 +74,20 @@ def evaluate_model(
     model: ForecastingModel,
     val: TimeSeries | list[TimeSeries],
     horizon: int,
-    stride=24,
-    min_lookback_hours=-1,
+    stride: int = 24,
+    min_lookback_hours: int = -1,
     *,
     tz: str | tzinfo,
     metric: MetricType = "MAE",
     parallel: bool | int | Literal["auto"] = False,
-    verbose=False,
+    verbose: bool = False,
     future_cov: TimeSeries | Sequence[TimeSeries] | None = None,
-    num_samples=128,
-    data_transformers: Optional[DataTransformers] = None,
-    random_state=42,
+    num_samples: int = 128,
+    data_transformers: DataTransformers | None = None,
+    random_state: int = 42,
     get_raw: bool = False,
-    run_ts_delta=pd.Timedelta(1, "s"),
+    run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s"),
+    month_filter: tuple[int, int] | None = None,
 ) -> tuple[EvalMetric, ForecastSamples] | tuple[EvalMetric, ForecastSamples, pd.DataFrame]:
     """
     Evaluates a forecasting model on a validation series with a specified stride and forecast horizon.
@@ -118,6 +119,9 @@ def evaluate_model(
         assert isinstance(val, list), "val must be a list or a TimeSeries"
         val_subs = val
 
+    # TODO add another argument to remove out of season periods in val before evaluating it -> this also automatically
+    #  improves parallelization without having to make sure the overlaps are perfect.
+
     (
         (
             metrics,
@@ -138,6 +142,7 @@ def evaluate_model(
         random_state=random_state,
         tz=tz,
         run_ts_delta=run_ts_delta,
+        month_filter=month_filter,
     )
 
     lookback_hours = max(get_context_len(model), min_lookback_hours)
@@ -165,10 +170,11 @@ def _evaluate_model(
     verbose: bool,
     future_cov: TimeSeries | Sequence[TimeSeries] | None,
     num_samples: int,
-    data_transformers: Optional[DataTransformers],
-    random_state: Optional[int],
+    data_transformers: DataTransformers | None,
+    random_state: int | None,
     tz: str | tzinfo,
     run_ts_delta: pd.Timedelta,
+    month_filter: tuple[int, int] | None,
 ):
     hf = historical_forecasts(
         model, val, horizon, stride, parallel, verbose, future_cov, num_samples, data_transformers, random_state
@@ -180,45 +186,55 @@ def _evaluate_model(
     hf_df["err"] = get_err(hf_df)
     hf_df["dpd"] = get_dpd(hf_df)
     metric_df = get_metrics(hf_df)
+    metric_df = join_start_end(metric_df, hf_df)
 
-    return get_samples(hf, metric_df, metric), hf_df
+    return get_median_and_samples(hf, metric_df, metric, month_filter), hf_df
 
 
-# TODO implement evaluating only specific months, rename, fix types
-def get_samples(hf: list[TimeSeries], metric_df: pd.DataFrame, metric: MetricType = "MAE"):
-    """Get best, worst and most avg samples together with aggregated median metrics."""
+def get_median_and_samples(
+    hf: list[TimeSeries],
+    metric_df: pd.DataFrame,
+    metric: MetricType = "MAE",
+    month_filter: tuple[int, int] | None = None,
+) -> tuple[
+    EvalMetric, tuple[tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray], tuple[TimeSeries, np.ndarray]]
+]:
+    """Get aggregated median metrics and best, worst and median forecast samples."""
     assert len(hf) == metric_df.shape[0], "historical forecast don't match metric df"
 
+    if month_filter:
+        # only look at forecasts that start and end within the season
+        month_start, month_end = month_filter
+        month_idx = (metric_df["start"].dt.month >= month_start) & (metric_df["end"].dt.month <= month_end)
+        metric_df = metric_df[month_idx]
+        hf = cast(list[TimeSeries], np.array(hf)[month_idx].tolist())
+
+    argsort = metric_df[metric].argsort()
+    # using len // 2 results in taking the worst of the 2 median ones if n is even (pessimistic)
+    best_i, worst_i, med_i = argsort.iat[0], argsort.iat[-1], argsort.iat[len(argsort) // 2]
+
+    # only need metric columns from now on (in expected order!)
     metric_df = metric_df[metric_names]
+    # interestingly median returns an ndarray, std returns a series when using np funcs
     metrics_median = np.median(metric_df, axis=0).astype(float)
     metrics_std = np.std(metric_df, axis=0).astype(float)
-    # interestingly median returns an ndarray, std returns a series
-    agg_metrics = EvalMetric.from_row(metrics_median, metrics_std.values)
-
-    # TODO use argsort, take first, last and the one in the middle as index
-    worst_index, best_index = np.argmax(metric_df, axis=0), np.argmin(metric_df, axis=0)
-    most_avg_index = np.argmin(np.abs(metric_df - metrics_median), axis=0)
-    assert (
-        worst_index.shape == (len(metric_names),)
-        and best_index.shape == (len(metric_names),)
-        and most_avg_index.shape == (len(metric_names),)
-    ), "worst, best, most_avg index reduction is faulty"
-
-    metric_i = metrics_idx[metric]
-    worst_index, best_index, most_avg_index = worst_index[metric_i], best_index[metric_i], most_avg_index[metric_i]
+    assert isinstance(metrics_median, np.ndarray) and isinstance(metrics_std, pd.Series)
+    agg_metrics = EvalMetric.from_row(metrics_median, metrics_std.to_numpy())
 
     return (
         agg_metrics,
         (
             # forecast with corresponding row of metrics
-            (hf[most_avg_index], metric_df.iloc[most_avg_index].values),
-            (hf[best_index], metric_df.iloc[best_index].values),
-            (hf[worst_index], metric_df.iloc[worst_index].values),
+            (hf[med_i], metric_df.iloc[med_i].to_numpy()),
+            (hf[best_i], metric_df.iloc[best_i].to_numpy()),
+            (hf[worst_i], metric_df.iloc[worst_i].to_numpy()),
         ),
     )
 
 
-def hf_to_table(hf: list[TimeSeries], tz: str | tzinfo, run_ts_delta=pd.Timedelta(1, "s")) -> pd.DataFrame:
+def hf_to_table(
+    hf: list[TimeSeries], tz: str | tzinfo, run_ts_delta: pd.Timedelta = pd.Timedelta(1, "s")
+) -> pd.DataFrame:
     """Convert a list of historical forecasts to table format with run_ts, time and pred. tz needed to make times aware."""
     times = np.stack([fc.time_index.values for fc in hf])
 
@@ -287,3 +303,9 @@ def get_metrics(hf_df: pd.DataFrame):
     df_agg["RMSE"] = np.sqrt(df_agg["RMSE"])
 
     return df_agg
+
+
+def join_start_end(metric_df: pd.DataFrame, hf_df: pd.DataFrame) -> pd.DataFrame:
+    """Get the start and end times per historical forecast and join them to another df by run_ts."""
+    min_max_time = hf_df["time"].groupby(hf_df["run_ts"]).agg(["min", "max"])  # pyright: ignore[reportUnknownMemberType]
+    return metric_df.join(min_max_time.rename(columns=dict(min="start", max="end")), on="run_ts")

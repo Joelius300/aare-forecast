@@ -40,6 +40,7 @@ RegularizationType = Literal["none", "lasso", "ridge", "elastic"]
 regularization_model_classes = {"none": LinearRegression, "lasso": Lasso, "ridge": Ridge, "elastic": ElasticNet}
 
 
+# TODO: see todos in gru_tuner
 class LRTuner(BaseTuner):
     def __init__(
         self,

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 from typing import Any, Optional, cast
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 
 import mlflow
 from darts.models import RNNModel
@@ -95,7 +95,7 @@ class BaseTuner(ABC):
         }
 
     @staticmethod
-    def suggest_add_encoders(trial: Trial) -> Optional[dict]:
+    def suggest_add_encoders(trial: Trial) -> Optional[dict[str, dict[str, list[str]]]]:
         """
         Suggest values for 'add_encoders' with cyclic daily and yearly encoding.
 
@@ -119,15 +119,15 @@ class BaseTuner(ABC):
         return {"cyclic": {"future": enc}}
 
     @staticmethod
-    def _prefix_dict(vals: dict, prefix: str):
+    def _prefix_dict(vals: Mapping[str, Any], prefix: str):
         prefix = prefix.removesuffix("_")
         return {prefix + "_" + key: value for key, value in vals.items()}
 
-    def log_params_prefix(self, params: dict, prefix: str):
+    def log_params_prefix(self, params: Mapping[str, Any], prefix: str):
         """Log all params in a dict with an added prefix"""
         mlflow.log_params(self._prefix_dict(params, prefix))
 
-    def log_metrics_prefix(self, metrics: dict, prefix: str):
+    def log_metrics_prefix(self, metrics: Mapping[str, Any], prefix: str):
         """Log all metrics in a dict with an added prefix"""
         mlflow.log_metrics(self._prefix_dict(metrics, prefix))
 

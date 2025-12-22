@@ -1,7 +1,6 @@
 import logging
 
 from aare.constants import RANDOM_SEED
-from aare.tuning.gru_tuner import GRUTuner
 import matplotlib.pyplot as plt
 import mlflow
 import optuna
@@ -12,12 +11,14 @@ from optuna.samplers import TPESampler
 
 from aare.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
+from aare.tuning.tsmixer_tuner import TSMixerTuner
 from aare.utils import OPTUNA_STORE_URI
 
 
 logger = logging.getLogger(__name__)
 
 
+# TODO see todos and improvement ideas in tune_gru
 def main():
     params = read_params()
 
@@ -36,10 +37,10 @@ def main():
     batch_size = 1024
     max_n_epochs = 200
 
-    model_name = "GRU"
-    run_name = "tune-gru"
+    model_name = "TSMixer"
+    run_name = "tune-tsmixer"
 
-    tuner = GRUTuner(model_name, params, features, batch_size, max_n_epochs)
+    tuner = TSMixerTuner(model_name, params, features, batch_size, max_n_epochs)
 
     study = optuna.create_study(
         study_name=run_name,
@@ -61,9 +62,6 @@ def main():
 
         # Stop fake "running" trial and re-queue them (they are left when cancelling with ctrl+c).
         # Of course this won't work in a distributed setting where multiple runs could actually be running etc.
-        # TODO Guard with a semaphore and add logs. For _big_ distributed settings, you wouldn't use sqlite (nor TPE).
-        # TODO add initial trials to speed up search, esp. pruning, makes a big difference.
-        # TODO Set it up so that different models can be tried by optuna and enqueue at least one trial per model.
         trials = study.trials
         for trial in trials:
             if trial.state == optuna.trial.TrialState.RUNNING:
@@ -71,14 +69,11 @@ def main():
                 study.enqueue_trial(trial.params, user_attrs={"restart_of": trial.number})
                 study.tell(trial.number, state=optuna.trial.TrialState.FAIL)
 
-        # TODO enqueue all trials that have not been tried yet instead of guarding for a fresh study
         if not trials:
             logger.info("Fresh study; enqueuing initial trials")
             for params in tuner.initial_trials():
                 study.enqueue_trial(params, user_attrs={"initial_trial_of": tuner.model_name})
 
-        # TODO add callback to store new best model (here's probably best place, but idk)
-        #  alternatively, store all models and metrics from finished models (unpromising should be pruned anyway).
         study.optimize(tuner)
 
 
@@ -89,6 +84,4 @@ if __name__ == "__main__":
     plt.rcParams["figure.figsize"] = (16, 9)
     mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
 
-    # TODO add some "force initial" to always suggest initial trials maybe?
-    # TODO add simple way to train/repro a single model with specific parameters (and store all artifacts) (no pruning).
     main()

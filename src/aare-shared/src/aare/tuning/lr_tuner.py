@@ -3,7 +3,7 @@ from typing import Literal, override
 
 from aare.constants import RANDOM_SEED
 from aare.evaluation.eval_metric import EvalMetric
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 from aare.params.params_types import Params
 from aare.tuning.base_tuner import BaseTuner, ModelType
 from optuna import Study, Trial

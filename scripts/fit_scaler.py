@@ -8,7 +8,7 @@ import logging
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-from aare.AareDataset import AareDataset
+from aare.fetching.AareDataset import AareDataset
 from aare.constants import TEMP
 from aare.normalization import store_scaler
 from aare.preparation import resample, remove_faulty_periods_aare_temp, remove_outliers_aare_temp

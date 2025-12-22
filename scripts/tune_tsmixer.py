@@ -9,7 +9,7 @@ from lightning_fabric import seed_everything
 from optuna.pruners import HyperbandPruner
 from optuna.samplers import TPESampler
 
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
 from aare.tuning.tsmixer_tuner import TSMixerTuner
 from aare.paths import OPTUNA_STORE_URI

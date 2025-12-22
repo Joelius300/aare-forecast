@@ -10,7 +10,7 @@ import torch
 from lightning_fabric import seed_everything
 from optuna.samplers import TPESampler
 
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
 from aare.paths import OPTUNA_STORE_URI
 

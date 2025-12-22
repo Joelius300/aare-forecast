@@ -3,7 +3,7 @@ import pandas as pd
 from darts import TimeSeries
 
 from aare.params import read_params
-from aare.remote_existenz_store import FieldRequest
+from aare.fetching.remote_existenz_store import FieldRequest
 
 
 class Feature(ABC):

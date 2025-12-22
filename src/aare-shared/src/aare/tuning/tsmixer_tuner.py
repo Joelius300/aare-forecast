@@ -1,7 +1,7 @@
 from typing import override
 
 from aare.evaluation.eval_metric import EvalMetric
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 from aare.params.params_types import Params
 from aare.tuning.base_tuner import BaseTuner, ModelType
 from optuna import Trial

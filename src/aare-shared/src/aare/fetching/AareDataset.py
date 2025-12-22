@@ -1,6 +1,6 @@
 from aare.constants import LOC_BERN
 from aare.params import read_params
-from aare.remote_existenz_store import RemoteExistenzStore
+from aare.fetching.remote_existenz_store import RemoteExistenzStore
 
 
 class AareDataset:

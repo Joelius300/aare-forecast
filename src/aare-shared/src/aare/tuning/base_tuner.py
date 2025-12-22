@@ -16,8 +16,8 @@ from matplotlib import pyplot as plt
 from aare.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare.evaluation.evaluation import evaluate_model
 from aare.evaluation.eval_metric import EvalMetric
-from aare.feature_identifiers import FeatureIdentifiers
-from aare.feature_set import FeatureSet
+from aare.fetching.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_set import FeatureSet
 from aare.features.registry import FEATURES
 from aare.normalization import get_scalers
 from aare.params import read_params, Params

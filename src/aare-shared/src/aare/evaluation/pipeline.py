@@ -7,7 +7,7 @@ import torch
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.utils.missing_values import extract_subseries
 
-from aare.AareDataset import AareDataset
+from aare.fetching.AareDataset import AareDataset
 from aare.evaluation.evaluation import evaluate_model
 from aare.params import ValidationParams
 from aare.preparation import prepare_ts_aare_temp

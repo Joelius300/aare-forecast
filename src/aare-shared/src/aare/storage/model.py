@@ -7,7 +7,7 @@ import yaml
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 
 from aare.compat.types import DataTransformers
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 from aare.params import read_params
 from aare.storage.metadata import AareModel, get_mlflow_info, serialize_model_info, load_model_info
 from aare.paths import MODELS_FOLDER

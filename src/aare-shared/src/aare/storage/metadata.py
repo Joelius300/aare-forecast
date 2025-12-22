@@ -6,7 +6,7 @@ from pathlib import Path, PosixPath, WindowsPath
 from typing import TypedDict, cast
 
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 
 logger = logging.getLogger(__name__)
 

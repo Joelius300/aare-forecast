@@ -10,7 +10,7 @@ import pandas as pd
 from aare.features.base.feature import Feature
 from aare.params import SplitParams
 from aare.preparation import resample
-from aare.remote_existenz_store import RemoteExistenzStore
+from aare.fetching.remote_existenz_store import RemoteExistenzStore
 
 
 # TODO it would be very nice to have the option (maybe per feature) to

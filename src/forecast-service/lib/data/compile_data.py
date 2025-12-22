@@ -7,12 +7,12 @@ from darts import TimeSeries
 
 from aare.compat.types import ExtremeLags, DataTransformers
 from aare.constants import TIME
-from aare.feature_identifiers import FeatureIdentifiers
+from aare.fetching.feature_identifiers import FeatureIdentifiers
 
 from aare.features.base.feature import Feature
 from aare.features.registry import FEATURES
 from aare.preparation import resample
-from aare.remote_existenz_store import RemoteExistenzStore
+from aare.fetching.remote_existenz_store import RemoteExistenzStore
 from lib.data.inference_data import InferenceData
 from lib.external_sources.translations import MEAS_TRANS
 

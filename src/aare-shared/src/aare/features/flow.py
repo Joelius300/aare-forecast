@@ -3,7 +3,7 @@ import pandas as pd
 
 from aare.features.base.single_field_feature import SingleFieldFeature
 from aare.preparation import remove_period
-from aare.remote_existenz_store import FieldRequest
+from aare.fetching.remote_existenz_store import FieldRequest
 
 
 class Flow(SingleFieldFeature):

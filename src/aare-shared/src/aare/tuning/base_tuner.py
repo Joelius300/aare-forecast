@@ -29,7 +29,7 @@ ModelType = TorchForecastingModel | SKLearnModel
 class BaseTuner(ABC):
     def __init__(self, model_name: str, params: Params, features: FeatureIdentifiers):
         self.model_name = model_name
-        self.current_run: Optional[ActiveRun] = None
+        self.current_run: ActiveRun | None = None
 
         if features.get("past") is not None:
             raise NotImplementedError("Past covariates are not yet supported")
@@ -51,6 +51,7 @@ class BaseTuner(ABC):
         self.horizon = params["general"]["forecast_horizon"]
         self.stride = params["validation"]["stride"]
         self.min_lookback_hours = params["validation"]["min_lookback_hours"]
+        self.season = params["general"]["season_start"], params["general"]["season_end"]
 
         self.hparams_general = {
             "horizon": self.horizon,
@@ -200,6 +201,10 @@ class BaseTuner(ABC):
             future_cov=self.val_fc_subs,
             data_transformers=self.scalers,
             tz=self.tz,
+            month_filter=self.season,
+            # TODO only evaluate on the data that makes sense if season is set
+            # TODO parallelization
+            # TODO allow storing artifacts like the raw metrics
         )
 
         metrics_dict = metrics.to_dict()

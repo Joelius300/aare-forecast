@@ -6,9 +6,10 @@ import pandas as pd
 import psycopg_pool
 import pytz
 from fastapi import FastAPI, HTTPException, Depends, Query
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 
 from aare.logging import setup_logging
+from lib.latest_cache import LatestCache
 from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
 from lib.dto import ForecastPayload, ForecastMetadata, Config, ForecastDataFormat, ForecastColumnData, ForecastRowData
@@ -23,8 +24,6 @@ setup_logging(
     settings.loki_password,
     "aare-oraku-api",
     # TODO think about these again, at least the healthchecks probably shouldn't be in this.
-    #  Also check where to set the logging level for uvicorn.error (cli arg I think).
-    #  Also check what happens when an exception is raised, e.g. DB unavailable.
     ["uvicorn.access", "uvicorn.error"],
 )
 
@@ -59,6 +58,11 @@ async def open_db():
     """Open connection in form of a generator to be used with FastAPI DI (Depends) -> open, return(yield), close."""
     async with pool.connection() as conn:
         yield conn
+
+
+latest_cache = LatestCache(
+    timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec)
+)
 
 
 # Yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
@@ -113,9 +117,11 @@ async def get_forecasts(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
         )
 
+    cacheable = False
     now = datetime.now(UTC)
     if from_ is None:
         from_ = now
+        cacheable = True
     elif from_.tzinfo is None:
         from_ = from_.astimezone(tz)
 
@@ -126,8 +132,36 @@ async def get_forecasts(
             + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon, city)
-    if df.empty:
+    # it's a cacheable request
+    # if it's already declared cacheable because no 'from' was passed at all,
+    # or it's a time very close to now (less than configured cache tolerance)
+    # BUT in that case the requested time must be later than the last cache update,
+    # otherwise we would return data that is too new.
+    cacheable = cacheable or (
+        from_ > now - latest_cache.tolerance
+        and (latest_cache.last_updated is None or from_ >= latest_cache.last_updated)
+    )
+
+    if cacheable and latest_cache.fresh:
+        df, run_ts = latest_cache.data, latest_cache.last_updated
+        assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
+    else:
+        df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon, city)
+        if df.empty:
+            run_ts = None
+        else:
+            # if speed is important, it's probably faster to use .dt.strftime() to convert pd.Timestamp directly to str
+            df["time"] = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
+
+            run_ts_unique = df["run_ts"].unique()
+            assert len(run_ts_unique) == 1, "fetched more than one run, currently not supported so it shouldn't happen"
+            run_ts = run_ts_unique.item()
+            run_ts = datetime.fromisoformat(run_ts).astimezone(tz)
+
+            if cacheable:
+                latest_cache.update(run_ts, df)
+
+    if run_ts is None:
         # instead of an error, return an empty response.
         return ForecastPayload(
             data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData(),
@@ -139,15 +173,7 @@ async def get_forecasts(
             ),
         )
 
-    run_ts_unique = df["run_ts"].unique()
-    assert len(run_ts_unique) == 1, "somehow fetched more than one run, currently not supported so it shouldn't happen"
-    run_ts = run_ts_unique.item()
-    run_ts = datetime.fromisoformat(run_ts).astimezone(tz)
-
     model = await get_model_info(conn, run_ts) if model_info else None
-
-    # if speed is important, it's probably faster to use .dt.strftime() to convert pd.Timestamp directly to str
-    df["time"] = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
 
     return ForecastPayload(
         data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())

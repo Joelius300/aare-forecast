@@ -13,6 +13,9 @@ class OrakuSettings(BaseSettings):
     default_city: str = "bern"
     loki_url: str = ""
     loki_password: str = ""
+    expected_interval_sec: int = 15 * 60
+    cache_tolerance_sec: int = 60
+    unhealthy_interval_sec: int = 60 * 60
 
     model_config = SettingsConfigDict(env_prefix="oraku_", env_file=".env")
 

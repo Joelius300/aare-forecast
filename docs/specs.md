@@ -27,21 +27,3 @@ They can be adjusted if experimentation suggests to or there are technical limit
 ## Evaluation
 
 Both MAE and RMSE are highly relevant and will be used for comparing different methods and models. There is no need for MASE, RMSSE or similar.
-
-## Possible experiments (dump)
-
-- Seasonality testing; should have a weak daily periodicity
-- Baselines: Naive, MeanNaive, SNaive
-- Evaluate TimesFM from Google as strong baseline
-- Univariate foreasting only at first
-- Models to try: ARIMA, GRU/LSTM, Linear Regression
-  - More models: TSMixer, TFT (but we're trending away from transformers)
-  - Could also fine-tune TimesFM
-- Multivariate -- past covariates, include time encoding, air temperature and discharge
-- Multivariate -- past covariates, include values from locations upstream (e.g. Thun)
-- Multivariate -- future covariates, include weather forecasts (temperature and precipitation) from MeteoSwiss
-- Multivariate -- future covariates, include discharge forecast from BAFU
-- Different losses: mae, mse, (regularized methods)
-- Out of scope:
-  - Global model that can forecast different locations (location is a static covariate)
-  - Try forecasting the discharge as well, see how close you get to the one from BAFU (they use 21 black-, white-, and gray-box models tuned by hydrologists)

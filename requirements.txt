@@ -2565,6 +2565,10 @@ python-json-logger==4.0.0 \
     --hash=sha256:af09c9daf6a813aa4cc7180395f50f2a9e5fa056034c9953aec92e381c5ba1e2 \
     --hash=sha256:f58e68eb46e1faed27e0f574a55a0455eecd7b8a5b88b85a784519ba3cff047f
     # via jupyter-events
+python-logging-loki-v2==1.1.1 \
+    --hash=sha256:327d539898f2b397814f8bc1b57f0bc8721a6aced802a2f8cf6fd52c0b46d208 \
+    --hash=sha256:ca07bbcd3245916fd222aa452cc3f9ff4fffc8ee8292a5fb743643437013b46c
+    # via aare-shared
 python-multipart==0.0.20 \
     --hash=sha256:8a62d3a8335e06589fe01f2a3e178cdcc632f3fbe0d492ad9ee0ec35aab1f104 \
     --hash=sha256:8dd0cab45b8e23064ae09147625994d090fa46f5b0d1e13af944c331a7fa9d13
@@ -2791,9 +2795,14 @@ requests==2.32.5 \
     #   jsonschema-path
     #   jupyterlab-server
     #   mlflow-skinny
+    #   python-logging-loki-v2
     #   transformers
     #   tsdb
     #   u8darts
+rfc3339==6.2 \
+    --hash=sha256:d53c3b5eefaef892b7240ba2a91fef012e86faa4d0a0ca782359c490e00ad4d0 \
+    --hash=sha256:f44316b21b21db90a625cde04ebb0d46268f153e6093021fa5893e92a96f58a3
+    # via python-logging-loki-v2
 rfc3339-validator==0.1.4 \
     --hash=sha256:138a2abdf93304ad60530167e51d2dfb9549521a836871b88d7f4695d0022f6b \
     --hash=sha256:24f6ec1eda14ef823da9e36ec7113124b39c04d50a4d3d3a3c2859577e7791fa

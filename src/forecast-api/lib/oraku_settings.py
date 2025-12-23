@@ -11,6 +11,8 @@ class OrakuSettings(BaseSettings):
     timezone: str = "Europe/Zurich"
     available_cities: list[str] = ["bern"]
     default_city: str = "bern"
+    loki_url: str = ""
+    loki_password: str = ""
 
     model_config = SettingsConfigDict(env_prefix="oraku_", env_file=".env")
 

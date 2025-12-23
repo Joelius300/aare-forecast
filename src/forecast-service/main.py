@@ -2,6 +2,8 @@
 # ignore 'imports not at top of file' for this file
 from datetime import UTC, datetime
 
+from aare.logging import setup_logging
+
 import_start_ts = datetime.now(UTC)
 
 import logging
@@ -128,36 +130,9 @@ def get_args():
     return p.parse_args()
 
 
-def set_logging(level: str, loki_url: str | None, loki_pw: str | None):
-    logging.basicConfig(level=level)
-    logging.getLogger("dulwich").setLevel(logging.WARNING)
-    logging.getLogger("fsspec").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
-
-    if not loki_url:
-        return
-
-    if level == "DEBUG":
-        logger.warning(f"Loki not configured because logging level is '{level}'")
-        return
-
-    root_logger = logging.getLogger()
-    import logging_loki
-
-    root_logger.addHandler(
-        logging_loki.LokiHandler(
-            url=f"{loki_url}/loki/api/v1/push",
-            tags={"application": "aare-oraku-service"},
-            auth=("loki", loki_pw) if loki_pw else None,
-            version="2",
-            verify_ssl=loki_url.startswith("https"),
-        )
-    )
-
-
 def main():
     args = get_args()
-    set_logging(args.logging_level, args.loki_url, args.loki_password)
+    setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-service")
 
     run_ts = datetime.now(UTC)
 

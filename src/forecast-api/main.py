@@ -1,7 +1,6 @@
-import logging
 from contextlib import asynccontextmanager
 from enum import StrEnum
-from typing import Optional, Annotated
+from typing import Annotated
 
 import pandas as pd
 import psycopg_pool
@@ -9,6 +8,7 @@ import pytz
 from fastapi import FastAPI, HTTPException, Depends, Query
 from datetime import datetime, UTC
 
+from aare.logging import setup_logging
 from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
 from lib.dto import ForecastPayload, ForecastMetadata, Config, ForecastDataFormat, ForecastColumnData, ForecastRowData
@@ -17,7 +17,17 @@ from lib.dto import ForecastPayload, ForecastMetadata, Config, ForecastDataForma
 # noinspection PyArgumentList
 settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
 
-logging.basicConfig(level=settings.logging_level)
+setup_logging(
+    settings.logging_level,
+    settings.loki_url,
+    settings.loki_password,
+    "aare-oraku-api",
+    # TODO think about these again, at least the healthchecks probably shouldn't be in this.
+    #  Also check where to set the logging level for uvicorn.error (cli arg I think).
+    #  Also check what happens when an exception is raised, e.g. DB unavailable.
+    ["uvicorn.access", "uvicorn.error"],
+)
+
 # dynamically create enum from specified supported cities. enums give automatic input validation and nicer swagger docs.
 CityEnum = StrEnum("CityEnum", settings.available_cities)
 
@@ -89,7 +99,7 @@ MODEL_INFO_API_DESC = "Set to true if you want information on the model that was
 
 @app.get("/forecast", description=API_DESC)
 async def get_forecasts(
-    from_: Annotated[Optional[datetime], Query(alias="from", description=FROM_API_DESC)] = None,
+    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
         int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
     ] = settings.default_horizon,
@@ -113,7 +123,7 @@ async def get_forecasts(
         raise HTTPException(
             400,
             "Cannot request forecasts made in the future. "
-            "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
+            + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
     df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon, city)

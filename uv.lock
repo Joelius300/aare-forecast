@@ -168,7 +168,6 @@ dependencies = [
     { name = "configargparse" },
     { name = "httpx" },
     { name = "psycopg", extra = ["binary", "pool"] },
-    { name = "python-logging-loki-v2" },
 ]
 
 [package.optional-dependencies]
@@ -190,7 +189,6 @@ requires-dist = [
     { name = "configargparse", specifier = ">=1.7.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
-    { name = "python-logging-loki-v2", specifier = ">=1.1.1" },
 ]
 provides-extras = ["gpu-auto", "gpu", "cpu"]
 
@@ -203,6 +201,7 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
+    { name = "python-logging-loki-v2" },
     { name = "scikit-learn" },
     { name = "u8darts", extra = ["torch"] },
 ]
@@ -234,6 +233,7 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "pandas", specifier = ">=2.2.3" },
+    { name = "python-logging-loki-v2", specifier = ">=1.1.1" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
     { name = "torch", marker = "extra == 'cpu'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "aare-shared", extra = "cpu" } },
     { name = "torch", marker = "extra == 'gpu'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "aare-shared", extra = "gpu" } },

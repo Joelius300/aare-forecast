@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import tzinfo
 from typing import Callable, Optional, Union
+from typing_extensions import deprecated
 
 import darts
 import numpy as np
@@ -76,6 +77,7 @@ def _get_peaks(arr: np.ndarray):
 # TODO Unit test
 # TODO perf optimize this, since it's called once for every historical forecast once
 #  I assume adding the day_id col is the bottleneck.
+@deprecated("Using custom darts metrics is slow, use historical forecasts as dataframe instead")
 @multi_ts_support
 @multivariate_support
 def dpd(
@@ -139,6 +141,7 @@ def dpd(
     return peaks_true - peaks_pred
 
 
+@deprecated("Using custom darts metrics is slow, use historical forecasts as dataframe instead")
 @multi_ts_support
 @multivariate_support
 def adpd(
@@ -173,6 +176,7 @@ def adpd(
     )
 
 
+@deprecated("Using custom darts metrics is slow, use historical forecasts as dataframe instead")
 @multi_ts_support
 @multivariate_support
 def sdpd(
@@ -208,6 +212,7 @@ def sdpd(
     )
 
 
+@deprecated("Using custom darts metrics is slow, use historical forecasts as dataframe instead")
 @multi_ts_support
 @multivariate_support
 def madpd(
@@ -242,6 +247,7 @@ def madpd(
     )
 
 
+@deprecated("Using custom darts metrics is slow, use historical forecasts as dataframe instead")
 @multi_ts_support
 @multivariate_support
 def rmsdpd(

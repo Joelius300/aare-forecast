@@ -122,20 +122,42 @@ def get_args():
     p.add_argument("-n", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")
     p.add_argument("--num-samples", default=128, type=int, help="Number of samples to take for probabilistic forecasts")
     p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
+    p.add_argument("--loki-url", default=None, type=str, help="Base URL for the loki instance")
+    p.add_argument("--loki-password", default=None, type=str, help="Password for the 'loki' user in loki")
 
     return p.parse_args()
 
 
-def set_logging(level: str):
+def set_logging(level: str, loki_url: str | None, loki_pw: str | None):
     logging.basicConfig(level=level)
     logging.getLogger("dulwich").setLevel(logging.WARNING)
     logging.getLogger("fsspec").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
 
+    if not loki_url:
+        return
+
+    if level == "DEBUG":
+        logger.warning(f"Loki not configured because logging level is '{level}'")
+        return
+
+    root_logger = logging.getLogger()
+    import logging_loki
+
+    root_logger.addHandler(
+        logging_loki.LokiHandler(
+            url=f"{loki_url}/loki/api/v1/push",
+            tags={"application": "aare-oraku-service"},
+            auth=("loki", loki_pw) if loki_pw else None,
+            version="2",
+            verify_ssl=loki_url.startswith("https"),
+        )
+    )
+
 
 def main():
     args = get_args()
-    set_logging(args.logging_level)
+    set_logging(args.logging_level, args.loki_url, args.loki_password)
 
     run_ts = datetime.now(UTC)
 

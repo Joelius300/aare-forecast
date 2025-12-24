@@ -11,7 +11,7 @@ import pytz
 from fastapi import FastAPI, HTTPException, Depends, Header, Query, Response
 from datetime import datetime, timedelta, UTC
 
-from aare.logging import setup_logging
+from aare_logging.logging import setup_logging
 from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
 from lib.latest_cache import LatestCache
 from lib.access_log_filter import AccessLogFilter

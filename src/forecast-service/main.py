@@ -2,8 +2,6 @@
 # ignore 'imports not at top of file' for this file
 from datetime import UTC, datetime
 
-from aare.logging import setup_logging
-
 import_start_ts = datetime.now(UTC)
 
 import logging
@@ -18,6 +16,7 @@ from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from psycopg_pool import ConnectionPool
 
+from aare_logging.logging import setup_logging
 from aare.compat.types import DataTransformers
 from aare.storage.metadata import AareModel
 from aare.storage.model import load_model

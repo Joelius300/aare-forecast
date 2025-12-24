@@ -15,6 +15,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=src/aare-shared/pyproject.toml,target=src/aare-shared/pyproject.toml \
     --mount=type=bind,source=src/aare-shared/README.md,target=src/aare-shared/README.md \
+    --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/forecast-service/pyproject.toml,target=src/forecast-service/pyproject.toml \
     --mount=type=bind,source=src/forecast-service/README.md,target=src/forecast-service/README.md \
     --mount=type=bind,source=src/forecast-api/pyproject.toml,target=src/forecast-api/pyproject.toml \

@@ -6,6 +6,8 @@
       <sourceFolder url="file://$MODULE_DIR$/src/forecast-service" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/forecast-api" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/aare-shared" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-logging" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-logging/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/projects/aare-forecast/.venv" jdkType="Python SDK" />

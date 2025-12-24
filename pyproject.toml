@@ -9,6 +9,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "aare-shared[gpu-auto,dvc]",
+    "aare-logging",
     "basedpyright>=1.36.1",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
@@ -41,7 +42,7 @@ reportRedeclaration = "warning"
 reportMissingImports = "error"
 reportUnusedCallResult = "information"
 # fixes `lib` absolute imports, but not sure if that's the correct way, since those are self-contained projects
-extraPaths = ["src/aare-shared/", "src/forecast-api/", "src/forecast-service/"]
+extraPaths = ["src/aare-shared/", "src/aare-logging/", "src/forecast-api/", "src/forecast-service/"]
 
 ignore = [
     "src/aare-shared/src/aare/compat/optuna_lightning_integration.py",
@@ -75,7 +76,8 @@ override-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["src/aare-shared", "src/forecast-service", "src/forecast-api"]
+members = ["src/aare-shared", "src/aare-logging", "src/forecast-service", "src/forecast-api"]
 
 [tool.uv.sources]
 aare-shared = { workspace = true }
+aare-logging = { workspace = true }

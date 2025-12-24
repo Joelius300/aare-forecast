@@ -5,4 +5,4 @@ set -eu
 PORT=${PORT:-5000}
 
 # run uvicorn as PID 1 (using exec replaces the shell) (needed for signal handling)
-exec uvicorn main:app --host 0.0.0.0 --port "$PORT"
+exec uvicorn --app-dir src/forecast-api main:app --host 0.0.0.0 --port "$PORT"

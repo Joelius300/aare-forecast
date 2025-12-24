@@ -56,6 +56,7 @@ conflicts = [[
 [manifest]
 members = [
     "aare-forecast",
+    "aare-logging",
     "aare-oraku-api",
     "aare-oraku-forecast",
     "aare-shared",
@@ -76,6 +77,7 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "aare-logging" },
     { name = "aare-shared", extra = ["dvc"] },
     { name = "aare-shared", extra = ["gpu-auto"], marker = "(extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
     { name = "basedpyright" },
@@ -105,6 +107,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-shared", extras = ["gpu-auto", "dvc"], editable = "src/aare-shared" },
     { name = "basedpyright", specifier = ">=1.36.1" },
     { name = "gunicorn", specifier = ">=23.0.0" },
@@ -130,10 +133,22 @@ dev = [
 ]
 
 [[package]]
+name = "aare-logging"
+version = "0.1.0"
+source = { editable = "src/aare-logging" }
+dependencies = [
+    { name = "python-logging-loki-v2" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "python-logging-loki-v2", specifier = ">=1.1.1" }]
+
+[[package]]
 name = "aare-oraku-api"
 version = "0.1.0"
 source = { virtual = "src/forecast-api" }
 dependencies = [
+    { name = "aare-logging" },
     { name = "fastapi" },
     { name = "pandas" },
     { name = "psycopg", extra = ["binary", "pool"] },
@@ -149,6 +164,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aare-logging", editable = "src/aare-logging" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "pandas", specifier = ">=2.3.2" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
@@ -165,6 +181,7 @@ name = "aare-oraku-forecast"
 version = "0.1.0"
 source = { virtual = "src/forecast-service" }
 dependencies = [
+    { name = "aare-logging" },
     { name = "configargparse" },
     { name = "httpx" },
     { name = "psycopg", extra = ["binary", "pool"] },
@@ -183,6 +200,7 @@ gpu-auto = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-shared", extras = ["cpu"], marker = "extra == 'cpu'", editable = "src/aare-shared" },
     { name = "aare-shared", extras = ["gpu"], marker = "extra == 'gpu'", editable = "src/aare-shared" },
     { name = "aare-shared", extras = ["gpu-auto"], marker = "extra == 'gpu-auto'", editable = "src/aare-shared" },
@@ -201,7 +219,6 @@ dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
-    { name = "python-logging-loki-v2" },
     { name = "scikit-learn" },
     { name = "u8darts", extra = ["torch"] },
 ]
@@ -233,7 +250,6 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "pandas", specifier = ">=2.2.3" },
-    { name = "python-logging-loki-v2", specifier = ">=1.1.1" },
     { name = "scikit-learn", specifier = ">=1.5.2" },
     { name = "torch", marker = "extra == 'cpu'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "aare-shared", extra = "cpu" } },
     { name = "torch", marker = "extra == 'gpu'", specifier = ">=2.7.0", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "aare-shared", extra = "gpu" } },

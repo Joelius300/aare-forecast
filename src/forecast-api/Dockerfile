@@ -15,6 +15,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=src/aare-shared/pyproject.toml,target=src/aare-shared/pyproject.toml \
     --mount=type=bind,source=src/aare-shared/README.md,target=src/aare-shared/README.md \
+    --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/forecast-service/pyproject.toml,target=src/forecast-service/pyproject.toml \
     --mount=type=bind,source=src/forecast-service/README.md,target=src/forecast-service/README.md \
     --mount=type=bind,source=src/forecast-api/pyproject.toml,target=src/forecast-api/pyproject.toml \
@@ -35,18 +36,16 @@ FROM python:3.12-slim-bookworm
 WORKDIR /app
 
 # copy the application and built venv from the builder
-COPY --from=builder --chown=app:app /app/src/forecast-api /app
-COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder --chown=app:app /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
-COPY src/forecast-api/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/src/forecast-api/entrypoint.sh
 COPY src/forecast-api/deploy/app.json /app/app.json
 
 # MUST NOT EXPOSE, otherwise dokku will want to deploy on that port
 # EXPOSE 5000
 
 # use entrypoint to respect PORT variable by dokku
-CMD ["/app/entrypoint.sh"]
+CMD ["/app/src/forecast-api/entrypoint.sh"]
 # could probably also do this with the procfile, there it would respect $PORT
 # CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] <- doesn't respect $PORT

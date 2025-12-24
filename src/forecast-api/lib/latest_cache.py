@@ -21,7 +21,7 @@ class LatestCache:
         How much time to subtract from the age to make sure it's not declared 'fresh' when new data is available.
         Wrongfully stale is better than wrongfully fresh, esp. with heuristic invalidation!
         """
-        return self.tolerance
+        return self._tolerance
 
     def update(self, last_updated: datetime, df: pd.DataFrame):
         """Update the cache with new data. DATA IS ONLY CACHED IF THE LAST_UPDATED KEY IS NEWER!"""
@@ -43,7 +43,11 @@ class LatestCache:
     @property
     def age_plus_tolerance(self) -> timedelta:
         """Age plus the configured tolerance."""
-        return self.age - self._tolerance
+        age = self.age
+        if age == timedelta.max:
+            return age  # cannot add to timedelta.max
+
+        return age + self._tolerance
 
     @property
     def fresh(self) -> bool:

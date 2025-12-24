@@ -15,7 +15,7 @@ class OrakuSettings(BaseSettings):
     loki_password: str = ""
     expected_interval_sec: int = 15 * 60
     cache_tolerance_sec: int = 60
-    unhealthy_interval_sec: int = 60 * 60
+    unhealthy_age_sec: int = 35 * 60
 
     model_config = SettingsConfigDict(env_prefix="oraku_", env_file=".env")
 
@@ -23,5 +23,11 @@ class OrakuSettings(BaseSettings):
     def validate_settings(self):
         if self.default_horizon > self.maximum_horizon:
             raise ValueError("default_horizon cannot be larger than maximum_horizon")
+
+        if self.cache_tolerance_sec >= self.expected_interval_sec:
+            raise ValueError("Cache tolerance must be considerable smaller than the expected update interval")
+
+        if self.expected_interval_sec > self.unhealthy_age_sec:
+            raise ValueError("The unhealthy age threshold must be at least as large as the expected update interval.")
 
         return self

@@ -49,3 +49,8 @@ class Config(BaseModel):
     default_horizon: int
     maximum_horizon: int
     available_cities: list[str]
+
+
+class Health(BaseModel):
+    status: str
+    age: int

@@ -236,7 +236,8 @@ async def get_index() -> str:
 
 
 @app.get("/health")
-async def health() -> Health:
+async def health(response: Response) -> Health:
+    BAD_STATUS = 500
     # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
     # this needs to be revisited once more than one location is supported.
     if default_latest_cache.fresh:
@@ -254,6 +255,7 @@ async def health() -> Health:
 
     # if we get no data at all when fetching with from == now, we're in deep trouble
     if last_updated is None:
+        response.status_code = BAD_STATUS
         return Health(status="NOK", age=9999999)
 
     # if we got the latest data, update the cache for the next health check (or forecast request)
@@ -274,6 +276,7 @@ async def health() -> Health:
     if age_sec < settings.unhealthy_age_sec:
         return Health(status="OK", age=age_sec)
 
+    response.status_code = BAD_STATUS
     return Health(status="NOK", age=age_sec)
 
 

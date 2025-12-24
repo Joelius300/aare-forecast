@@ -14,6 +14,7 @@ from datetime import datetime, timedelta, UTC
 from aare.logging import setup_logging
 from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
 from lib.latest_cache import LatestCache
+from lib.access_log_filter import AccessLogFilter
 from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
 from lib.dto import (
@@ -38,6 +39,9 @@ setup_logging(
     # TODO think about these again, at least the healthchecks probably shouldn't be in this.
     ["uvicorn.access", "uvicorn.error"],
 )
+
+# ignore /health endpoint in access logs
+logging.getLogger("uvicorn.access").addFilter(AccessLogFilter())
 
 logger = logging.getLogger(__name__)
 

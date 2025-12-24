@@ -36,7 +36,6 @@ setup_logging(
     settings.loki_url,
     settings.loki_password,
     "aare-oraku-api",
-    # TODO think about these again, at least the healthchecks probably shouldn't be in this.
     ["uvicorn.access", "uvicorn.error"],
 )
 
@@ -109,7 +108,8 @@ API_DESC = (
     "You may optionally specify a horizon in hours if you want determinism or do not want the default.\n"
     "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
     f"time ('from') and {settings.maximum_forecast_age} before that. If no forecast was made in that timeframe, "
-    f"an empty response is returned where 'last_updated' is null."
+    f"an empty response is returned where 'last_updated' is null. For statistical purposes, "
+    "please add &app={your app name} and optionally add &version={your app version} to all of your requests."
 )
 FROM_API_DESC = (
     "Timestamp in the format YYYY-MM-DDThh:mm:ssZ. "

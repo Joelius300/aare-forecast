@@ -4,13 +4,15 @@ from enum import StrEnum
 from typing import Annotated
 
 import pandas as pd
+import uvicorn
 from psycopg import AsyncConnection
 import psycopg_pool
 import pytz
-from fastapi import FastAPI, HTTPException, Depends, Query
+from fastapi import FastAPI, HTTPException, Depends, Header, Query, Response
 from datetime import datetime, timedelta, UTC
 
 from aare.logging import setup_logging
+from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
 from lib.latest_cache import LatestCache
 from lib.oraku_settings import OrakuSettings
 from lib.postgres import select_forecasts, get_model_info
@@ -114,9 +116,11 @@ HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = on
 MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
 
 
-@app.get("/forecast", description=API_DESC)
+@app.get("/forecast", description=API_DESC, response_model=ForecastPayload)
 async def get_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
+    response: Response,
+    if_modified_since: Annotated[str | None, Header()] = None,
     from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
         int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
@@ -124,17 +128,17 @@ async def get_forecasts(
     city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
     model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
     format: ForecastDataFormat = ForecastDataFormat.COLUMN,
-) -> ForecastPayload:
+) -> ForecastPayload | Response:
     if horizon > settings.maximum_horizon:
         raise HTTPException(
             400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
         )
 
-    cacheable = False
+    fetching_latest = False
     now = datetime.now(UTC)
     if from_ is None:
         from_ = now
-        cacheable = True
+        fetching_latest = True
     elif from_.tzinfo is None:
         from_ = from_.astimezone(tz)
 
@@ -146,20 +150,20 @@ async def get_forecasts(
         )
 
     # it's a cacheable request:
-    # if it's already declared cacheable because no 'from' was passed at all,
+    # if no 'from' was passed at all (fetching latest),
     # or it's a time very close to now (less than configured cache tolerance)
     # BUT in that case the requested time must be later than the last cache update,
     # otherwise we would return data that is too new.
-    cacheable = cacheable or (
+    ss_cacheable = fetching_latest or (
         from_ > now - default_latest_cache.tolerance
         and (default_latest_cache.last_updated is None or from_ >= default_latest_cache.last_updated)
     )
 
     # additionally, the cache must only be used when the request is all default parameters!
     # it would be possible to support all horizons shorter than what's stored in the cache, but prob not worth it.
-    cacheable = cacheable and horizon == settings.default_horizon and city == settings.default_city
+    ss_cacheable = ss_cacheable and horizon == settings.default_horizon and city == settings.default_city
 
-    if cacheable and default_latest_cache.fresh:
+    if ss_cacheable and default_latest_cache.fresh:
         run_ts, df = default_latest_cache.last_updated, default_latest_cache.data
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
         logger.debug("[server-side cache] hit cache in forecast endpoint")
@@ -167,7 +171,7 @@ async def get_forecasts(
         run_ts, df = await fetch_forecast(conn, from_, horizon, city)
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
 
-        if cacheable and run_ts is not None:
+        if ss_cacheable and run_ts is not None:
             logger.debug("[server-side cache] updated cache in forecast endpoint")
             default_latest_cache.update(run_ts, df)
 
@@ -183,7 +187,22 @@ async def get_forecasts(
             ),
         )
 
+    if response_still_fresh(if_modified_since, run_ts):
+        # Not Modified, saves bandwidth, but we still had to fetch the data.
+        # Note, if we didn't set no-cache here, it would assume that the data was REFRESHED and the max-age from the
+        # original 200 response is active again. We don't want that, it should revalidate everytime after we send a 304
+        # until new data arrives and the next 200 response sets the max-age again.
+        return Response(
+            status_code=304, headers={"Cache-Control": "no-cache", "Last-Modified": get_last_modified(run_ts)}
+        )
+
     model = await get_model_info(conn, run_ts) if model_info else None
+
+    if fetching_latest:
+        # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
+        set_client_caching(
+            response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
+        )
 
     return ForecastPayload(
         data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())
@@ -256,3 +275,8 @@ async def health() -> Health:
         return Health(status="OK", age=age_sec)
 
     return Health(status="NOK", age=age_sec)
+
+
+if __name__ == "__main__":
+    # mostly for debugging, run via uvicorn cli in production
+    uvicorn.run(app, host="0.0.0.0", port=8080)

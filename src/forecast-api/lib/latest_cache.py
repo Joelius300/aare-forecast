@@ -1,6 +1,9 @@
+import logging
 from datetime import datetime, timedelta, UTC
 
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 
 class LatestCache:
@@ -26,7 +29,18 @@ class LatestCache:
     def update(self, last_updated: datetime, df: pd.DataFrame):
         """Update the cache with new data. DATA IS ONLY CACHED IF THE LAST_UPDATED KEY IS NEWER!"""
         if self._last_updated is not None and self._last_updated > last_updated:
-            raise ValueError("Cache update attempted with data older than already stored in cache!")
+            # Instead of raising an error, which could also be appropriate, we simply do nothing to make sure we don't
+            # fail when a race condition occurs. I'm not sure if it's possible, but in theory the single worker threadpool
+            # could result in one request updating the cache while the other one is fetching data from the database.
+            # If the 'from' params are set just correctly so that it's all cacheable, it might be able to result in a
+            # data race. Luckily, due to the GIL, we can be sure that there is no race between checking freshness and
+            # getting data out of the cache, since those are both not async so no context switching can occur.
+            # raise ValueError("Cache update attempted with data older than already stored in cache!")
+            logger.warning(
+                "It was attempted to update the cache with data older than what's already stored! "
+                + f"{self._last_updated} (cached) > {last_updated} (new)"
+            )
+            return
 
         self._last_updated = last_updated
         self._data = df

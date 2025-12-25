@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class OrakuSettings(BaseSettings):
     connection_string: str
     logging_level: str = "WARNING"
-    default_horizon: int = 24
-    maximum_horizon: int = 24
+    default_horizon: int = 36
+    maximum_horizon: int = 48
     maximum_forecast_age: str = "1d"
     timezone: str = "Europe/Zurich"
     available_cities: list[str] = ["bern"]

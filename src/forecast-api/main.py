@@ -242,7 +242,7 @@ async def get_index() -> str:
 
 @app.head("/health")  # uptimerobot sends head by default
 @app.get("/health")
-async def health(response: Response) -> Health:
+async def get_health(response: Response) -> Health:
     BAD_STATUS = 500
     # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
     # this needs to be revisited once more than one location is supported.

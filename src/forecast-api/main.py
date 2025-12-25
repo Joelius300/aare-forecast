@@ -239,6 +239,7 @@ async def get_index() -> str:
     return "«Bitte anthropomorphisier mi nid, i bi doch nume chli fancy Math u Statistik», seit ds Oraku"
 
 
+@app.head("/health")  # uptimerobot sends head by default
 @app.get("/health")
 async def health(response: Response) -> Health:
     BAD_STATUS = 500

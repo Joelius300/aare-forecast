@@ -44,7 +44,12 @@ build-service tag='latest':
 build-api tag='latest':
   docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:{{tag}}
 
-# build all
+[group('build')]
+[working-directory: 'reports']
+build-report:
+  uv run marimo export html-wasm model-eval.py -o model-eval-wasm-notebook --mode run
+
+# build all docker images
 [group('build')]
 [parallel]
 build: build-service build-api

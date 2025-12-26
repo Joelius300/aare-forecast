@@ -13,6 +13,9 @@ def _(mo):
 
     Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. The forecast horizon(s) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
+    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. During inference, this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. How well the model performs with external forecast inputs we don't know yet, but it's very likely that it will be worse than this evaluation shows. How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model. To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated. At the same time, all historical forecasts including all external inputs are stored for future evaluation.  
+    If you select the "validation" dataset instead of the test set, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias. The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
+
     - TODO more notes on how this all works, caveats, what data, etc.
     - TODO just recipe for building and publishing report
     - TODO also publish json meta files for the models so we can display the features it uses

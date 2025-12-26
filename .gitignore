@@ -173,3 +173,5 @@ model_mount
 data/optuna-trials.db-journal
 data/backups
 gh-pages
+reports/model-eval-wasm-notebook
+reports/__marimo__/session

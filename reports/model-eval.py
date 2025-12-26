@@ -11,10 +11,11 @@ def _(mo):
 
     This notebook shows the accuracy of different Aare Oraku models.
 
-    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. The forecast horizon(s) people are interested probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
+    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. The forecast horizon(s) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
-    TODO more notes on how this all works, caveats, what data, etc.
-    TODO just recipe for building and publishing report
+    - TODO more notes on how this all works, caveats, what data, etc.
+    - TODO just recipe for building and publishing report
+    - TODO also publish json meta files for the models so we can display the features it uses
     """)
     return
 
@@ -53,7 +54,7 @@ def _(mo):
 def _(horizon_range, hour_range, mo, model, model_metrics, month_range):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mo.md(
-        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire validation series, 75% of forecasts have a MAE of {model_metrics['mae_q75']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 75% of all forecasts have a daily peak difference of {model_metrics['madpd_q75']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
+        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire validation series, 75% of forecasts have a MAE of {model_metrics['mae_q75']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 75% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q75']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
     ).callout("success")
     return
 
@@ -61,6 +62,7 @@ def _(horizon_range, hour_range, mo, model, model_metrics, month_range):
 @app.cell(hide_code=True)
 def _(
     cs,
+    eval_stride,
     horizon_filter,
     hour_filter,
     month_filter,
@@ -83,15 +85,18 @@ def _(
             pl.col("start_time", "end_time").unique().first(),
         )
         .sort("run_ts")
-        # smooth all runs in a week, at least 24 runs (all of one day). For this to work, stride must be 1!
-        .with_columns(cs.float().rolling_mean(7 * 24, center=True, min_samples=24), valid=month_filter)
+        # smooth all runs in a week, at least one day. For this to work, must divide by stride (best case every hour is evaluated).
+        .with_columns(
+            cs.float().rolling_mean(7 * 24 // eval_stride, center=True, min_samples=24 // eval_stride),
+            valid=month_filter,
+        )
         .collect()
     )
 
     quantile_line_chart(
         _df,
         title="Forecast error over validation period",
-        subtitle="Prediction interval shows quantiles for errors within each forecast. 75% of all errors lie within shaded area. Heavy smoothing applied.",
+        subtitle="Prediction interval shows quantiles for errors within each forecast. 75% of all errors lie within shaded area. Weekly smoothing applied.",
         yaxis_label="Absolute Forecast Error [°C]",
     )
     return
@@ -274,7 +279,7 @@ def _(data_path, mo, pl, timedelta, tz):
             .with_columns(lag=((pl.col("time") - pl.col("run_ts")) / timedelta(hours=1) + 1).cast(int))
             # add absolute error columns
             .with_columns(ae=pl.col("err").abs(), adpd=pl.col("dpd").abs())
-            # add unique id for each forecast
+            # add unique integer id for each forecast
             .with_columns(pl.col("run_ts").rle_id().alias("fc_i"))
             .collect()
         )
@@ -294,7 +299,10 @@ def _(data_path, mo, pl, timedelta, tz):
 @app.cell
 def _(pl, raw_metrics):
     max_horizon = raw_metrics.select(pl.max("lag")).item()
-    return (max_horizon,)
+    eval_stride = int(
+        raw_metrics.select(pl.col("run_ts").unique(maintain_order=True).diff().mean()).item().total_seconds() / 3600
+    )
+    return eval_stride, max_horizon
 
 
 @app.cell

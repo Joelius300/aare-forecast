@@ -69,7 +69,7 @@ aggregiert im wahnsinnig tolle Archiv vom [Bureau für digitale Existenz](https:
 - [InfluxDB Access ❤️](https://api.existenz.ch/#influx)
 - [SwissMetNet Dataset Description](https://api-datasette.konzept.space/existenz-api/smn_parameters)
 - [BAFU Hydrologie Dataset Description](https://api-datasette.konzept.space/existenz-api/hydro_parameters)
-- [Hydrologische Vorhersagen vom Bund (nüt dopplet mache)](https://www.bafu.admin.ch/bafu/de/home/themen/wasser/extremereignisse/hydrologische-vorhersagen-des-bundes.html)
+- [Hydrologische Vorhersagen vom Bund (nüt dopplet mache)](https://www.bafu.admin.ch/de/hydrologische-vorhersagen-und-warnungen)
 
 ### Potenzielle Ressourcen
 

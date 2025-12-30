@@ -43,6 +43,7 @@ COPY --from=builder --chown=app:app /app /app
 COPY src/forecast-service/deploy/app.json /app/app.json
 COPY src/forecast-service/deploy/Procfile /app/Procfile
 
+ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PROJECT_ROOT=/app
 

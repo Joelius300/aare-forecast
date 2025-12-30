@@ -39,6 +39,7 @@ WORKDIR /app
 # copy the application and built venv from the builder
 COPY --from=builder --chown=app:app /app /app
 
+ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/.venv/bin:$PATH"
 RUN chmod +x /app/src/forecast-api/entrypoint.sh
 COPY src/forecast-api/deploy/app.json /app/app.json

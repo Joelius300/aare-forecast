@@ -1,4 +1,6 @@
-from typing import cast
+from collections.abc import Sequence
+import logging
+from typing import cast, Any
 
 import httpx
 import numpy as np
@@ -7,24 +9,30 @@ import pandas as pd
 from aare.constants import TIME
 from lib.external_sources.external_source import ExternalSource
 
+logger = logging.getLogger(__name__)
+
 
 class MeteoTestSource(ExternalSource):
     """Fetch forecasts from Meteotest (internal Meteotest service)"""
 
-    def __init__(self, url: str, locations: list[str]):
-        self.url = url
-        self.locations = locations
+    def __init__(self, url: str, locations: Sequence[str]):
+        self.url: str = url
+        self.locations: Sequence[str] = locations
 
-    def fetch(self) -> pd.DataFrame:
-        # can be made async later
-        r = httpx.get(self.url)
-        r.raise_for_status()
+    async def fetch(self) -> pd.DataFrame:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(self.url)
+            r.raise_for_status()
 
         body = r.json()
         mos = body["payload"]["mos"]
 
-        dfs = []
+        dfs: list[pd.DataFrame] = []
         for loc in self.locations:
+            if loc not in mos:
+                logger.warning(f"Attempted to get MeteoTest location '{loc}', but it was not in the response!")
+                continue
+
             df = self._to_df(mos[loc])
             df["location"] = loc
             dfs.append(df)
@@ -49,7 +57,7 @@ class MeteoTestSource(ExternalSource):
 
         return df
 
-    def _to_df(self, data: dict):
+    def _to_df(self, data: dict[str, Any]):
         df = pd.DataFrame.from_dict(data, orient="index", dtype=np.float32)
         # timestamps from meteotest are naive but should be interpreted as UTC
         df.index = pd.to_datetime(df.index).tz_localize("UTC")

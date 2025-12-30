@@ -5,7 +5,7 @@ import pandas as pd
 
 class ExternalSource(ABC):
     @abstractmethod
-    def fetch(self) -> pd.DataFrame:
+    async def fetch(self) -> pd.DataFrame:
         """Fetch the data into a semi-raw format suitable for storage."""
         pass
 

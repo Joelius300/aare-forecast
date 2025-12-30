@@ -121,6 +121,7 @@ async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd
         source_names.append(source_name)
         fetch_tasks.append(_fetch_cache_external(source_name, **source, run_ts=run_ts))
 
+    # fetching external sources and persisting them can all be done concurrently, await all together
     results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
     external_data: dict[str, pd.DataFrame] = {}
@@ -137,9 +138,21 @@ async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd
 
 async def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
     """Fetch data, cache it in the db, then transform and return it ready for the model."""
-    # TODO use taskgroup to run those two concurrently, they don't depend on each other.
-    await table.ensure_table_exists()
-    df = await source.fetch()
+    async with asyncio.TaskGroup() as tg:  # similar to asyncio.gather, just nicer syntax for this use-case
+        fetch_task = tg.create_task(source.fetch())  # fetch from external source
+        tg.create_task(table.ensure_table_exists())  # create table if needed (without waiting for fetch task)
+
+    # task is 100% already finished here, so call result() directly instead of awaiting it
+    df = fetch_task.result()
+
+    # Ps. for myself regarding how async works and compares to C#: coroutines in Python are cold tasks, they are only
+    # started once something awaits them. In contrast, C# tasks are always hot, so the second you call a function, it will
+    # run everything up the first await. In Python, if you just call an async function, nothing inside of it will run.
+    # After playing around, this seems to even be true with create_task, but slightly different. create_task schedules
+    # the coroutine as the next task and as soon as a context switch occurs, e.g. because some other task is awaited,
+    # this scheduled task will be started while the other one is waiting. In this case here, the first context switch
+    # after scheduling happens when the async context manager is exited, so then all scheduled tasks are run concurrently.
+    # IIRC you could use asyncio.eager_task_factory for a "hot task" like behavior.
 
     logger.debug(f"Fetched {len(df)} rows from {name}")
     df["run_ts"] = run_ts

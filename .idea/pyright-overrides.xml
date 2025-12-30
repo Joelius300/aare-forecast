@@ -6,6 +6,7 @@
         <entry key="autoSearchPaths" value="true" />
         <entry key="diagnosticMode" value="true" />
         <entry key="executable" value="true" />
+        <entry key="fileEnumerationTimeout" value="true" />
         <entry key="targetedFileExtensions" value="true" />
         <entry key="workspaceFolders" value="true" />
       </map>

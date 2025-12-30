@@ -32,6 +32,7 @@ from lib.external_sources.registry import SourceRegistry, Sources
 from lib.persistence.tables.forecast import ForecastTable
 from lib.persistence.tables.forecast_meta import ForecastMetaTable
 from lib.args import parse_cli_args, CliArgs
+from lib.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ async def main():
     async with await init_db_conn_pool(args) as conn_pool:
         metadata_table = ForecastMetaTable(conn_pool)
         await metadata_table.ensure_table_exists()
-        await metadata_table.insert_metadata(run_ts, model_meta, args)
+        await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
 
         status = "success"
         error = None

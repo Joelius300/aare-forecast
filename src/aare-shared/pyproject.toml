@@ -1,7 +1,7 @@
 [project]
 name = "aare-shared"
 version = "0.1.0"
-description = "Shared library for aare-oraku"
+description = "Shared library for aare-oraku training, inference, etc. Quite heavy atm, should be split."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

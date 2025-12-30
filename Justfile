@@ -38,6 +38,7 @@ track: mlflow optuna
 
 [group('build')]
 build-service tag='latest':
+  -uv version --package aare-oraku-forecast {{tag}}  # try setting version, ignore if failed
   docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:{{tag}}
 
 [group('build')]

@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Literal, override, Any
+from typing import Literal, override
 
 import pandas as pd
 from psycopg import sql
@@ -8,6 +8,8 @@ from psycopg_pool import AsyncConnectionPool
 
 from aare.storage.metadata import AareModel
 from aare_timescale.timescale_table import TimescaleTable
+
+from lib.args import CliArgs
 
 
 class ForecastMetaTable(TimescaleTable):
@@ -25,6 +27,7 @@ class ForecastMetaTable(TimescaleTable):
         "features_past",
         "features_future",
         "error",
+        "service_version",
     ]
 
     def __init__(self, connection_pool: AsyncConnectionPool):
@@ -56,8 +59,15 @@ class ForecastMetaTable(TimescaleTable):
             )
             # no hypertable
 
+            await conn.execute("ALTER TABLE forecast_meta ADD COLUMN IF NOT EXISTS service_version text;")
+
     async def insert_metadata(
-        self, run_ts: datetime, model_meta: AareModel, config_args: Any, starting_status: str = "started"
+        self,
+        run_ts: datetime,
+        model_meta: AareModel,
+        config_args: CliArgs,
+        service_version: str,
+        starting_status: str = "started",
     ):
         """Store initial information on the run. It should later be updated when the run is finished/crashed."""
 
@@ -78,7 +88,7 @@ class ForecastMetaTable(TimescaleTable):
             "model_version": model_meta["version"],
             "status": starting_status,
             "finished_at": None,
-            "horizon": config_args.horizon,  # pyright: ignore[reportAny]
+            "horizon": config_args.horizon,
             "mlflow_run_name": model_meta["mlflow"]["run_name"],
             "mlflow_exp_id": model_meta["mlflow"]["exp_id"],
             "mlflow_run_id": model_meta["mlflow"]["run_id"],
@@ -86,6 +96,7 @@ class ForecastMetaTable(TimescaleTable):
             "features_past": _get_features("past"),
             "features_future": _get_features("future"),
             "error": None,
+            "service_version": service_version,
         }
 
         await self.insert(pd.DataFrame([meta]))

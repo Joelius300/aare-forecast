@@ -1,12 +1,9 @@
 [project]
 name = "aare-logging"
 version = "0.1.0"
-description = "aare-oraku logging library"
+description = "Logging for aare-oraku"
 requires-python = ">=3.11"
-dependencies = [
-    "python-logging-loki-v2>=1.1.1",
-]
-
+dependencies = ["python-logging-loki-v2>=1.1.1"]
 
 [tool.uv]
 package = true
@@ -15,6 +12,5 @@ package = true
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# build the package under src/aare (and use that as package root)
 [tool.hatch.build.targets.wheel]
 packages = ["src/aare_logging"]

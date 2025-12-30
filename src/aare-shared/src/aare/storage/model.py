@@ -1,7 +1,6 @@
-import os
 import pickle
 from pathlib import Path
-from typing import cast, Optional
+from typing import Any, cast
 
 import yaml
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
@@ -29,8 +28,8 @@ def save_model(
     model: GlobalForecastingModel,
     features: FeatureIdentifiers,
     scalers: DataTransformers,
-    run_info,  # no type -> no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
-    override=False,
+    run_info: Any,  # no type -> no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
+    override: bool = False,
 ):
     """Store a model with all necessary information including a metadata file."""
     base_path = _make_model_base_path_relative(name, version)
@@ -77,18 +76,15 @@ def save_model(
 
 
 def _make_abs_path(meta: AareModel, base_path: Path, key: str):
-    d = cast(dict, meta)
+    d = cast(dict[str, Any], meta)  # pyright: ignore[reportInvalidCast]
     d[key] = base_path / d[key]
-    meta = cast(AareModel, d)
-
-    return meta
 
 
 def load_model_meta(
-    meta_path: Optional[os.PathLike | str | Path] = None,
-    name: Optional[str] = None,
-    version: Optional[str] = None,
-    make_paths_absolute=True,
+    meta_path: str | Path | None = None,
+    name: str | None = None,
+    version: str | None = None,
+    make_paths_absolute: bool = True,
 ):
     """Load a model meta dict from a specified path. For local dev, can also provide name and version."""
     if not meta_path:
@@ -110,7 +106,6 @@ def load_model_meta(
     # turn all the relative paths in the json into absolute paths for easier handling
     model_folder = meta_path.parent
     for key in meta.keys():
-        key: str
         if key.endswith("_path"):
             _make_abs_path(meta, model_folder, key)
 
@@ -119,7 +114,7 @@ def load_model_meta(
 
 def load_model_from_meta(
     meta: AareModel,
-) -> tuple[GlobalForecastingModel, Optional[DataTransformers]]:
+) -> tuple[GlobalForecastingModel, DataTransformers | None]:
     """Load a model and its scalers from a meta dict."""
     model_cls = meta["model_cls"]
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"
@@ -138,10 +133,10 @@ def load_model_from_meta(
 
 
 def load_model(
-    meta_path: Optional[os.PathLike | str | Path] = None,
-    name: Optional[str] = None,
-    version: Optional[str] = None,
-) -> tuple[AareModel, GlobalForecastingModel, Optional[DataTransformers]]:
+    meta_path: str | Path | None = None,
+    name: str | None = None,
+    version: str | None = None,
+) -> tuple[AareModel, GlobalForecastingModel, DataTransformers | None]:
     """Load a model from a specified path. For local dev, can also provide name and version."""
     meta = load_model_meta(meta_path, name, version, make_paths_absolute=True)
     model, scalers = load_model_from_meta(meta)

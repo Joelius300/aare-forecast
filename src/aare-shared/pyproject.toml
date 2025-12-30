@@ -1,7 +1,7 @@
 [project]
 name = "aare-shared"
 version = "0.1.0"
-description = "aare-forecast shared library"
+description = "Shared library for aare-oraku"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

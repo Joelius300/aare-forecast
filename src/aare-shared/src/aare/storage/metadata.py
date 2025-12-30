@@ -1,9 +1,8 @@
 import logging
 import json
 import importlib
-import os
 from pathlib import Path, PosixPath, WindowsPath
-from typing import TypedDict, cast
+from typing import TypedDict, cast, Any
 
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 from aare.fetching.feature_identifiers import FeatureIdentifiers
@@ -40,14 +39,14 @@ class AareModel(TypedDict):
     mlflow: MlFlowInfo  # for precise traceability/transparency
 
 
-def _get_class_by_name(name):
+def _get_class_by_name(name: str):
     module_name, class_name = name.rsplit(".", 1)
     module = importlib.import_module(module_name)
     return getattr(module, class_name)
 
 
 class _ClassEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any):
         if isinstance(o, type):
             return o.__module__ + "." + o.__qualname__
         elif isinstance(o, (Path, PosixPath, WindowsPath)):
@@ -56,7 +55,7 @@ class _ClassEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-def _class_decoder(obj):
+def _class_decoder(obj: dict[str, Any]):
     # treat all keys with *_cls as type and import the referenced class
     for key, value in obj.items():
         if key.endswith("_cls") and isinstance(value, str):
@@ -71,13 +70,13 @@ def _class_decoder(obj):
     return obj
 
 
-def serialize_model_info(path: os.PathLike, model: AareModel, indent=2) -> None:
+def serialize_model_info(path: str | Path, model: AareModel, indent: int = 2) -> None:
     """Write a model info dict to a json file."""
     with open(str(path), "wt") as file:
         json.dump(model, file, cls=_ClassEncoder, indent=indent)
 
 
-def load_model_info(path: os.PathLike | str) -> AareModel:
+def load_model_info(path: str | Path) -> AareModel:
     """Read a model info dict from json and import specified model type."""
     with open(str(path), "rt") as file:
         info = json.load(file, object_hook=_class_decoder)

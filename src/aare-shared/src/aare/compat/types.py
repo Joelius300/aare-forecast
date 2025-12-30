@@ -1,4 +1,4 @@
-from typing import TypedDict, NotRequired, Optional
+from typing import TypedDict, NotRequired
 
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import BaseDataTransformer, InvertibleDataTransformer
@@ -13,11 +13,11 @@ class DataTransformers(TypedDict):
 
 
 ExtremeLags = tuple[
-    Optional[int],  # min target lag,
-    Optional[int],  # max target lag,
-    Optional[int],  # min past covariate lag,
-    Optional[int],  # max past covariate lag,
-    Optional[int],  # min future covariate lag,
-    Optional[int],  # max future covariate lag,
+    int | None,  # min target lag,
+    int | None,  # max target lag,
+    int | None,  # min past covariate lag,
+    int | None,  # max past covariate lag,
+    int | None,  # min future covariate lag,
+    int | None,  # max future covariate lag,
     int,  # output shift,
 ]

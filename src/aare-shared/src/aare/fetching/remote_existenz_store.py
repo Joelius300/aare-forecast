@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from functools import reduce
 from typing import cast, Literal, Optional
@@ -13,15 +13,17 @@ from aare.locations import translate_location
 logger = logging.getLogger(__name__)
 
 
-def _chain_equality(column: str, *values: str | int | list, separator="or", wrap_in_quotes=True):
-    """Returns a predicate function where a column is tested against one or more values with equality (==)."""
+def _chain_equality(
+    column: str, *values: str | int | Sequence[str | int], separator: str = "or", wrap_in_quotes: bool = True
+) -> str:
+    """Returns a flux predicate function where a column is tested against one or more values with equality (==)."""
     # using contains(value: r["loc"], set: ["2135", "2030"]) has muuuuch worse performance
-    if values is None or len(values) == 0:
+    if len(values) == 0:
         raise ValueError("cannot equality-chain 0 values")
 
-    if len(values) == 1 and (isinstance(values[0], list)):
+    if len(values) == 1 and (isinstance(values[0], Sequence)):
         # unpack list so you don't have to on the caller's side
-        values: list = cast(list, values[0])
+        return _chain_equality(column, *values[0], separator, wrap_in_quotes)
 
     q = '"' if wrap_in_quotes else ""
     return "(r) => " + (f" {separator} ".join([f'r["{column}"] == {q}{value}{q}' for value in values]))
@@ -120,8 +122,8 @@ def _normalize_period(period: Period) -> tuple[str, str]:
 class RemoteExistenzStore:
     """Client for fetching data from the remote aare.guru InfluxDB database."""
 
-    def __init__(self, timeout=60_000, debug=False):
-        self.client = InfluxDBClient(
+    def __init__(self, timeout: int = 60_000, debug: bool = False):
+        self.client: InfluxDBClient = InfluxDBClient(
             url="https://influx.konzept.space/",
             # this is a public readonly token, so while not best practice, there's no danger in hard-coding it here :)
             token="0yLbh-D7RMe1sX1iIudFel8CcqCI8sVfuRTaliUp56MgE6kub8-nSd05_EJ4zTTKt0lUzw8zcO73zL9QhC3jtA==",
@@ -130,8 +132,8 @@ class RemoteExistenzStore:
             timeout=timeout,
         )
 
+    @staticmethod
     def _base_query(
-        self,
         period: Period,
         locations: Locations,
     ):
@@ -156,7 +158,8 @@ postProc = (tables=<-) =>
 
 """
 
-    def _ma(self, period: str):
+    @staticmethod
+    def _ma(period: str):
         return f"|> timedMovingAverage(every: freq, period: {period})"
 
     def _query_fields(
@@ -208,10 +211,10 @@ postProc = (tables=<-) =>
         period: Period,
         locations: str | int | list[str | int],
         fields: str | list[str] = "temperature",
-        agg_freq="1h",  # could also read from params
-        agg_func="mean",
-        agg_create_empty=False,
-        keep_loc=False,
+        agg_freq: str = "1h",  # could also read from params
+        agg_func: str = "mean",
+        agg_create_empty: bool = False,
+        keep_loc: bool = False,
     ):
         """Queries hydrology data from the remote influx store by existenz.ch"""
         # can later be split and extended for non-hydro data
@@ -246,7 +249,7 @@ postProc = (tables=<-) =>
         self,
         period: Period,
         fields: str | Iterable[str | FieldRequest],
-        keep_loc=False,
+        keep_loc: bool = False,
     ):
         if isinstance(fields, str) or isinstance(fields, FieldRequest):
             fields = [fields]

@@ -50,6 +50,6 @@ def response_still_fresh(if_modified_since: str | None, run_ts: datetime) -> boo
 
     # the datetime from the header needs to be _interpreted_ as UTC, the run_ts needs to be _converted_ to UTC!
     last_changed_req = datetime.strptime(if_modified_since, HTTP_TIME_FMT).replace(tzinfo=UTC)
-    run_ts = run_ts.astimezone(UTC).replace(microsecond=0)
+    run_ts = run_ts.astimezone(UTC).replace(microsecond=0)  # if-modified-since has sec accuracy
 
     return last_changed_req == run_ts

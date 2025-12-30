@@ -60,6 +60,7 @@ members = [
     "aare-oraku-api",
     "aare-oraku-forecast",
     "aare-shared",
+    "aare-timescale",
 ]
 overrides = [
     { name = "aiohttp", marker = "sys_platform == 'never'" },
@@ -80,6 +81,7 @@ dev = [
     { name = "aare-logging" },
     { name = "aare-shared", extra = ["dvc"] },
     { name = "aare-shared", extra = ["gpu-auto"], marker = "(extra == 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-11-aare-shared-gpu-auto') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-11-aare-shared-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
+    { name = "aare-timescale" },
     { name = "basedpyright" },
     { name = "gunicorn" },
     { name = "httpx" },
@@ -109,6 +111,7 @@ dev = [
 dev = [
     { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-shared", extras = ["gpu-auto", "dvc"], editable = "src/aare-shared" },
+    { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "basedpyright", specifier = ">=1.36.1" },
     { name = "gunicorn", specifier = ">=23.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -149,9 +152,9 @@ version = "0.1.0"
 source = { virtual = "src/forecast-api" }
 dependencies = [
     { name = "aare-logging" },
+    { name = "aare-timescale" },
     { name = "fastapi" },
     { name = "pandas" },
-    { name = "psycopg", extra = ["binary", "pool"] },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
@@ -165,9 +168,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aare-logging", editable = "src/aare-logging" },
+    { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "pandas", specifier = ">=2.3.2" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.10" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.36.0" },
@@ -182,9 +185,10 @@ version = "0.1.0"
 source = { virtual = "src/forecast-service" }
 dependencies = [
     { name = "aare-logging" },
+    { name = "aare-timescale" },
     { name = "configargparse" },
     { name = "httpx" },
-    { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "uvloop" },
 ]
 
 [package.optional-dependencies]
@@ -204,9 +208,10 @@ requires-dist = [
     { name = "aare-shared", extras = ["cpu"], marker = "extra == 'cpu'", editable = "src/aare-shared" },
     { name = "aare-shared", extras = ["gpu"], marker = "extra == 'gpu'", editable = "src/aare-shared" },
     { name = "aare-shared", extras = ["gpu-auto"], marker = "extra == 'gpu-auto'", editable = "src/aare-shared" },
+    { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "configargparse", specifier = ">=1.7.1" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
+    { name = "uvloop", specifier = ">=0.21.0" },
 ]
 provides-extras = ["gpu-auto", "gpu", "cpu"]
 
@@ -260,6 +265,17 @@ provides-extras = ["gpu-auto", "gpu", "cpu", "dvc"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "hatchling", specifier = ">=1.27.0" }]
+
+[[package]]
+name = "aare-timescale"
+version = "0.1.0"
+source = { editable = "src/aare-timescale" }
+dependencies = [
+    { name = "psycopg", extra = ["binary", "pool"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" }]
 
 [[package]]
 name = "absl-py"

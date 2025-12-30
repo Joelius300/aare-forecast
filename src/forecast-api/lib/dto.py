@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import Optional
 
 from pydantic import BaseModel, RootModel
 
@@ -16,9 +15,9 @@ class ForecastDataFormat(StrEnum):
 
 
 class ForecastMetadata(BaseModel):
-    last_updated: Optional[datetime]
+    last_updated: datetime | None
     """Exact time the forecast was made (=last updated) or null if no forecast was returned."""
-    model: Optional[ModelInfo]
+    model: ModelInfo | None
     city: str
     format: ForecastDataFormat
 
@@ -33,8 +32,11 @@ class ForecastColumnData(BaseModel):
     temp: list[float] = []
 
 
-class ForecastRowData(RootModel):
-    root: list[ForecastSingleRow] = []
+class ForecastRowData(RootModel[list[ForecastSingleRow]]):
+    @staticmethod
+    def empty():
+        # noinspection PyArgumentList
+        return ForecastRowData([])
 
 
 class ForecastPayload(BaseModel):

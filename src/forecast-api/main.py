@@ -1,22 +1,19 @@
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, UTC
 from enum import StrEnum
 from typing import Annotated
 
-import pandas as pd
-import uvicorn
-from psycopg import AsyncConnection
 import psycopg_pool
 import pytz
+import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Header, Query, Response
-from datetime import datetime, timedelta, UTC
+from psycopg import AsyncConnection
 
 from aare_logging.logging import setup_logging
-from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.latest_cache import LatestCache
 from lib.access_log_filter import AccessLogFilter
-from lib.oraku_settings import OrakuSettings
-from lib.postgres import select_forecasts, get_model_info
+from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
+from lib.dba import fetch_forecast, get_model_info
 from lib.dto import (
     ForecastPayload,
     ForecastMetadata,
@@ -26,6 +23,8 @@ from lib.dto import (
     ForecastRowData,
     Health,
 )
+from lib.latest_cache import LatestCache
+from lib.oraku_settings import OrakuSettings
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
@@ -81,24 +80,6 @@ async def open_db():
 default_latest_cache = LatestCache(
     timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec)
 )
-
-
-async def fetch_forecast(
-    conn: AsyncConnection, from_: datetime, horizon: int, city: CityEnum | str
-) -> tuple[datetime | None, pd.DataFrame]:
-    df = await select_forecasts(conn, from_, settings.maximum_forecast_age, horizon, city)
-    if df.empty:
-        return None, df
-
-    # if speed is important, it's probably faster to use .dt.strftime() to convert pd.Timestamp directly to str
-    df["time"] = pd.to_datetime(df["time"]).dt.tz_convert(tz).apply(pd.Timestamp.to_pydatetime)
-
-    run_ts_unique = df["run_ts"].unique()
-    assert len(run_ts_unique) == 1, "fetched more than one run, currently not supported so it shouldn't happen"
-    run_ts = run_ts_unique.item()
-    run_ts = datetime.fromisoformat(run_ts).astimezone(tz)
-
-    return run_ts, df
 
 
 API_DESC = (
@@ -173,7 +154,7 @@ async def get_forecasts(
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
-        run_ts, df = await fetch_forecast(conn, from_, horizon, city)
+        run_ts, df = await fetch_forecast(conn, from_, horizon, city, settings.maximum_forecast_age, tz)
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
 
         if ss_cacheable and run_ts is not None:
@@ -183,7 +164,7 @@ async def get_forecasts(
     if run_ts is None:
         # instead of an error, return an empty response.
         return ForecastPayload(
-            data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData(),
+            data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData.empty(),
             metadata=ForecastMetadata(
                 last_updated=None,
                 model=None,
@@ -254,7 +235,12 @@ async def get_health(response: Response) -> Health:
     # in case the database has issues, this will cause an exception and the health endpoint will return a 500 status.
     async with pool.connection() as conn:
         last_updated, latest_df = await fetch_forecast(
-            conn, datetime.now(UTC), settings.default_horizon, city=settings.default_city
+            conn,
+            datetime.now(UTC),
+            settings.default_horizon,
+            settings.default_city,
+            settings.maximum_forecast_age,
+            tz,
         )
 
     logger.debug("[server-side cache] had to fetch in health endpoint")

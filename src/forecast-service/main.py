@@ -1,22 +1,26 @@
 # ruff: noqa: E402
 # ignore 'imports not at top of file' for this file
+
 from datetime import UTC, datetime
 
 import_start_ts = datetime.now(UTC)
 
+from collections.abc import Awaitable
 import logging
-from typing import Optional
+import asyncio
 
-import configargparse
+import uvloop
 import pandas as pd
-import psycopg
 from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
-from psycopg_pool import ConnectionPool
+from psycopg import AsyncConnection
+from psycopg.rows import TupleRow
+from psycopg_pool import AsyncConnectionPool
 
 from aare_logging.logging import setup_logging
+from aare_timescale.timescale_table import TimescaleTable
 from aare.compat.types import DataTransformers
 from aare.storage.metadata import AareModel
 from aare.storage.model import load_model
@@ -27,20 +31,20 @@ from lib.external_sources.external_source import ExternalSource
 from lib.external_sources.registry import SourceRegistry, Sources
 from lib.persistence.tables.forecast import ForecastTable
 from lib.persistence.tables.forecast_meta import ForecastMetaTable
-from lib.persistence.timescale_table import TimescaleTable
+from lib.args import get_args
 
 logger = logging.getLogger(__name__)
 
 
-def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
+async def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
     """fetch, cache in db and then transform and return data from the source"""
-    table.ensure_table_exists()
-    df = source.fetch()
+    await table.ensure_table_exists()
+    df = await source.fetch()
 
     logger.debug(f"Fetched {len(df)} rows from {name}")
     df["run_ts"] = run_ts
 
-    table.insert(df)
+    await table.insert(df)
     logger.debug(f"Inserted {len(df)} rows into {table.table_name}")
 
     prepared = source.prepare(df)
@@ -48,20 +52,32 @@ def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTab
     return prepared
 
 
-def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd.DataFrame]:
+async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd.DataFrame]:
     """pull from all registered external sources and store to db cache"""
+    source_names: list[str] = []
+    tasks: list[Awaitable[pd.DataFrame | BaseException]] = []
+    for source_name, source in sources.items():
+        source_names.append(source_name)
+        tasks.append(_fetch_cache_external(source_name, **source, run_ts=run_ts))
 
-    # can be parallelized later, or at least async
-    return {
-        source_name: _fetch_cache_external(source_name, **source, run_ts=run_ts)
-        for source_name, source in sources.items()
-    }
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    external_data: dict[str, pd.DataFrame] = {}
+    for source_name, result in zip(source_names, results):
+        if isinstance(result, BaseException):
+            logger.error(f"Could not fetch and store '{source_name}': {result}")
+            continue
+
+        assert isinstance(result, pd.DataFrame), "result is not a dataframe and not an exception"
+        external_data[source_name] = result
+
+    return external_data
 
 
 def predict(
     model: GlobalForecastingModel,
     data: InferenceData,
-    target_scaler: Optional[InvertibleDataTransformer | Pipeline],
+    target_scaler: InvertibleDataTransformer | Pipeline | None,
     horizon: int,
     num_samples: int,
 ) -> pd.DataFrame:
@@ -85,25 +101,25 @@ def predict(
     return pred.to_dataframe().reset_index(names="time")
 
 
-def persist_forecast(run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable):
-    table.ensure_table_exists()
+async def persist_forecast(run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable):
+    await table.ensure_table_exists()
     to_store = forecast.copy()
     to_store["run_ts"] = run_ts
-    table.insert(to_store)
+    await table.insert(to_store)
 
 
-def make_forecast(
+async def make_forecast(
     run_ts: datetime,
     model_meta: AareModel,
     model: GlobalForecastingModel,
-    scalers: Optional[DataTransformers],
-    conn_pool: ConnectionPool,
+    scalers: DataTransformers | None,
+    conn_pool: AsyncConnectionPool,
     horizon: int,
     num_samples: int,
 ):
     # configure and pull external sources
     sources = SourceRegistry().configure_sources(conn_pool)
-    external_data = load_external_data(sources, run_ts)
+    external_data = await load_external_data(sources, run_ts)
 
     # compile inference data data from internal (influx) and external data
     data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
@@ -111,25 +127,10 @@ def make_forecast(
 
     # actually make and store forecast with loaded model
     forecast = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
-    persist_forecast(run_ts, forecast, ForecastTable(conn_pool))
+    await persist_forecast(run_ts, forecast, ForecastTable(conn_pool))
 
 
-def get_args():
-    p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=["./dev_config.yaml"])
-    p.add_argument(
-        "-c", "--connection-string", required=True, type=str, help="Connection string for the postgres database"
-    )
-    p.add_argument("-m", "--model-path", required=True, type=str, help="Path to the model meta file (json)")
-    p.add_argument("-n", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")
-    p.add_argument("--num-samples", default=128, type=int, help="Number of samples to take for probabilistic forecasts")
-    p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
-    p.add_argument("--loki-url", default=None, type=str, help="Base URL for the loki instance")
-    p.add_argument("--loki-password", default=None, type=str, help="Password for the 'loki' user in loki")
-
-    return p.parse_args()
-
-
-def main():
+async def main():
     args = get_args()
     setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-service")
 
@@ -140,24 +141,27 @@ def main():
     # set params file for read_params to the one that was used when training the model
     set_params_file(model_meta["params_path"])
 
-    # could also use NullConnectionPool because we don't really need pooling atm.
-    # with this config, it opens a connection immediately and keeps it open/ready.
-    conn_pool = ConnectionPool(
+    # could also use AsyncNullConnectionPool because we probably don't really need pooling atm.
+    # with this config, it always keeps one connection open/ready and could/would use more if multiple are need at once.
+    conn_pool = AsyncConnectionPool(
         args.connection_string,
-        min_size=1,
-        connection_class=psycopg.Connection,
+        min_size=1,  # keep one open at all times
+        max_size=4,
+        # shouldn't need more workers to manage those connections (big default on min_size, num_workers, ..)
+        num_workers=1,
+        connection_class=AsyncConnection[TupleRow],  # needed to make pyright happy, but is already the default
     )
-    with conn_pool:
+    async with conn_pool:
         metadata_table = ForecastMetaTable(conn_pool)
-        metadata_table.ensure_table_exists()
-        metadata_table.insert_metadata(run_ts, model_meta, args)
+        await metadata_table.ensure_table_exists()
+        await metadata_table.insert_metadata(run_ts, model_meta, args)
 
         # noinspection PyBroadException
         status = "success"
         error = None
         try:
             # do the hard part
-            make_forecast(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
+            await make_forecast(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
         except Exception as e:
             # only catches error during fetching and forecasting, mostly because fetching has external factors.
             # issues with the database or loading the model will only be visible in the app/container logs.
@@ -167,10 +171,10 @@ def main():
 
         finished_at = datetime.now(UTC)
 
-        metadata_table.update_metadata(run_ts, status, error, finished_at)
+        await metadata_table.update_metadata(run_ts, status, error, finished_at)
 
     logger.info(f"Finished run in {finished_at - run_ts} (+ {run_ts - import_start_ts} imports)")
 
 
 if __name__ == "__main__":
-    main()
+    uvloop.run(main())

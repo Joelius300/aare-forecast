@@ -84,6 +84,7 @@ def get_inference_data(
             )
             source_name = MEAS_TRANS[field.measurement]
             # set index here so it is included in the series and kept after concatenation
+            # TODO improve error when data is not available for some service and make sure you only access what the model needs
             df = external_data[source_name].set_index(TIME)
             cols.append(df[field.name])
 

@@ -1,15 +1,17 @@
-from psycopg_pool import ConnectionPool
+from typing import override
+from psycopg_pool import AsyncConnectionPool
 
-from lib.persistence.timescale_table import TimescaleTable
+from aare_timescale.timescale_table import TimescaleTable
 
 
 class ForecastTable(TimescaleTable):
-    def __init__(self, connection_pool: ConnectionPool):
+    def __init__(self, connection_pool: AsyncConnectionPool):
         super().__init__(connection_pool, "forecast", ["run_ts", "time", "temp_bern"])
 
-    def ensure_table_exists(self):
-        with self.connection_pool.connection() as conn:
-            conn.execute(
+    @override
+    async def ensure_table_exists(self):
+        async with self.connection_pool.connection() as conn:
+            await conn.execute(
                 # run_ts identifies the run, will be FK to metadata table
                 """
                 CREATE TABLE IF NOT EXISTS forecast
@@ -22,4 +24,4 @@ class ForecastTable(TimescaleTable):
                 """
             )
 
-            self.make_hypertable(conn)
+            await self.make_hypertable(conn)

@@ -134,6 +134,7 @@ def load_model_from_meta(
 
 def load_model(
     meta_path: str | Path | None = None,
+    *,
     name: str | None = None,
     version: str | None = None,
 ) -> tuple[AareModel, GlobalForecastingModel, DataTransformers | None]:

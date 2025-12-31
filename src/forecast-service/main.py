@@ -3,6 +3,7 @@
 
 from datetime import UTC, datetime
 
+# run duration of the service should ignore the time needed to import libraries, but we still want to log it
 import_start_ts = datetime.now(UTC)
 
 from collections.abc import Awaitable

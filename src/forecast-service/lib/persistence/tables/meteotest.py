@@ -7,7 +7,11 @@ from aare_timescale.timescale_table import TimescaleTable
 class MeteotestTable(TimescaleTable):
     def __init__(self, connection_pool: AsyncConnectionPool):
         super().__init__(
-            connection_pool, "meteotest", ["run_ts", "time", "location", "tt", "ff", "rr", "dd", "rh", "ss"]
+            connection_pool,
+            "meteotest",
+            ["run_ts", "time", "location", "tt", "ff", "rr", "dd", "rh", "ss"],
+            allow_extra_columns=True,
+            allow_missing_columns=True,
         )
 
     @override

@@ -129,7 +129,12 @@ async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd
     external_data: dict[str, pd.DataFrame] = {}
     for source_name, result in zip(source_names, results):
         if isinstance(result, BaseException):
-            logger.error(f"Could not fetch and store '{source_name}': {result}")
+            if isinstance(result, BaseExceptionGroup):  # TaskGroup wraps error in exception group
+                error = f"{result}: {' | '.join(str(e) for e in result.exceptions)}"
+            else:
+                error = str(result)
+
+            logger.error(f"Could not fetch and store '{source_name}': {error}", exc_info=result)
             continue
 
         assert isinstance(result, pd.DataFrame), "result is neither a dataframe nor an exception"

@@ -2,37 +2,17 @@ import asyncio
 from datetime import timedelta
 import logging
 from collections.abc import Sequence
-from typing import final, Any, cast
+from typing import final, cast, override
 
 from aare.constants import TIME
 from aare.locations import LOC_HYDRO_ALIAS
-from aare.utils import join_many
+from aare.utils import join_many, trav
 import httpx
 import pandas as pd
 
 from lib.external_sources.external_source import ExternalSource
 
 logger = logging.getLogger(__name__)
-
-
-def trav(json: Any, *path: str) -> Any:
-    """Traverse dict-like but with better error msg if a key is missing."""
-    cur = json
-    traversed: list[str] = []
-    for seg in path:
-        if cur is None:
-            raise ValueError(f"Object at '{'.'.join(traversed)}' is None, cannot traverse further to '{seg}'")
-        if not isinstance(cur, dict):
-            raise ValueError(
-                f"Passed json has reached a non-dict at '{'.'.join(traversed)}', but tried to keep going deeper with '{seg}'"
-            )
-        if seg not in cur:
-            raise KeyError(f"Key '{seg}' missing after '{'.'.join(traversed)}'")
-
-        cur = cur[seg]
-        traversed.append(seg)
-
-    return cur
 
 
 @final
@@ -43,11 +23,12 @@ class BafuFlowSource(ExternalSource):
     if they couldn't be fetched from the plot response and warnings are emitted.
     """
 
-    # in data[0] and data[1] is min/max (need to figure out which is which)
-    # in data[2] are 25% and 75% quantiles ASC, then DESC, so twice as many data points
-    # in data[3] is the median, so should have the same n as data[0] and data[1]
-    # in data[4] are the true measurement values up to the point the forecast was made
-    # it seems the prediction was made at the first data point or shortly before that, found no exact time
+    # the data is computed via many (~21) black- and white-box models and aggregated into min/max, q25/q75 and median.
+    # in data[0] and data[1] is max and min forecast.
+    # in data[2] are 25% and 75% quantiles ASC, then DESC, so twice as many data points.
+    # in data[3] is the median, so should have the same n as data[0] and data[1]. most important for us.
+    # in data[4] are the true measurement values up to the point the forecast was made.
+    # it seems the prediction was made at the first data point or shortly before that, found no exact time.
     # maybe send an email to BAFU to see where best to consume this data, given that we're pulling a plot and parsing
     # the data out of that, but I don't think they have an API for consumers for stuff like this.
 
@@ -56,6 +37,7 @@ class BafuFlowSource(ExternalSource):
         self._locations = locations
         self._last_updated_delta = last_updated_delta
 
+    @override
     async def fetch(self) -> pd.DataFrame:
         async with httpx.AsyncClient() as client:
             tasks = [self._fetch_loc(client, loc, self._last_updated_delta) for loc in self._locations]
@@ -85,20 +67,20 @@ class BafuFlowSource(ExternalSource):
         try:
             median = self._trace_to_df(data[3], base_col_name, assert_name="median")
             parts.append(median)
-        except (ValueError, AssertionError, KeyError) as e:
+        except Exception as e:
             raise ValueError("Could not extract median flow forecast from response; unrecoverable.") from e
 
         try:
             min = self._trace_to_df(data[1], f"{base_col_name}_min", assert_name="min")
             max = self._trace_to_df(data[0], f"{base_col_name}_max", assert_name="max")
             parts.extend([min, max])
-        except (ValueError, AssertionError, KeyError) as e:
+        except Exception as e:
             logger.warning("Could not extract min and max flow forecasts from response; continuing still.", exc_info=e)
 
         try:
             quantiles = self._quantile_trace_to_df(data[2], base_col_name)
             parts.append(quantiles)
-        except (ValueError, AssertionError, KeyError) as e:
+        except Exception as e:
             logger.warning(
                 "Could not extract 25 and 75 percentile flow forecasts from response; continuing still.", exc_info=e
             )
@@ -145,7 +127,8 @@ class BafuFlowSource(ExternalSource):
 
         return pd.DataFrame({"time": times, base_col_name + q25_suffix: y1, base_col_name + q75_suffix: y2})
 
-    def _get_x_y(self, trace: dict[str, str | float]) -> tuple[list[str], list[float]]:
+    @staticmethod
+    def _get_x_y(trace: dict[str, str | float]) -> tuple[list[str], list[float]]:
         x = trav(trace, "x")
         y = trav(trace, "y")
         assert isinstance(x, list), "x is not a list"
@@ -155,6 +138,7 @@ class BafuFlowSource(ExternalSource):
 
         return x, y
 
+    @override
     def prepare(self, raw_data: pd.DataFrame) -> pd.DataFrame:
         # could assert that there is only one run_ts and that all times are unique
         df = raw_data.drop("run_ts", axis=1)

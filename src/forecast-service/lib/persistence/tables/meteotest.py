@@ -9,7 +9,7 @@ class MeteotestTable(TimescaleTable):
         super().__init__(
             connection_pool,
             "meteotest",
-            ["run_ts", "time", "location", "tt", "ff", "rr", "dd", "rh", "ss"],
+            ["run_ts", "time", "location", "tt", "ff", "rr", "dd", "rh", "ss", "tt_error", "ff_error", "rad_error"],
             allow_extra_columns=True,
             allow_missing_columns=True,
         )
@@ -35,5 +35,12 @@ class MeteotestTable(TimescaleTable):
                 );
                 """
             )
+
+            await conn.execute("""
+                ALTER TABLE meteotest
+                ADD COLUMN IF NOT EXISTS tt_error real,
+                ADD COLUMN IF NOT EXISTS ff_error real,
+                ADD COLUMN IF NOT EXISTS rad_error real;
+            """)
 
             await self.make_hypertable(conn)

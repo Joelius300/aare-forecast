@@ -26,14 +26,14 @@ class TimescaleTable(ABC):
         self.connection_pool: AsyncConnectionPool = connection_pool
         self.table_name: str = table_name
         self.columns: Sequence[str] = columns
-        self._allow_extra_columns = allow_extra_columns
-        self._allow_missing_columns = allow_missing_columns
+        self._allow_extra_columns: bool = allow_extra_columns
+        self._allow_missing_columns: bool = allow_missing_columns
 
     @abstractmethod
     async def ensure_table_exists(self):
         """
         Create the table with if necessary. Order of the columns must match the columns parameter.
-        THIS FUNCTION SHOULD BE IDEMPOTENT (can be executed multiple times without side effects).
+        THIS FUNCTION MUST BE IDEMPOTENT (can be executed multiple times without side effects).
         """
         # If a new column is added, it should be done with something like 'alter add if not exists'.
         pass

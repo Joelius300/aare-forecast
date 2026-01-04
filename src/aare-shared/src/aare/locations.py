@@ -1,5 +1,5 @@
 import logging
-from typing import TypedDict, Literal, Optional
+from typing import TypedDict, Literal, cast
 
 from aare.constants import LOC_BERN, LOC_BERN_SMN, LOC_THUN, LOC_THUN_SMN, LOC_INT, LOC_INT_SMN
 
@@ -26,8 +26,12 @@ LOC_ALIAS: dict[str, LocationIds] = {
     },
 }
 
+LOC_HYDRO_ALIAS: dict[int, str] = {
+    cast(int, loc_ids["hydro"]): loc for loc, loc_ids in LOC_ALIAS.items() if loc_ids.get("hydro")
+}
 
-def translate_location(loc: str | int, measurement: Optional[Literal["hydro", "smn"]]) -> str:
+
+def translate_location(loc: str | int, measurement: Literal["hydro", "smn"] | None) -> str:
     """
     Translates a location or alias to the correct location as string.
 

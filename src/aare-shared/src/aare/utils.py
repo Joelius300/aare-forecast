@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+import functools
 import logging
 from datetime import tzinfo, datetime
 from typing import cast, overload, Callable
@@ -172,3 +174,8 @@ def relocalize_times(col: pd.Series, tz: str | tzinfo):
     )
 
     return col
+
+
+def join_many(*dfs: pd.DataFrame, on: str | Sequence[str]) -> pd.DataFrame:
+    """Outer join many dataframes together by (a) common column(s)."""
+    return functools.reduce(lambda left, right: pd.merge(left, right, on=on, how="outer"), dfs)

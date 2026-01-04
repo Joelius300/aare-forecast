@@ -16,10 +16,10 @@ class Feature(ABC):
 
     Example:
         feature_set:
-        - bern_temp
-        - bern_tt
-        - bern_tt_log
-        - bern_tt_cube
+        - temp_bern
+        - tt_bern
+        - tt_bern_log
+        - tt_bern_cube
     """
 
     def __init__(self, name: str, required_fields: FieldRequest | list[FieldRequest]):
@@ -41,11 +41,16 @@ class Feature(ABC):
     def base_name(cls) -> str:
         """
         The base name of this feature without location identifier or similar.
-        Reads the 'NAME' constant if a class if defined. Allowed: [a-z0-9] (no underscore)
+        Tries to read the 'NAME' constant on the subclass. Allowed: [a-z0-9] (no underscore!)
         """
         name = getattr(cls, "NAME", None)
         if not name:
-            raise ValueError(f"The feature '{cls}' does not override base_name or specify a 'NAME' constant.")
+            raise ValueError(f"The feature '{cls}' does not specify a 'NAME' constant (or override base_name).")
+
+        assert isinstance(name, str), "name isn't a string"
+        if not name.isascii() or not name.isalnum() or not name.islower():
+            # FYI guard is ignored when base_name is overridden
+            raise ValueError(f"Base name of a feature must be non-empty, lowercase & ASCII alphanumeric. Got: {name}")
 
         return name
 
@@ -56,7 +61,7 @@ class Feature(ABC):
 
     @property
     def name(self) -> str:
-        """The name for this feature. Allowed: [a-z0-9_]"""
+        """The name for this feature. Allowed: [a-z0-9_] but note that _ carries special meaning!"""
         return self._name
 
     @property

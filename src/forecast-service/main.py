@@ -129,7 +129,7 @@ async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd
     external_data: dict[str, pd.DataFrame] = {}
     for source_name, result in zip(source_names, results):
         if isinstance(result, BaseException):
-            if isinstance(result, BaseExceptionGroup):  # TaskGroup wraps error in exception group
+            if isinstance(result, BaseExceptionGroup):  # TaskGroup wraps error(s) in exception group
                 error = f"{result}: {' | '.join(str(e) for e in result.exceptions)}"
             else:
                 error = str(result)

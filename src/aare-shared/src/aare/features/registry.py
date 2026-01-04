@@ -78,7 +78,7 @@ class FeatureRegistry:
     def create_feature(self, specifier: str):
         splits = specifier.split("_")
 
-        transformers = []
+        transformers: list[tuple[str, MapperFuncType]] = []
         location: str | None = None
         base_feature_name: str | None = None
         for split in reversed(splits):

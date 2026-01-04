@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import TypedDict
 
-from aare.constants import LOC_BERN, LOC_BRGG, LOC_HAG, LOC_THUN, LOC_BIEL, LOC_INT
+from aare.constants import LOC_BERN, LOC_BRGG, LOC_HAGN, LOC_THUN, LOC_BIEL, LOC_INT
 from psycopg_pool import AsyncConnectionPool
 
 from aare_timescale.timescale_table import TimescaleTable
@@ -29,15 +29,18 @@ class SourceRegistry:
             "bafu_flow": {
                 "source": BafuFlowSource(
                     "https://www.hydrodaten.admin.ch/plots/q_forecast/{loc}_q_forecast_de.json",
-                    [LOC_BERN, LOC_THUN, LOC_INT, LOC_HAG, LOC_BIEL, LOC_BRGG],
+                    [LOC_BERN, LOC_THUN, LOC_INT, LOC_HAGN, LOC_BIEL, LOC_BRGG],
                     timedelta(minutes=5),
                 ),
                 "table": BafuFlowTable(connection_pool),
             },
             # the meteotest forecasts are btw. also published via the app, but this is already implemented differently,
-            # so for the aare oraku, we only use this as model inputs (and future evaluation).
+            # so for the aare oraku, we only use this as model inputs (and future evaluation, so store everything).
             "meteotest": {
-                "source": MeteoTestSource("https://aareguru.existenz.ch/rawdata?service=v2018_mdx", ["BERN", "THUN"]),
+                "source": MeteoTestSource(
+                    "https://aareguru.existenz.ch/rawdata?service=v2018_mdx",
+                    ["BERN", "THUN", "AARAU", "BRIENZ", "BRUGG", "OLTEN", "RINGGENBERG", "SOLOTHURN", "BIELERSEE"],
+                ),
                 "table": MeteotestTable(connection_pool),
             },
         }

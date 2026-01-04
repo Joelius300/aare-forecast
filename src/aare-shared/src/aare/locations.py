@@ -10,8 +10,8 @@ from aare.constants import (
     LOC_INT,
     LOC_INT_SMN,
     LOC_BRNZ_SMN,
-    LOC_HAG,
-    LOC_HAG_SMN,
+    LOC_HAGN,
+    LOC_HAGN_SMN,
     LOC_BIEL,
     LOC_BIEL_SMN,
     LOC_BRGG,
@@ -26,6 +26,8 @@ class LocationIds(TypedDict):
     smn: str | None
 
 
+# the keys to this dictionary are how features are reference, so the 'bern' in temp_bern (both in the string form
+# and in the darts timeseries) comes from here, keep this in mind.
 LOC_ALIAS: dict[str, LocationIds] = {
     "BERN": {
         "hydro": LOC_BERN,
@@ -43,9 +45,9 @@ LOC_ALIAS: dict[str, LocationIds] = {
         "hydro": LOC_BRNZ,
         "smn": LOC_BRNZ_SMN,
     },
-    "HAG": {
-        "hydro": LOC_HAG,
-        "smn": LOC_HAG_SMN,
+    "HAGN": {
+        "hydro": LOC_HAGN,
+        "smn": LOC_HAGN_SMN,
     },
     "BIEL": {
         "hydro": LOC_BIEL,

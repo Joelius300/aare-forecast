@@ -1,7 +1,22 @@
 import logging
 from typing import TypedDict, Literal, cast
 
-from aare.constants import LOC_BERN, LOC_BERN_SMN, LOC_THUN, LOC_THUN_SMN, LOC_INT, LOC_INT_SMN
+from aare.constants import (
+    LOC_BERN,
+    LOC_BERN_SMN,
+    LOC_BRNZ,
+    LOC_THUN,
+    LOC_THUN_SMN,
+    LOC_INT,
+    LOC_INT_SMN,
+    LOC_BRNZ_SMN,
+    LOC_HAG,
+    LOC_HAG_SMN,
+    LOC_BIEL,
+    LOC_BIEL_SMN,
+    LOC_BRGG,
+    LOC_BRGG_SMN,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +38,22 @@ LOC_ALIAS: dict[str, LocationIds] = {
     "INT": {
         "hydro": LOC_INT,
         "smn": LOC_INT_SMN,
+    },
+    "BRNZ": {
+        "hydro": LOC_BRNZ,
+        "smn": LOC_BRNZ_SMN,
+    },
+    "HAG": {
+        "hydro": LOC_HAG,
+        "smn": LOC_HAG_SMN,
+    },
+    "BIEL": {
+        "hydro": LOC_BIEL,
+        "smn": LOC_BIEL_SMN,
+    },
+    "BRGG": {
+        "hydro": LOC_BRGG,
+        "smn": LOC_BRGG_SMN,
     },
 }
 

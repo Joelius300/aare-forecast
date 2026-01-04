@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import TypedDict
 
-from aare.constants import LOC_BERN, LOC_THUN
+from aare.constants import LOC_BERN, LOC_BRGG, LOC_HAG, LOC_THUN, LOC_BIEL, LOC_INT
 from psycopg_pool import AsyncConnectionPool
 
 from aare_timescale.timescale_table import TimescaleTable
@@ -22,14 +22,14 @@ Sources = dict[str, SourceTuple]
 
 class SourceRegistry:
     def configure_sources(self, connection_pool: AsyncConnectionPool) -> Sources:
-        # TODO can/should read from configs? params is a bad fit because that's tied to the model! own json file maybe
+        # TODO can/should read from configs? params is a bad fit because that's tied to the model! own yaml file maybe
         return {
             # the flow forecast source is special because we actually publish this via the forecast API as well, so it's
             # not just treated as (potential) input for the aare oraku model, but also directly as separate forecasts.
             "bafu_flow": {
                 "source": BafuFlowSource(
                     "https://www.hydrodaten.admin.ch/plots/q_forecast/{loc}_q_forecast_de.json",
-                    [LOC_BERN, LOC_THUN],
+                    [LOC_BERN, LOC_THUN, LOC_INT, LOC_HAG, LOC_BIEL, LOC_BRGG],
                     timedelta(minutes=5),
                 ),
                 "table": BafuFlowTable(connection_pool),

@@ -141,7 +141,7 @@ class BafuFlowSource(ExternalSource):
     @override
     def prepare(self, raw_data: pd.DataFrame) -> pd.DataFrame:
         # could assert that there is only one run_ts and that all times are unique
-        df = raw_data.drop("run_ts", axis=1)
+        df = raw_data.drop(["run_ts", "last_updated"], axis=1)
 
         # setting index to (time, location) then unstacking [location] is the same as
         # pivoting with index="time", columns="location" and values = {all other columns}

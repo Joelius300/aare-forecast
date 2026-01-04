@@ -11,12 +11,13 @@ class BafuFlowTable(TimescaleTable):
             "bafu_flow",
             ["run_ts", "time", "location", "last_updated", "flow", "flow_min", "flow_max", "flow_q25", "flow_q75"],
             allow_extra_columns=False,  # we have strict parsing for this source, shouldn't get extras
-            allow_missing_columns=True,  # it's acceptable that min, max, q25, or q75 are missing, but not flow
+            allow_missing_columns=True,  # it's acceptable that min, max, q25, or q75 are missing, but not median (flow)
         )
 
     @override
     async def ensure_table_exists(self):
         async with self.connection_pool.connection() as conn:
+            # location is text because it's a categorical and upstream influx also uses string instead of int
             await conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS bafu_flow

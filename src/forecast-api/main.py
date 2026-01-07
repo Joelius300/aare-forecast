@@ -8,6 +8,7 @@ import psycopg_pool
 import pytz
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Header, Query, Response
+from fastapi.middleware.cors import CORSMiddleware
 from psycopg import AsyncConnection
 
 from aare_logging.logging import setup_logging
@@ -68,6 +69,14 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=86400,  # 24h
+)
 
 
 async def open_db():

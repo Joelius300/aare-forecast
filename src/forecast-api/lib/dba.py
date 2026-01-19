@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, tzinfo
-from typing import cast, Any
+from typing import cast, Any, LiteralString
 
+from aare.locations import LOC_ALIAS
 import pandas as pd
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row, TupleRow
@@ -9,13 +10,65 @@ from psycopg_pool import AsyncConnectionPool
 
 from lib.dto import ModelInfo
 from aare_timescale.forecasts import select_forecasts
+from aare_timescale.postgres import copy_to_df
+
+
+async def _fetch_flow_forecast(
+        conn: AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int, city: str
+) -> pd.DataFrame:
+    """
+    Select BAFU flow forecasts made between 'at' and 'at - lookback' for a specific location/city with a specific horizon.
+    NOTE: Will rename our estimate of when the forecast was made to run_ts for compatibility, but do the actual
+    lookback check on the original run_ts, to make sure it only fails if WE didn't fetch the forecasts in the specified
+    lookback (no matter how old the forecast actually is). This is mostly for consistency with the rest and because
+    the lookback is designed to reasonably handle forecast service outages (rather than "quality control").
+    If forecasts need to be made more often, that's not an issue of the API. Also avoids separate maximum_forecast_age.
+    """
+    if isinstance(lookback, str):
+        lookback = pd.to_timedelta(lookback).to_pytimedelta()
+
+    loc = LOC_ALIAS[city.upper()]["hydro"]
+    if not loc:
+        raise ValueError(f"Could not determine hydro station id of '{city}'")
+    loc = str(loc)
+
+    # IMPORTANT NOTE: the run_ts in the WHERE references the original run_ts (= when it was fetched via our service).
+    # The run_ts in the ORDER BY references the renamed one (originally last_updated, which is our estimate of when
+    # BAFU's models made this forecast based on the first time in the response).
+    # Also note that the result is also sorted by the original run_ts in addition, to make sure that the returned
+    # data all originates from a single service run on our side. If we didn't do this, the DISTINCT ON would take
+    # the first on the arbitrary row order where only last_updated (renamed to run_ts) is sorted DESC, which would mean
+    # that all returned rows have the same last_updated (renamed to run_ts), but not necessarily the same original run_ts.
+    query: LiteralString = """select distinct on (time)
+          run_ts as _run_ts,
+          last_updated as run_ts,
+          time,
+          flow
+        from bafu_flow
+        where location = %(loc)s
+          and run_ts between %(at)s - %(lookback)s and %(at)s
+          and time >= %(at)s
+        order by time, run_ts desc, _run_ts desc
+        limit %(horizon)s
+    """
+    params = dict(at=at, loc=loc, lookback=lookback, horizon=horizon)
+    df = await copy_to_df(conn, query, params)
+
+    return df
 
 
 async def fetch_forecast(
-    conn: AsyncConnection, from_: datetime, horizon: int, city: str, max_age: str | timedelta, tz: tzinfo
+        conn: AsyncConnection, variable: str, from_: datetime, horizon: int, city: str, max_age: str | timedelta,
+        tz: tzinfo
 ) -> tuple[datetime | None, pd.DataFrame]:
     """Get a forecast, localize times and extract the run_ts. Returns (None, empty-df) if no forecast was found."""
-    df = await select_forecasts(conn, from_, max_age, horizon, city)
+    if variable == "temperature":
+        df = await select_forecasts(conn, from_, max_age, horizon, city)
+    elif variable == "flow":
+        df = await _fetch_flow_forecast(conn, from_, max_age, horizon, city)
+    else:
+        raise ValueError(f"Invalid variable '{variable}'")
+
     if df.empty:
         return None, df
 
@@ -30,7 +83,7 @@ async def fetch_forecast(
     return run_ts, df
 
 
-async def get_model_info(conn: AsyncConnection, run_ts: datetime) -> ModelInfo:
+async def fetch_model_info(conn: AsyncConnection, run_ts: datetime) -> ModelInfo:
     # could also just "join forecast_meta as meta on pred.run_ts=meta.run_ts" in select_forecasts
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(

@@ -1,9 +1,11 @@
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, tzinfo
-from typing import cast
+from typing import cast, Any
 
 import pandas as pd
 from psycopg import AsyncConnection
-from psycopg.rows import dict_row
+from psycopg.rows import dict_row, TupleRow
+from psycopg_pool import AsyncConnectionPool
 
 from lib.dto import ModelInfo
 from aare_timescale.forecasts import select_forecasts
@@ -38,3 +40,19 @@ async def get_model_info(conn: AsyncConnection, run_ts: datetime) -> ModelInfo:
         assert row is not None, "got none when selecting model, what run_ts did you pass??"
 
         return ModelInfo.model_validate(row)
+
+
+def init_db_pool(connection_string: str) -> AsyncConnectionPool:
+    # fixed defaults, no params need atm
+    # TODO consolidate with init_db_pool of service into aare-timescale package
+    return AsyncConnectionPool(
+        connection_string,
+        open=False,
+        min_size=1,  # keep one connection open at all times
+        max_size=4,
+        num_workers=1,
+        # shouldn't need more workers to manage those connections (big default on min_size, num_workers, ..)
+        # kwargs are passed to the connection
+        # prepare every query the first time it's executed -> not sure if this works correctly with copy
+        kwargs=dict(prepare_threshold=0),
+    )

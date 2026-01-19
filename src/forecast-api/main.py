@@ -4,17 +4,16 @@ from datetime import datetime, timedelta, UTC
 from enum import StrEnum
 from typing import Annotated
 
-import psycopg_pool
 import pytz
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Header, Query, Response
+from fastapi import FastAPI, HTTPException, Depends, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg import AsyncConnection
 
 from aare_logging.logging import setup_logging
 from lib.access_log_filter import AccessLogFilter
 from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.dba import fetch_forecast, get_model_info
+from lib.dba import fetch_forecast, get_model_info, init_db_pool
 from lib.dto import (
     ForecastPayload,
     ForecastMetadata,
@@ -26,6 +25,7 @@ from lib.dto import (
 )
 from lib.latest_cache import LatestCache
 from lib.oraku_settings import OrakuSettings
+from lib.routers.dependencies import open_db
 
 # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
 # noinspection PyArgumentList
@@ -49,20 +49,13 @@ CityEnum = StrEnum("CityEnum", settings.available_cities)
 
 tz = pytz.timezone(settings.timezone)
 
-PREPARE_THRESHOLD = 0  # prepare every query the first time it's executed -> not sure if this works correctly with copy
-pool = psycopg_pool.AsyncConnectionPool(
-    settings.connection_string,
-    open=False,
-    min_size=1,  # keep one open at all times
-    max_size=4,
-    num_workers=1,  # shouldn't need more workers to manage those connections (big default on min_size, num_workers, ..)
-    kwargs=dict(prepare_threshold=PREPARE_THRESHOLD),  # kwargs are passed to the connection
-)
-
-
 # setup lifespan to initialize and cleanup the psycopg connection pool
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(app: FastAPI):
+    # setup, store and open db pool
+    pool = init_db_pool(settings.connection_string)
+    app.state.db_pool = pool
+
     await pool.open()
     yield
     await pool.close()
@@ -77,12 +70,6 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=86400,  # 24h
 )
-
-
-async def open_db():
-    """Open connection in form of a generator to be used with FastAPI DI (Depends) -> open, return(yield), close."""
-    async with pool.connection() as conn:
-        yield conn
 
 
 # the server side cache is only for the default request, so default city, default horizon and no or very recent 'from'
@@ -232,7 +219,7 @@ async def get_index() -> str:
 
 @app.head("/health")  # uptimerobot sends head by default
 @app.get("/health")
-async def get_health(response: Response) -> Health:
+async def get_health(request: Request, response: Response) -> Health:
     BAD_STATUS = 500
     # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
     # this needs to be revisited once more than one location is supported.
@@ -242,7 +229,8 @@ async def get_health(response: Response) -> Health:
 
     # if the cache is stale, we need to fetch from the database.
     # in case the database has issues, this will cause an exception and the health endpoint will return a 500 status.
-    async with pool.connection() as conn:
+    # manually invoking open_db (wrapped in asynccontextmanager for convenience) avoids cost in fast past (cache hit).
+    async with asynccontextmanager(open_db)(request) as conn:
         last_updated, latest_df = await fetch_forecast(
             conn,
             datetime.now(UTC),

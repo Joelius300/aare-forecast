@@ -161,7 +161,7 @@ def _validate_parallel(
     if parallel == "auto":
         # not sure if this is a good heuristic, but probably not too bad for us
         # TODO could add a guard that it still uses parallelization if horizon > output_chunk_length
-        #  because AR is never optimized IIRC.
+        #  because AR is never optimized IIRC. NOPE, for LR not true anymore since 0.40.0!
         parallel = False if model.supports_optimized_historical_forecasts else True
     elif parallel is False:
         if not model.supports_optimized_historical_forecasts and len(val) > 1:

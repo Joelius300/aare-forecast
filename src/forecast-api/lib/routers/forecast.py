@@ -39,6 +39,7 @@ valid_variables = ("temperature", "flow")
 #  Health endpoint needs some streamlined method to fetch all of them
 #  in parallel, actually maybe it can/should use a custom method to just fetch the max run_ts once per var (table).
 #  Redundant but you could also check that the last forecast run was in recent enough and successful, but meh.
+# Also, this would directly support setting different caching policies for different variable and cities if needed :)
 latest_caches = {
     var: LatestCache(timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec))
     for var in valid_variables
@@ -101,12 +102,8 @@ async def get_forecasts(
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
-        # TODO fetch variable dependent
-        if variable == "temperature":
-            run_ts, df = await fetch_forecast(conn, from_, horizon, city, settings.maximum_forecast_age, settings.tz)
-            last_updated = run_ts
-        else:
-            assert variable == "flow", "variable neither temperature nor flow"
+        run_ts, df = await fetch_forecast(conn, variable, from_, horizon, city, settings.maximum_forecast_age,
+                                          settings.tz)
 
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
 
@@ -142,19 +139,24 @@ async def get_forecasts(
             model = await get_model_info(conn, run_ts)
         else:
             assert variable == "flow", "variable neither temperature nor flow"
-            model = ModelInfo(name="BAFU-hochwasser", version=last_updated.strftime())
+            # fake model version to show it's an external model, versioned via when it was run I guess...
+            model = ModelInfo(name="BAFU-Hochwasser", version=run_ts.date().isoformat())
 
     if fetching_latest:
         # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
+        # note: our expected_interval is of course only for our own runs, so temperature forecasts, so flow forecasts
+        # will be cached less aggressive than we could. To avoid complexity and because the interval is dynamic, KISS.
         set_client_caching(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )
 
     return ForecastPayload(
+        # TODO cannot use temp and flow, need to sync dto or have a more generic one e.g. with value and q25, q75, etc.
         data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())
         if format == ForecastDataFormat.COLUMN
         else ForecastRowData.model_validate(df[["time", "temp"]].to_dict(orient="records")),
         metadata=ForecastMetadata(
+            variable=variable,
             last_updated=run_ts,
             model=model,
             city=city,

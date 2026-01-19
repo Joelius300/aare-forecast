@@ -5,6 +5,7 @@ from fastapi import Request
 
 from lib.oraku_settings import OrakuSettings
 
+
 # unfortunately, fastapi DI cannot handle if the function is already an async context manager,
 # even though it's converted to that internally before use...
 async def open_db(request: Request):

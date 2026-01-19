@@ -38,6 +38,7 @@ logging.getLogger("uvicorn.access").addFilter(AccessLogFilter())
 
 logger = logging.getLogger(__name__)
 
+
 # setup lifespan to initialize and cleanup the psycopg connection pool
 @asynccontextmanager
 async def lifespan(app: FastAPI):

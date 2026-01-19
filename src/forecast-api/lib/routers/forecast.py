@@ -45,21 +45,22 @@ latest_caches = {
     for var in valid_variables
 }
 
+
 @router.get("/forecast/{variable}", response_model=ForecastPayload)
 async def get_forecasts(
-        conn: Annotated[AsyncConnection, Depends(open_db)],
-        settings: Annotated[OrakuSettings, Depends(get_settings)],
-        request: Request,
-        response: Response,
-        variable: str,
-        from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
-        horizon: Annotated[
-            int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
-        ] = settings.default_horizon,
-        city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
-        model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
-        format: ForecastDataFormat = ForecastDataFormat.COLUMN,
-        if_modified_since: Annotated[str | None, Header()] = None,
+    conn: Annotated[AsyncConnection, Depends(open_db)],
+    settings: Annotated[OrakuSettings, Depends(get_settings)],
+    request: Request,
+    response: Response,
+    variable: str,
+    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
+    horizon: Annotated[
+        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
+    ] = settings.default_horizon,
+    city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
+    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
+    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
+    if_modified_since: Annotated[str | None, Header()] = None,
 ) -> ForecastPayload | Response:
     if horizon > settings.maximum_horizon:
         raise HTTPException(
@@ -89,8 +90,8 @@ async def get_forecasts(
     # BUT in that case the requested time must be later than the last cache update,
     # otherwise we would return data that is too new.
     ss_cacheable = fetching_latest or (
-            from_ > now - default_latest_cache.tolerance
-            and (default_latest_cache.last_updated is None or from_ >= default_latest_cache.last_updated)
+        from_ > now - default_latest_cache.tolerance
+        and (default_latest_cache.last_updated is None or from_ >= default_latest_cache.last_updated)
     )
 
     # additionally, the cache must only be used when the request is all default parameters!
@@ -102,8 +103,9 @@ async def get_forecasts(
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
-        run_ts, df = await fetch_forecast(conn, variable, from_, horizon, city, settings.maximum_forecast_age,
-                                          settings.tz)
+        run_ts, df = await fetch_forecast(
+            conn, variable, from_, horizon, city, settings.maximum_forecast_age, settings.tz
+        )
 
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
 

@@ -14,7 +14,7 @@ from aare_timescale.postgres import copy_to_df
 
 
 async def _fetch_flow_forecast(
-        conn: AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int, city: str
+    conn: AsyncConnection, at: datetime, lookback: str | timedelta, horizon: int, city: str
 ) -> pd.DataFrame:
     """
     Select BAFU flow forecasts made between 'at' and 'at - lookback' for a specific location/city with a specific horizon.
@@ -58,8 +58,7 @@ async def _fetch_flow_forecast(
 
 
 async def fetch_forecast(
-        conn: AsyncConnection, variable: str, from_: datetime, horizon: int, city: str, max_age: str | timedelta,
-        tz: tzinfo
+    conn: AsyncConnection, variable: str, from_: datetime, horizon: int, city: str, max_age: str | timedelta, tz: tzinfo
 ) -> tuple[datetime | None, pd.DataFrame]:
     """
     Get a forecast, localize times and extract the run_ts. Returns (None, empty-df) if no forecast was found.

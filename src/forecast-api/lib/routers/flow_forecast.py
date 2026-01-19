@@ -4,8 +4,7 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
+
 @router.get("/forecast/flow", description=API_DESC, response_model=ForecastPayload)
 async def get_flow_forecasts():
     pass
-
-

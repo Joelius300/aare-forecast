@@ -49,7 +49,7 @@ async def main():
     # set params file for read_params to the one that was used when training the model
     set_params_file(model_meta["params_path"])
 
-    async with await init_db_conn_pool(args) as conn_pool:
+    async with await init_db_pool(args) as conn_pool:
         metadata_table = ForecastMetaTable(conn_pool)
         await metadata_table.ensure_table_exists()
         await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
@@ -73,7 +73,8 @@ async def main():
     logger.info(f"Finished run in {finished_at - run_ts} (+ {run_ts - import_start_ts} imports)")
 
 
-async def init_db_conn_pool(args: CliArgs) -> AsyncConnectionPool:
+async def init_db_pool(args: CliArgs) -> AsyncConnectionPool:
+    # TODO consolidate with init_db_pool of api into aare-timescale package
     # could also use AsyncNullConnectionPool because we probably don't really need pooling atm.
     # with this config, it always keeps one connection open/ready and could/would use more if multiple are need at once.
     conn_pool = AsyncConnectionPool(

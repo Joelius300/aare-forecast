@@ -17,6 +17,7 @@ class ForecastDataFormat(StrEnum):
 class ForecastMetadata(BaseModel):
     last_updated: datetime | None
     """Exact time the forecast was made (=last updated) or null if no forecast was returned."""
+    variable: str
     model: ModelInfo | None
     city: str
     format: ForecastDataFormat

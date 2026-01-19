@@ -1,10 +1,8 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, UTC
-from enum import StrEnum
 from typing import Annotated
 
-import pytz
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Header, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +11,7 @@ from psycopg import AsyncConnection
 from aare_logging.logging import setup_logging
 from lib.access_log_filter import AccessLogFilter
 from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.dba import fetch_forecast, get_model_info, init_db_pool
+from lib.dba import fetch_forecast, fetch_model_info, init_db_pool
 from lib.dto import (
     ForecastPayload,
     ForecastMetadata,
@@ -24,12 +22,8 @@ from lib.dto import (
     Health,
 )
 from lib.latest_cache import LatestCache
-from lib.oraku_settings import OrakuSettings
+from lib.oraku_settings import OrakuSettings, settings
 from lib.routers.dependencies import open_db
-
-# pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
-# noinspection PyArgumentList
-settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
 
 setup_logging(
     settings.logging_level,
@@ -44,21 +38,20 @@ logging.getLogger("uvicorn.access").addFilter(AccessLogFilter())
 
 logger = logging.getLogger(__name__)
 
-# dynamically create enum from specified supported cities. enums give automatic input validation and nicer swagger docs.
-CityEnum = StrEnum("CityEnum", settings.available_cities)
-
-tz = pytz.timezone(settings.timezone)
-
 # setup lifespan to initialize and cleanup the psycopg connection pool
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # setup, store and open db pool
-    pool = init_db_pool(settings.connection_string)
-    app.state.db_pool = pool
+    db_pool = init_db_pool(settings.connection_string)
 
-    await pool.open()
-    yield
-    await pool.close()
+    await db_pool.open()
+
+    yield {
+        "db_pool": db_pool,
+        "settings": settings,
+    }
+
+    await db_pool.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -122,7 +115,7 @@ async def get_forecasts(
         from_ = now
         fetching_latest = True
     elif from_.tzinfo is None:
-        from_ = from_.astimezone(tz)
+        from_ = from_.astimezone(settings.tz)
 
     if from_ > now:
         raise HTTPException(
@@ -150,7 +143,7 @@ async def get_forecasts(
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
-        run_ts, df = await fetch_forecast(conn, from_, horizon, city, settings.maximum_forecast_age, tz)
+        run_ts, df = await fetch_forecast(conn, from_, horizon, city, settings.maximum_forecast_age, settings.tz)
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
 
         if ss_cacheable and run_ts is not None:
@@ -178,7 +171,7 @@ async def get_forecasts(
             status_code=304, headers={"Cache-Control": "no-cache", "Last-Modified": get_last_modified(run_ts)}
         )
 
-    model = await get_model_info(conn, run_ts) if model_info else None
+    model = await fetch_model_info(conn, run_ts) if model_info else None
 
     if fetching_latest:
         # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
@@ -237,7 +230,7 @@ async def get_health(request: Request, response: Response) -> Health:
             settings.default_horizon,
             settings.default_city,
             settings.maximum_forecast_age,
-            tz,
+            settings.tz,
         )
 
     logger.debug("[server-side cache] had to fetch in health endpoint")

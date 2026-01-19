@@ -1,5 +1,15 @@
+from enum import StrEnum
+from functools import cache
+from typing import TypeAlias
+
+import pytz
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+@cache
+def _transform_tz(tz_raw: str):
+    return pytz.timezone(tz_raw)
 
 
 class OrakuSettings(BaseSettings):
@@ -31,3 +41,17 @@ class OrakuSettings(BaseSettings):
             raise ValueError("The unhealthy age threshold must be at least as large as the expected update interval.")
 
         return self
+
+    @property
+    def tz(self):
+        return _transform_tz(self.timezone)
+
+    # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
+    # noinspection PyArgumentList
+    settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
+
+
+"""Singleton instance of the settings loaded in from env etc."""
+
+CityEnum = StrEnum("CityEnum", settings.available_cities)
+"""Dynamically enum from specified supported cities for automatic input validation and nicer swagger docs."""

@@ -25,12 +25,12 @@ class ForecastMetadata(BaseModel):
 
 class ForecastSingleRow(BaseModel):
     time: datetime
-    temp: float
+    value: float
 
 
 class ForecastColumnData(BaseModel):
     time: list[datetime] = []
-    temp: list[float] = []
+    value: list[float] = []
 
 
 class ForecastRowData(RootModel[list[ForecastSingleRow]]):

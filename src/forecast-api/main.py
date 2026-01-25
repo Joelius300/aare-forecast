@@ -1,29 +1,18 @@
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, UTC
-from typing import Annotated
+from datetime import datetime, UTC
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Header, Query, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from psycopg import AsyncConnection
 
 from aare_logging.logging import setup_logging
 from lib.access_log_filter import AccessLogFilter
-from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.dba import fetch_forecast, fetch_model_info, init_db_pool
-from lib.dto import (
-    ForecastPayload,
-    ForecastMetadata,
-    Config,
-    ForecastDataFormat,
-    ForecastColumnData,
-    ForecastRowData,
-    Health,
-)
-from lib.latest_cache import LatestCache
-from lib.oraku_settings import OrakuSettings, settings
+from lib.dba import fetch_forecast, init_db_pool
+from lib.dto import Config, Health
+from lib.oraku_settings import settings
 from lib.routers.dependencies import open_db
+from lib.routers.forecast import latest_caches, router as forecast_router
 
 setup_logging(
     settings.logging_level,
@@ -65,132 +54,8 @@ app.add_middleware(
     max_age=86400,  # 24h
 )
 
-
-# the server side cache is only for the default request, so default city, default horizon and no or very recent 'from'
-default_latest_cache = LatestCache(
-    timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec)
-)
-
-
-API_DESC = (
-    "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified. "
-    "If the timestamp is specified without a timezone, it is interpreted as the timezone specified in /config "
-    f"(currently '{settings.timezone}'). Unless you truly need it, do not set 'from', it allows for better caching!\n\n"
-    "You may optionally specify a horizon in hours if you want determinism or do not want the default. "
-    "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
-    f"time ('from') and {settings.maximum_forecast_age} before that. If no forecast was made in that timeframe, "
-    f"an empty response is returned where 'last_updated' is null.\n\nFor statistical purposes, "
-    "please add &app={your app name} and optionally add &version={your app version} to all of your requests."
-)
-FROM_API_DESC = (
-    "Only set if you want a forecast made before a specific time! "
-    "Timestamp in the format YYYY-MM-DDThh:mm:ssZ. "
-    "Use 'Z' for UTC or url-encode the timestamp to use a plus. "
-    f"If no timezone is specified, it is interpreted as {settings.timezone}!"
-)
-HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = one day forecast)"
-MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
-
-
-@app.get("/forecast", description=API_DESC, response_model=ForecastPayload)
-async def get_forecasts(
-    conn: Annotated[AsyncConnection, Depends(open_db)],
-    response: Response,
-    if_modified_since: Annotated[str | None, Header()] = None,
-    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
-    horizon: Annotated[
-        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
-    ] = settings.default_horizon,
-    city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
-    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
-    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
-) -> ForecastPayload | Response:
-    if horizon > settings.maximum_horizon:
-        raise HTTPException(
-            400, f"Cannot request a horizon larger than the maximum horizon of {settings.maximum_horizon}"
-        )
-
-    fetching_latest = False
-    now = datetime.now(UTC)
-    if from_ is None:
-        from_ = now
-        fetching_latest = True
-    elif from_.tzinfo is None:
-        from_ = from_.astimezone(settings.tz)
-
-    if from_ > now:
-        raise HTTPException(
-            400,
-            "Cannot request forecasts made in the future. "
-            + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
-        )
-
-    # it's a cacheable request:
-    # if no 'from' was passed at all (fetching latest),
-    # or it's a time very close to now (less than configured cache tolerance)
-    # BUT in that case the requested time must be later than the last cache update,
-    # otherwise we would return data that is too new.
-    ss_cacheable = fetching_latest or (
-        from_ > now - default_latest_cache.tolerance
-        and (default_latest_cache.last_updated is None or from_ >= default_latest_cache.last_updated)
-    )
-
-    # additionally, the cache must only be used when the request is all default parameters!
-    # it would be possible to support all horizons shorter than what's stored in the cache, but prob not worth it.
-    ss_cacheable = ss_cacheable and horizon == settings.default_horizon and city == settings.default_city
-
-    if ss_cacheable and default_latest_cache.fresh:
-        run_ts, df = default_latest_cache.last_updated, default_latest_cache.data
-        assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
-        logger.debug("[server-side cache] hit cache in forecast endpoint")
-    else:
-        run_ts, df = await fetch_forecast(conn, from_, horizon, city, settings.maximum_forecast_age, settings.tz)
-        logger.debug("[server-side cache] had to fetch in forecast endpoint")
-
-        if ss_cacheable and run_ts is not None:
-            logger.debug("[server-side cache] updated cache in forecast endpoint")
-            default_latest_cache.update(run_ts, df)
-
-    if run_ts is None:
-        # instead of an error, return an empty response.
-        return ForecastPayload(
-            data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData.empty(),
-            metadata=ForecastMetadata(
-                last_updated=None,
-                model=None,
-                city=city,
-                format=format,
-            ),
-        )
-
-    if response_still_fresh(if_modified_since, run_ts):
-        # Not Modified, saves bandwidth, but we still had to fetch the data.
-        # Note, if we didn't set no-cache here, it would assume that the data was REFRESHED and the max-age from the
-        # original 200 response is active again. We don't want that, it should revalidate everytime after we send a 304
-        # until new data arrives and the next 200 response sets the max-age again.
-        return Response(
-            status_code=304, headers={"Cache-Control": "no-cache", "Last-Modified": get_last_modified(run_ts)}
-        )
-
-    model = await fetch_model_info(conn, run_ts) if model_info else None
-
-    if fetching_latest:
-        # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
-        set_client_caching(
-            response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
-        )
-
-    return ForecastPayload(
-        data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())
-        if format == ForecastDataFormat.COLUMN
-        else ForecastRowData.model_validate(df[["time", "temp"]].to_dict(orient="records")),
-        metadata=ForecastMetadata(
-            last_updated=run_ts,
-            model=model,
-            city=city,
-            format=format,
-        ),
-    )
+# Mount the forecast router
+app.include_router(forecast_router)
 
 
 # Yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
@@ -215,6 +80,9 @@ async def get_index() -> str:
 @app.get("/health")
 async def get_health(request: Request, response: Response) -> Health:
     BAD_STATUS = 500
+    # Use the temperature cache for health checks (as before)
+    default_latest_cache = latest_caches["temperature"]
+
     # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
     # this needs to be revisited once more than one location is supported.
     if default_latest_cache.fresh:
@@ -227,6 +95,7 @@ async def get_health(request: Request, response: Response) -> Health:
     async with asynccontextmanager(open_db)(request) as conn:
         last_updated, latest_df = await fetch_forecast(
             conn,
+            "temperature",
             datetime.now(UTC),
             settings.default_horizon,
             settings.default_city,

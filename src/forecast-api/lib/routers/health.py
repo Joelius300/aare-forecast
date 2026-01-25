@@ -1,0 +1,71 @@
+import logging
+from contextlib import asynccontextmanager
+from datetime import datetime, UTC
+
+from fastapi import APIRouter, Request, Response
+
+from lib.dba import fetch_forecast
+from lib.dto import Health
+from lib.oraku_settings import settings
+from lib.routers.dependencies import open_db
+from lib.server_caching import latest_caches
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.head("/health")  # uptimerobot sends head by default
+@router.get("/health")
+async def get_health(request: Request, response: Response) -> Health:
+    BAD_STATUS = 500
+    # Use the temp cache for health checks (as before)
+    default_latest_cache = latest_caches["temp"]
+
+    # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
+    # this needs to be revisited once more than one location is supported.
+    if default_latest_cache.fresh:
+        logger.debug("[server-side cache] hit cache in health endpoint")
+        return Health(status="OK", age=int(default_latest_cache.age.total_seconds()))
+
+    # if the cache is stale, we need to fetch from the database.
+    # in case the database has issues, this will cause an exception and the health endpoint will return a 500 status.
+    # manually invoking open_db (wrapped in asynccontextmanager for convenience) avoids cost in fast past (cache hit).
+    async with asynccontextmanager(open_db)(request) as conn:
+        last_updated, latest_df = await fetch_forecast(
+            conn,
+            "temp",
+            datetime.now(UTC),
+            settings.default_horizon,
+            settings.default_city,
+            settings.maximum_forecast_age,
+            settings.tz,
+        )
+
+    logger.debug("[server-side cache] had to fetch in health endpoint")
+
+    # if we get no data at all when fetching with from == now, we're in deep trouble
+    if last_updated is None:
+        response.status_code = BAD_STATUS
+        return Health(status="NOK", age=9999999)
+
+    # if we got the latest data, update the cache for the next health check (or forecast request)
+    default_latest_cache.update(last_updated, latest_df)
+
+    # in the good case, new data was fetched, is now ready/fresh in the cache and everything is ok.
+    # in the bad case, the same data was fetched that is already in the stale cache.
+    # in the very bad case, this stale data is so old that it triggers an 'unhealthy' response.
+    # if it's in between, the service cannot make use of the cache because it's considered stale, but
+    # it's not yet old enough for the system to be considered unhealthy and it might recover.
+    # in theory, it's also possible to fetch data that's newer than the one in the stale cache, but still so old that
+    # the unhealthy state triggers. But I think this can only happen if the health endpoint is called very rarely
+    # or after a restart (then cache is always stale), and it's also not really a problem, just wanted to mention it.
+    # As an additional sidenote, even if the system is in an 'unhealthy' state, the forecast endpoint will continue
+    # to return the latest data until the configured maximum forecast age is reached, then it will return empty.
+
+    age_sec = int(default_latest_cache.age.total_seconds())
+    if age_sec < settings.unhealthy_age_sec:
+        return Health(status="OK", age=age_sec)
+
+    response.status_code = BAD_STATUS
+    return Health(status="NOK", age=age_sec)

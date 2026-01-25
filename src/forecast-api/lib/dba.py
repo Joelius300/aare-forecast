@@ -67,7 +67,7 @@ async def fetch_forecast(
     # regarding downstream compatibility that run_ts here is when we _think_ BAFU made the forecast:
     #  - it's also used as cache key, but that shouldn't matter since my simple tests show that the values are all
     #    the same when last_updated is the same (duh, but you never know, the length is also inconsistent).
-    if variable == "temperature":
+    if variable == "temp":
         df = await select_forecasts(conn, from_, max_age, horizon, city)
     elif variable == "flow":
         df = await _fetch_flow_forecast(conn, from_, max_age, horizon, city)

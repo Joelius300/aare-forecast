@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, UTC
 from typing import Annotated
 
 from fastapi import HTTPException, Depends, Header, Query, Response, APIRouter
@@ -15,34 +15,14 @@ from lib.dto import (
     ForecastRowData,
     ModelInfo,
 )
-from lib.latest_cache import LatestCache
 from lib.oraku_settings import OrakuSettings, settings, CityEnum
 from lib.routers.dependencies import get_settings, open_db
+from lib.server_caching import latest_caches
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Mapping from internal variable names to dataframe column names
-VARIABLE_COLUMN = {"temperature": "temp", "flow": "flow"}
-
-# Mapping from internal variable names to display names in API response
-VARIABLE_DISPLAY = {"temperature": "temp", "flow": "flow"}
-
-# Valid variables for caching (using internal names)
-CACHEABLE_VARIABLES = ("temperature", "flow")
-
-# the server side cache is only for the default request, so default city, default horizon and no or very recent 'from'
-# TODO will need to be in the global app state as well if also used in health.
-#  extract init like this into own module and also make it X loc since we're gonna need that in the future anyway.
-#  Health endpoint needs some streamlined method to fetch all of them
-#  in parallel, actually maybe it can/should use a custom method to just fetch the max run_ts once per var (table).
-#  Redundant but you could also check that the last forecast run was in recent enough and successful, but meh.
-# Also, this would directly support setting different caching policies for different variable and cities if needed :)
-latest_caches = {
-    var: LatestCache(timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec))
-    for var in CACHEABLE_VARIABLES
-}
 
 API_DESC = (
     "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified. "
@@ -68,8 +48,7 @@ async def _get_forecast(
     conn: AsyncConnection,
     settings: OrakuSettings,
     response: Response,
-    variable_internal: str,
-    variable_display: str,
+    variable: str,
     from_: datetime | None,
     horizon: int,
     city: CityEnum,
@@ -97,7 +76,7 @@ async def _get_forecast(
             + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    default_latest_cache = latest_caches[variable_internal]
+    default_latest_cache = latest_caches[variable]
 
     # it's a cacheable request:
     # if no 'from' was passed at all (fetching latest),
@@ -119,7 +98,7 @@ async def _get_forecast(
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
         run_ts, df = await fetch_forecast(
-            conn, variable_internal, from_, horizon, city, settings.maximum_forecast_age, settings.tz
+            conn, variable, from_, horizon, city, settings.maximum_forecast_age, settings.tz
         )
 
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
@@ -133,7 +112,7 @@ async def _get_forecast(
         return ForecastPayload(
             data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData.empty(),
             metadata=ForecastMetadata(
-                variable=variable_display,
+                variable=variable,
                 city=city,
                 format=format,
                 last_updated=None,
@@ -152,10 +131,10 @@ async def _get_forecast(
 
     model = None
     if model_info:
-        if variable_internal == "temperature":
+        if variable == "temp":
             model = await fetch_model_info(conn, run_ts)
         else:
-            assert variable_internal == "flow", "variable neither temperature nor flow"
+            assert variable == "flow", "variable neither temp nor flow"
             # fake model version to show it's an external model, versioned via when it was run I guess...
             model = ModelInfo(name="BAFU-Hochwasser", version=run_ts.date().isoformat())
 
@@ -167,20 +146,14 @@ async def _get_forecast(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )
 
-    # Get the correct column name for the variable
-    column_name = VARIABLE_COLUMN[variable_internal]
-
     return ForecastPayload(
-        data=ForecastColumnData(time=df["time"].to_list(), value=df[column_name].to_list())
+        data=ForecastColumnData(time=df["time"].to_list(), value=df[variable].to_list())
         if format == ForecastDataFormat.COLUMN
         else ForecastRowData.model_validate(
-            [
-                {"time": row["time"], "value": row[column_name]}
-                for row in df[["time", column_name]].to_dict(orient="records")
-            ]
+            [{"time": row["time"], "value": row[variable]} for row in df[["time", variable]].to_dict(orient="records")]
         ),
         metadata=ForecastMetadata(
-            variable=variable_display,
+            variable=variable,
             last_updated=run_ts,
             model=model,
             city=city,
@@ -210,8 +183,7 @@ async def get_temp_forecasts(
         conn=conn,
         settings=settings,
         response=response,
-        variable_internal="temperature",
-        variable_display="temp",
+        variable="temp",
         from_=from_,
         horizon=horizon,
         city=city,
@@ -240,8 +212,7 @@ async def get_flow_forecasts(
         conn=conn,
         settings=settings,
         response=response,
-        variable_internal="flow",
-        variable_display="flow",
+        variable="flow",
         from_=from_,
         horizon=horizon,
         city=city,

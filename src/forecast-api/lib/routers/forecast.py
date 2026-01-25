@@ -146,7 +146,7 @@ async def get_forecasts(
 
     if fetching_latest:
         # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
-        # note: our expected_interval is of course only for our own runs, so temperature forecasts, so flow forecasts
+        # note: our expected_interval is of course only for our own runs (temperature forecasts), so flow forecasts
         # will be cached less aggressive than we could. To avoid complexity and because the interval is dynamic, KISS.
         set_client_caching(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance

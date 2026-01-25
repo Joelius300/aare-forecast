@@ -1,6 +1,5 @@
 from enum import StrEnum
 from functools import cache
-from typing import TypeAlias
 
 import pytz
 from pydantic import model_validator
@@ -46,11 +45,10 @@ class OrakuSettings(BaseSettings):
     def tz(self):
         return _transform_tz(self.timezone)
 
-    # pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
-    # noinspection PyArgumentList
-    settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
 
-
+# pydantic(-settings) doesn't work well with static type checkers. there's a plugin for mypy but not pyright.
+# noinspection PyArgumentList
+settings = OrakuSettings()  # pyright: ignore[reportCallIssue]
 """Singleton instance of the settings loaded in from env etc."""
 
 CityEnum = StrEnum("CityEnum", settings.available_cities)

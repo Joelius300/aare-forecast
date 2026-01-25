@@ -1,27 +1,18 @@
 import logging
-from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, UTC
-from enum import StrEnum
 from typing import Annotated
 
-import pytz
-import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Header, Query, Request, Response, APIRouter
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException, Depends, Header, Query, Response, APIRouter
 from psycopg import AsyncConnection
 
-from aare_logging.logging import setup_logging
-from lib.access_log_filter import AccessLogFilter
 from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.dba import fetch_forecast, get_model_info, init_db_pool
+from lib.dba import fetch_forecast, fetch_model_info
 from lib.dto import (
     ForecastPayload,
     ForecastMetadata,
-    Config,
     ForecastDataFormat,
     ForecastColumnData,
     ForecastRowData,
-    Health,
     ModelInfo,
 )
 from lib.latest_cache import LatestCache
@@ -32,8 +23,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-valid_variables = ("temperature", "flow")
+# Mapping from internal variable names to dataframe column names
+VARIABLE_COLUMN = {"temperature": "temp", "flow": "flow"}
 
+# Mapping from internal variable names to display names in API response
+VARIABLE_DISPLAY = {"temperature": "temp", "flow": "flow"}
+
+# Valid variables for caching (using internal names)
+CACHEABLE_VARIABLES = ("temperature", "flow")
+
+# the server side cache is only for the default request, so default city, default horizon and no or very recent 'from'
 # TODO will need to be in the global app state as well if also used in health.
 #  extract init like this into own module and also make it X loc since we're gonna need that in the future anyway.
 #  Health endpoint needs some streamlined method to fetch all of them
@@ -42,25 +41,41 @@ valid_variables = ("temperature", "flow")
 # Also, this would directly support setting different caching policies for different variable and cities if needed :)
 latest_caches = {
     var: LatestCache(timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec))
-    for var in valid_variables
+    for var in CACHEABLE_VARIABLES
 }
 
+API_DESC = (
+    "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified. "
+    "If the timestamp is specified without a timezone, it is interpreted as the timezone specified in /config "
+    f"(currently '{settings.timezone}'). Unless you truly need it, do not set 'from', it allows for better caching!\n\n"
+    "You may optionally specify a horizon in hours if you want determinism or do not want the default. "
+    "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
+    f"time ('from') and {settings.maximum_forecast_age} before that. If no forecast was made in that timeframe, "
+    f"an empty response is returned where 'last_updated' is null.\n\nFor statistical purposes, "
+    "please add &app={your app name} and optionally add &version={your app version} to all of your requests."
+)
+FROM_API_DESC = (
+    "Only set if you want a forecast made before a specific time! "
+    "Timestamp in the format YYYY-MM-DDThh:mm:ssZ. "
+    "Use 'Z' for UTC or url-encode the timestamp to use a plus. "
+    f"If no timezone is specified, it is interpreted as {settings.timezone}!"
+)
+HORIZON_API_DESC = "Number of steps (hours) the forecast should contain (24 = one day forecast)"
+MODEL_INFO_API_DESC = "Set to true if you want information on the model that was used to make the returned forecast"
 
-@router.get("/forecast/{variable}", response_model=ForecastPayload)
-async def get_forecasts(
-    conn: Annotated[AsyncConnection, Depends(open_db)],
-    settings: Annotated[OrakuSettings, Depends(get_settings)],
-    request: Request,
+
+async def _get_forecast(
+    conn: AsyncConnection,
+    settings: OrakuSettings,
     response: Response,
-    variable: str,
-    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
-    horizon: Annotated[
-        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
-    ] = settings.default_horizon,
-    city: CityEnum = CityEnum(settings.default_city),  # cannot disable jetbrains warning here, but it works :)
-    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
-    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
-    if_modified_since: Annotated[str | None, Header()] = None,
+    variable_internal: str,
+    variable_display: str,
+    from_: datetime | None,
+    horizon: int,
+    city: CityEnum,
+    model_info: bool,
+    format: ForecastDataFormat,
+    if_modified_since: str | None,
 ) -> ForecastPayload | Response:
     if horizon > settings.maximum_horizon:
         raise HTTPException(
@@ -82,7 +97,7 @@ async def get_forecasts(
             + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    default_latest_cache = latest_caches[variable]
+    default_latest_cache = latest_caches[variable_internal]
 
     # it's a cacheable request:
     # if no 'from' was passed at all (fetching latest),
@@ -104,7 +119,7 @@ async def get_forecasts(
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
         run_ts, df = await fetch_forecast(
-            conn, variable, from_, horizon, city, settings.maximum_forecast_age, settings.tz
+            conn, variable_internal, from_, horizon, city, settings.maximum_forecast_age, settings.tz
         )
 
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
@@ -118,7 +133,7 @@ async def get_forecasts(
         return ForecastPayload(
             data=ForecastColumnData() if format == ForecastDataFormat.COLUMN else ForecastRowData.empty(),
             metadata=ForecastMetadata(
-                variable=variable,
+                variable=variable_display,
                 city=city,
                 format=format,
                 last_updated=None,
@@ -137,10 +152,10 @@ async def get_forecasts(
 
     model = None
     if model_info:
-        if variable == "temperature":
-            model = await get_model_info(conn, run_ts)
+        if variable_internal == "temperature":
+            model = await fetch_model_info(conn, run_ts)
         else:
-            assert variable == "flow", "variable neither temperature nor flow"
+            assert variable_internal == "flow", "variable neither temperature nor flow"
             # fake model version to show it's an external model, versioned via when it was run I guess...
             model = ModelInfo(name="BAFU-Hochwasser", version=run_ts.date().isoformat())
 
@@ -152,16 +167,85 @@ async def get_forecasts(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )
 
+    # Get the correct column name for the variable
+    column_name = VARIABLE_COLUMN[variable_internal]
+
     return ForecastPayload(
-        # TODO cannot use temp and flow, need to sync dto or have a more generic one e.g. with value and q25, q75, etc.
-        data=ForecastColumnData(time=df["time"].to_list(), temp=df["temp"].to_list())
+        data=ForecastColumnData(time=df["time"].to_list(), value=df[column_name].to_list())
         if format == ForecastDataFormat.COLUMN
-        else ForecastRowData.model_validate(df[["time", "temp"]].to_dict(orient="records")),
+        else ForecastRowData.model_validate(
+            [
+                {"time": row["time"], "value": row[column_name]}
+                for row in df[["time", column_name]].to_dict(orient="records")
+            ]
+        ),
         metadata=ForecastMetadata(
-            variable=variable,
+            variable=variable_display,
             last_updated=run_ts,
             model=model,
             city=city,
             format=format,
         ),
+    )
+
+
+# Temperature forecast endpoints - all three return variable: "temp"
+@router.get("/forecast", description=API_DESC, response_model=ForecastPayload)
+@router.get("/forecast/temp", description=API_DESC, response_model=ForecastPayload)
+@router.get("/forecast/temperature", description=API_DESC, response_model=ForecastPayload)
+async def get_temp_forecasts(
+    conn: Annotated[AsyncConnection, Depends(open_db)],
+    settings: Annotated[OrakuSettings, Depends(get_settings)],
+    response: Response,
+    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
+    horizon: Annotated[
+        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
+    ] = settings.default_horizon,
+    city: CityEnum = CityEnum(settings.default_city),
+    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
+    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
+    if_modified_since: Annotated[str | None, Header()] = None,
+) -> ForecastPayload | Response:
+    return await _get_forecast(
+        conn=conn,
+        settings=settings,
+        response=response,
+        variable_internal="temperature",
+        variable_display="temp",
+        from_=from_,
+        horizon=horizon,
+        city=city,
+        model_info=model_info,
+        format=format,
+        if_modified_since=if_modified_since,
+    )
+
+
+# Flow forecast endpoint
+@router.get("/forecast/flow", description=API_DESC, response_model=ForecastPayload)
+async def get_flow_forecasts(
+    conn: Annotated[AsyncConnection, Depends(open_db)],
+    settings: Annotated[OrakuSettings, Depends(get_settings)],
+    response: Response,
+    from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
+    horizon: Annotated[
+        int, Query(gt=0, le=settings.maximum_horizon, description=HORIZON_API_DESC)
+    ] = settings.default_horizon,
+    city: CityEnum = CityEnum(settings.default_city),
+    model_info: Annotated[bool, Query(description=MODEL_INFO_API_DESC)] = False,
+    format: ForecastDataFormat = ForecastDataFormat.COLUMN,
+    if_modified_since: Annotated[str | None, Header()] = None,
+) -> ForecastPayload | Response:
+    return await _get_forecast(
+        conn=conn,
+        settings=settings,
+        response=response,
+        variable_internal="flow",
+        variable_display="flow",
+        from_=from_,
+        horizon=horizon,
+        city=city,
+        model_info=model_info,
+        format=format,
+        if_modified_since=if_modified_since,
     )

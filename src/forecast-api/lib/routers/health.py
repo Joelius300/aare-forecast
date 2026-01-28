@@ -1,14 +1,15 @@
 import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, UTC
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 
 from lib.dba import fetch_forecast
 from lib.dto import Health
 from lib.oraku_settings import settings
-from lib.routers.dependencies import open_db
-from lib.server_caching import latest_caches
+from lib.routers.dependencies import open_db, get_caches
+from lib.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,13 @@ router = APIRouter()
 
 @router.head("/health")  # uptimerobot sends head by default
 @router.get("/health")
-async def get_health(request: Request, response: Response) -> Health:
+async def get_health(
+    request: Request, response: Response, latest_caches: Annotated[CachesType, Depends(get_caches)]
+) -> Health:
     BAD_STATUS = 500
-    # Use the temp cache for health checks (as before)
-    default_latest_cache = latest_caches["temp"]
+    # use the temperature cache for health checks since we want to ensure service health. flow has lower priority.
+    variable = "temp"
+    default_latest_cache = latest_caches[variable]
 
     # in the best case, the cache is still fresh, and we're sure (enough) that we're up to date.
     # this needs to be revisited once more than one location is supported.
@@ -34,7 +38,7 @@ async def get_health(request: Request, response: Response) -> Health:
     async with asynccontextmanager(open_db)(request) as conn:
         last_updated, latest_df = await fetch_forecast(
             conn,
-            "temp",
+            variable,
             datetime.now(UTC),
             settings.default_horizon,
             settings.default_city,
@@ -67,5 +71,6 @@ async def get_health(request: Request, response: Response) -> Health:
     if age_sec < settings.unhealthy_age_sec:
         return Health(status="OK", age=age_sec)
 
+    # redundant ig, but you could also check that the last forecast run was recent enough and successful.
     response.status_code = BAD_STATUS
     return Health(status="NOK", age=age_sec)

@@ -12,6 +12,7 @@ from lib.dto import Config
 from lib.oraku_settings import settings
 from lib.routers.forecast import router as forecast_router
 from lib.routers.health import router as health_router
+from lib.server_caching import init_latest_caches
 
 setup_logging(
     settings.logging_level,
@@ -27,17 +28,18 @@ logging.getLogger("uvicorn.access").addFilter(AccessLogFilter())
 logger = logging.getLogger(__name__)
 
 
-# setup lifespan to initialize and cleanup the psycopg connection pool
+# setup lifespan to initialize and cleanup the psycopg connection pool. plus expose deps/appstate.
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # setup, store and open db pool
+async def lifespan(_app: FastAPI):
     db_pool = init_db_pool(settings.connection_string)
+    latest_caches = init_latest_caches(settings)
 
     await db_pool.open()
 
     yield {
         "db_pool": db_pool,
         "settings": settings,
+        "latest_caches": latest_caches,
     }
 
     await db_pool.close()

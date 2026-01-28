@@ -16,8 +16,8 @@ from lib.dto import (
     ModelInfo,
 )
 from lib.oraku_settings import OrakuSettings, settings, CityEnum
-from lib.routers.dependencies import get_settings, open_db
-from lib.server_caching import latest_caches
+from lib.routers.dependencies import get_settings, open_db, get_caches
+from lib.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ MODEL_INFO_API_DESC = "Set to true if you want information on the model that was
 async def _get_forecast(
     conn: AsyncConnection,
     settings: OrakuSettings,
+    latest_caches: CachesType,
     response: Response,
     variable: str,
     from_: datetime | None,
@@ -162,13 +163,14 @@ async def _get_forecast(
     )
 
 
-# Temperature forecast endpoints - all three return variable: "temp"
+# temperature forecast is the main task of the oraku so generic /forecast endpoint also returns variable "temp"
 @router.get("/forecast", description=API_DESC, response_model=ForecastPayload)
 @router.get("/forecast/temp", description=API_DESC, response_model=ForecastPayload)
 @router.get("/forecast/temperature", description=API_DESC, response_model=ForecastPayload)
 async def get_temp_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
     settings: Annotated[OrakuSettings, Depends(get_settings)],
+    latest_caches: Annotated[CachesType, Depends(get_caches)],
     response: Response,
     from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
@@ -182,6 +184,7 @@ async def get_temp_forecasts(
     return await _get_forecast(
         conn=conn,
         settings=settings,
+        latest_caches=latest_caches,
         response=response,
         variable="temp",
         from_=from_,
@@ -193,11 +196,12 @@ async def get_temp_forecasts(
     )
 
 
-# Flow forecast endpoint
+# todo: update description(s)
 @router.get("/forecast/flow", description=API_DESC, response_model=ForecastPayload)
 async def get_flow_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
     settings: Annotated[OrakuSettings, Depends(get_settings)],
+    latest_caches: Annotated[CachesType, Depends(get_caches)],
     response: Response,
     from_: Annotated[datetime | None, Query(alias="from", description=FROM_API_DESC)] = None,
     horizon: Annotated[
@@ -211,6 +215,7 @@ async def get_flow_forecasts(
     return await _get_forecast(
         conn=conn,
         settings=settings,
+        latest_caches=latest_caches,
         response=response,
         variable="flow",
         from_=from_,

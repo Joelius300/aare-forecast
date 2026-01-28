@@ -3,6 +3,7 @@ from typing import cast
 from psycopg_pool import AsyncConnectionPool
 from fastapi import Request
 
+from lib.latest_cache import LatestCache
 from lib.oraku_settings import OrakuSettings
 
 
@@ -23,4 +24,12 @@ async def open_db(request: Request):
 def get_settings(request: Request):
     settings = request.state.settings  # pyright: ignore[reportAny]
     assert isinstance(settings, OrakuSettings), "Could not retrieve settings with correct type from app state."
+
     return settings
+
+
+def get_caches(request: Request):
+    caches = request.state.latest_caches  # pyright: ignore[reportAny]
+    assert isinstance(caches, dict), "Could not retrieve caches with correct type from app state."
+
+    return cast(dict[str, LatestCache], caches)

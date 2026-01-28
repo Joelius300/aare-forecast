@@ -75,9 +75,11 @@ TODO comments indicate unit tests are planned but not yet implemented.
 
 ## Code Style Guidelines
 
-### Line Length
+### General
 
-- **120 characters** (configured in ruff)
+- Line length: **120 characters** (configured in ruff)
+- Comments are only necessary when something is not obvious, and they clearly explain the _why_
+- Comments should start with a lowercase letter, not uppercase
 
 ### Import Conventions
 
@@ -112,7 +114,7 @@ from lib.args import parse_cli_args
 ### Type Annotations
 
 - **Always annotate** function signatures (parameters and return types)
-- Use `basedpyright` for type checking (stricter than standard pyright)
+- Use `basedpyright` for type checking (codebase is not yet fully compliant)
 - Use modern typing syntax (Python 3.12+): `list[str]` not `List[str]`
 
 ```python
@@ -129,14 +131,15 @@ class AareModel(TypedDict):
     model_path: str
     scalers_path: str
 
-# Use pyright ignore comments sparingly and with reason
+
+# use pyright ignore comments sparingly and with reason
 args: argparse.Namespace = p.parse_args()  # pyright: ignore[reportUnknownMemberType]
 ```
 
 ### Error Handling
 
 ```python
-# Assertions for internal invariants
+# assertions for internal invariants
 assert min_target_lag is not None and min_target_lag < 0
 
 # ValueError for invalid function inputs
@@ -147,7 +150,7 @@ if invalid_locs:
 if horizon > settings.maximum_horizon:
     raise HTTPException(400, f"Horizon exceeds maximum of {settings.maximum_horizon}")
 
-# Exception handling with proper logging
+# exception handling with proper logging
 try:
     await make_forecast(...)
 except Exception as e:
@@ -157,7 +160,7 @@ except Exception as e:
 ### Async Patterns
 
 ```python
-# Use asynccontextmanager for lifespan management
+# use asynccontextmanager for lifespan management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db_pool = init_db_pool(settings.connection_string)
@@ -165,7 +168,8 @@ async def lifespan(app: FastAPI):
     yield {"db_pool": db_pool}
     await db_pool.close()
 
-# Use TaskGroup for concurrent operations
+
+# use TaskGroup for concurrent operations
 async with asyncio.TaskGroup() as tg:
     fetch_task = tg.create_task(source.fetch())
     tg.create_task(table.ensure_table_exists())
@@ -192,7 +196,7 @@ class Feature(ABC):
 
 - Services use `configargparse` with env prefix `ORAKU_`
 - API uses `pydantic-settings` with env prefix `ORAKU_`
-- Dev config stored in `dev_config.yaml`
+- Dev config stored in `/dev_config.yaml` for service and `/src/forecast-api/.env` for API
 
 ## Pre-commit Hooks
 

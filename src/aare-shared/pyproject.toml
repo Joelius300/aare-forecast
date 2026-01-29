@@ -24,8 +24,6 @@ dvc = ["dvc>=3.58.0"]
 
 
 [tool.uv]
-package = true
-
 conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
 
 [tool.uv.sources]

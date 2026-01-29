@@ -34,6 +34,16 @@ API_DESC = (
     f"an empty response is returned where 'last_updated' is null.\n\nFor statistical purposes, "
     "please add &app={your app name} and optionally add &version={your app version} to all of your requests."
 )
+API_DESC_FLOW = (
+    "Almost the same as the temperature forecast (/forecast/temperature) with a few important differences. "
+    "These forecasts are NOT made by the aare oraku, instead they come from "
+    "[FOEN/BAFU flood forecasts](https://www.bafu.admin.ch/en/hydrological-forecasts-and-warnings) and are intended "
+    "to keep the population safe in case of floods and to aid with planning for power plants and similar. "
+    "As such, they are only calculated once per day, unless there currently is a flood expected. "
+    "Without historical data to conduct a deeper analysis it's impossible to say what biases this might "
+    "lead to (e.g. overshoots more often than it undershoots). In the future, a custom model could refine the BAFU "
+    "forecasts for our use-case."
+)
 FROM_API_DESC = (
     "Only set if you want a forecast made before a specific time! "
     "Timestamp in the format YYYY-MM-DDThh:mm:ssZ. "
@@ -147,12 +157,12 @@ async def _get_forecast(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )
 
+    df = df[["time", variable]].rename(columns={variable: "value"})
+
     return ForecastPayload(
-        data=ForecastColumnData(time=df["time"].to_list(), value=df[variable].to_list())
+        data=ForecastColumnData.model_validate(df.to_dict(orient="list"))  # pyright: ignore[reportUnknownMemberType]
         if format == ForecastDataFormat.COLUMN
-        else ForecastRowData.model_validate(
-            [{"time": row["time"], "value": row[variable]} for row in df[["time", variable]].to_dict(orient="records")]
-        ),
+        else ForecastRowData.model_validate(df.to_dict(orient="records")),  # pyright: ignore[reportUnknownMemberType]
         metadata=ForecastMetadata(
             variable=variable,
             last_updated=run_ts,
@@ -163,7 +173,7 @@ async def _get_forecast(
     )
 
 
-# temperature forecast is the main task of the oraku so generic /forecast endpoint also returns variable "temp"
+# temperature forecast is the main task of the oraku, so generic /forecast endpoint also returns variable "temp"
 @router.get("/forecast", description=API_DESC, response_model=ForecastPayload)
 @router.get("/forecast/temp", description=API_DESC, response_model=ForecastPayload)
 @router.get("/forecast/temperature", description=API_DESC, response_model=ForecastPayload)
@@ -196,8 +206,7 @@ async def get_temp_forecasts(
     )
 
 
-# todo: update description(s)
-@router.get("/forecast/flow", description=API_DESC, response_model=ForecastPayload)
+@router.get("/forecast/flow", description=API_DESC_FLOW, response_model=ForecastPayload)
 async def get_flow_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
     settings: Annotated[OrakuSettings, Depends(get_settings)],

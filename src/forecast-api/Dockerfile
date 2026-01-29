@@ -13,8 +13,8 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=src/aare-shared/pyproject.toml,target=src/aare-shared/pyproject.toml \
-    --mount=type=bind,source=src/aare-shared/README.md,target=src/aare-shared/README.md \
+    --mount=type=bind,source=src/aare-train/pyproject.toml,target=src/aare-train/pyproject.toml \
+    --mount=type=bind,source=src/aare-train/README.md,target=src/aare-train/README.md \
     --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/aare-timescale/pyproject.toml,target=src/aare-timescale/pyproject.toml \
     --mount=type=bind,source=src/forecast-service/pyproject.toml,target=src/forecast-service/pyproject.toml \

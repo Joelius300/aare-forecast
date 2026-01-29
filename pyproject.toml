@@ -8,7 +8,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-    "aare-shared[gpu-auto,dvc]",
+    "aare-train[gpu-auto,dvc]",
     "aare-logging",
     "aare-timescale",
     "basedpyright>=1.36.1",
@@ -47,8 +47,8 @@ reportUnusedCallResult = false
 reportExplicitAny = "information"
 
 ignore = [
-    "src/aare-shared/src/aare/compat/optuna_lightning_integration.py",
-    "src/aare-shared/src/aare/wrappers/timesfm.py",
+    "src/aare-train/src/aare/compat/optuna_lightning_integration.py",
+    "src/aare-train/src/aare/wrappers/timesfm.py",
 ]
 
 # fixes `lib` absolute imports, all "aare-*" packages are installed so no need
@@ -85,6 +85,6 @@ override-dependencies = [
 members = ["src/*"]
 
 [tool.uv.sources]
-aare-shared = { workspace = true }
+aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }

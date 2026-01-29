@@ -28,7 +28,7 @@ def save_model(
     model: GlobalForecastingModel,
     features: FeatureIdentifiers,
     scalers: DataTransformers,
-    run_info: Any,  # no type -> no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
+    run_info: Any,  # no type -> no import of mlflow in aare-train, at least if possible. maybe skinny if forced.
     override: bool = False,
 ):
     """Store a model with all necessary information including a metadata file."""

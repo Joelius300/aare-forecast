@@ -16,7 +16,7 @@ class MlFlowInfo(TypedDict):
     run_id: str
 
 
-# no import of mlflow in aare-shared, at least if possible. maybe skinny if forced.
+# no import of mlflow in aare-train, at least if possible. maybe skinny if forced.
 def get_mlflow_info(run_info) -> MlFlowInfo:
     return {
         "run_name": str(run_info.run_name),

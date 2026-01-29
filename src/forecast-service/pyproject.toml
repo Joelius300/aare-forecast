@@ -13,14 +13,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-gpu-auto = ["aare-shared[gpu-auto]"]
-gpu = ["aare-shared[gpu]"]
-cpu = ["aare-shared[cpu]"]
+gpu-auto = ["aare-train[gpu-auto]"]
+gpu = ["aare-train[gpu]"]
+cpu = ["aare-train[cpu]"]
 
 [tool.uv]
 conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
 
 [tool.uv.sources]
-aare-shared = { workspace = true }
+aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }

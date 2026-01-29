@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.10,<3.12"
 # dependencies = [
-#     "aare-shared",
+#     "aare-train",
 #     "darts==0.36.0",
 #     "dvc",
 #     "influxdb-client",
@@ -11,7 +11,7 @@
 # ]
 #
 # [tool.uv.sources]
-# aare-shared = { path = "../src/aare-shared", editable = true }
+# aare-train = { path = "../src/aare-train", editable = true }
 # ///
 import logging
 

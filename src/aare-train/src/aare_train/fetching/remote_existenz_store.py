@@ -21,7 +21,8 @@ def _chain_equality(
     if len(values) == 0:
         raise ValueError("cannot equality-chain 0 values")
 
-    if len(values) == 1 and (isinstance(values[0], Sequence)):
+    # must check for list or tuple here because strings are also sequences
+    if len(values) == 1 and (isinstance(values[0], (list, tuple))):
         # unpack list so you don't have to on the caller's side
         return _chain_equality(column, *values[0], separator, wrap_in_quotes)
 
@@ -190,6 +191,8 @@ postProc = (tables=<-) =>
         logger.debug("Executing Flux Query:\n{%s}", query)
         df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
         cols = df.columns if isinstance(df, pd.DataFrame) else df[0].columns
+        if len(cols) == 0:
+            raise ValueError(f"Got no data from influxdb: {df}")
 
         unnecessary_cols = ["result", "table"]
         if (

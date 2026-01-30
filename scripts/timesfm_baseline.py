@@ -7,7 +7,7 @@
 #     "influxdb-client",
 #     "pandas",
 #     "numpy>=2.0.0",
-#     "timesfm[torch]",
+#     "timesfm[torch]<=2.0.0",
 # ]
 #
 # [tool.uv.sources]

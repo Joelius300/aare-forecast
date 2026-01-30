@@ -3,8 +3,8 @@ from typing import cast
 from psycopg_pool import AsyncConnectionPool
 from fastapi import Request
 
-from lib.latest_cache import LatestCache
-from lib.oraku_settings import OrakuSettings
+from oraku_api.latest_cache import LatestCache
+from oraku_api.oraku_settings import OrakuSettings
 
 
 # unfortunately, fastapi DI cannot handle if the function is already an async context manager,

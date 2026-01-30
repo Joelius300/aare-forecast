@@ -3,7 +3,7 @@
 
 from datetime import UTC, datetime
 
-# run duration of the service should ignore the time needed to import libraries, but we still want to log it
+# run duration of the service should ignore the time needed to import packages, but we still want to log it
 import_start_ts = datetime.now(UTC)
 
 from collections.abc import Awaitable
@@ -26,14 +26,14 @@ from aare_train.compat.types import DataTransformers
 from aare_train.storage.metadata import AareModel
 from aare_train.storage.model import load_model
 from aare_train.params import set_params_file
-from lib.data.compile_data import get_inference_data, scale_inference_data
-from lib.data.inference_data import InferenceData
-from lib.external_sources.external_source import ExternalSource
-from lib.external_sources.registry import SourceRegistry, Sources
-from lib.persistence.tables.forecast import ForecastTable
-from lib.persistence.tables.forecast_meta import ForecastMetaTable
-from lib.args import parse_cli_args, CliArgs
-from lib.version import __version__
+from oraku_forecast.data.compile_data import get_inference_data, scale_inference_data
+from oraku_forecast.data.inference_data import InferenceData
+from oraku_forecast.external_sources.external_source import ExternalSource
+from oraku_forecast.external_sources.registry import SourceRegistry, Sources
+from oraku_forecast.persistence.tables.forecast import ForecastTable
+from oraku_forecast.persistence.tables.forecast_meta import ForecastMetaTable
+from oraku_forecast.args import parse_cli_args, CliArgs
+from oraku_forecast.version import __version__
 
 logger = logging.getLogger(__name__)
 

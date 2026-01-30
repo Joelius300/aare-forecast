@@ -5,9 +5,9 @@ from typing import Annotated
 from fastapi import HTTPException, Depends, Header, Query, Response, APIRouter
 from psycopg import AsyncConnection
 
-from lib.client_caching import get_last_modified, set_client_caching, response_still_fresh
-from lib.dba import fetch_forecast, fetch_model_info
-from lib.dto import (
+from oraku_api.client_caching import get_last_modified, set_client_caching, response_still_fresh
+from oraku_api.dba import fetch_forecast, fetch_model_info
+from oraku_api.dto import (
     ForecastPayload,
     ForecastMetadata,
     ForecastDataFormat,
@@ -15,9 +15,9 @@ from lib.dto import (
     ForecastRowData,
     ModelInfo,
 )
-from lib.oraku_settings import OrakuSettings, settings, CityEnum
-from lib.routers.dependencies import get_settings, open_db, get_caches
-from lib.server_caching import CachesType
+from oraku_api.oraku_settings import OrakuSettings, settings, CityEnum
+from oraku_api.routers.dependencies import get_settings, open_db, get_caches
+from oraku_api.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-# Forecast API
+# Oraku forecast API
 
 This API serves the stored forecasts from the timescaledb.
 

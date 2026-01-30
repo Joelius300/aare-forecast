@@ -12,8 +12,8 @@ from aare_train.features.base.feature import Feature
 from aare_train.features.registry import FEATURES
 from aare_train.preparation import resample
 from aare_train.fetching.remote_existenz_store import RemoteExistenzStore, FieldRequest
-from lib.data.inference_data import InferenceData
-from lib.external_sources.translations import MEAS_TRANS
+from oraku_forecast.data.inference_data import InferenceData
+from oraku_forecast.external_sources.translations import MEAS_TRANS
 
 # how many extra hours to fetch from influx to be sure we got everything
 EXTRA_PAST_HOURS = 2

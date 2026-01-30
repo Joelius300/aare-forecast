@@ -1,4 +1,4 @@
-# Forecast service
+# Oraku forecast service
 
 Scheduled service responsible for creating forecasts using a trained model and storing them in a database.
 

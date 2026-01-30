@@ -5,11 +5,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request, Response
 
-from lib.dba import fetch_forecast
-from lib.dto import Health
-from lib.oraku_settings import settings
-from lib.routers.dependencies import open_db, get_caches
-from lib.server_caching import CachesType
+from oraku_api.dba import fetch_forecast
+from oraku_api.dto import Health
+from oraku_api.oraku_settings import settings
+from oraku_api.routers.dependencies import open_db, get_caches
+from oraku_api.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 

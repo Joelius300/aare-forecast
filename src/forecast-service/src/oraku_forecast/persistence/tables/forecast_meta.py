@@ -9,7 +9,7 @@ from psycopg_pool import AsyncConnectionPool
 from aare_train.storage.metadata import AareModel
 from aare_timescale.timescale_table import TimescaleTable
 
-from lib.args import CliArgs
+from oraku_forecast.args import CliArgs
 
 
 class ForecastMetaTable(TimescaleTable):

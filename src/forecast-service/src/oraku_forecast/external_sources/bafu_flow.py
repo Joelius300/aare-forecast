@@ -10,7 +10,7 @@ from aare_train.utils import join_many, trav
 import httpx
 import pandas as pd
 
-from lib.external_sources.external_source import ExternalSource
+from oraku_forecast.external_sources.external_source import ExternalSource
 
 logger = logging.getLogger(__name__)
 

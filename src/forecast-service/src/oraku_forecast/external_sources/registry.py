@@ -5,11 +5,11 @@ from aare.constants import LOC_BERN, LOC_BRGG, LOC_HAGN, LOC_THUN, LOC_BIEL, LOC
 from psycopg_pool import AsyncConnectionPool
 
 from aare_timescale.timescale_table import TimescaleTable
-from lib.external_sources.bafu_flow import BafuFlowSource
-from lib.external_sources.external_source import ExternalSource
-from lib.external_sources.meteotest import MeteoTestSource
-from lib.persistence.tables.bafu_flow import BafuFlowTable
-from lib.persistence.tables.meteotest import MeteotestTable
+from oraku_forecast.external_sources.bafu_flow import BafuFlowSource
+from oraku_forecast.external_sources.external_source import ExternalSource
+from oraku_forecast.external_sources.meteotest import MeteoTestSource
+from oraku_forecast.persistence.tables.bafu_flow import BafuFlowTable
+from oraku_forecast.persistence.tables.meteotest import MeteotestTable
 
 
 class SourceTuple(TypedDict):

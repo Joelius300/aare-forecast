@@ -1,7 +1,7 @@
 from datetime import timedelta
 
-from lib.latest_cache import LatestCache
-from lib.oraku_settings import OrakuSettings
+from oraku_api.latest_cache import LatestCache
+from oraku_api.oraku_settings import OrakuSettings
 
 # valid variables are used as caching keys and must match the df column names
 VALID_VARIABLES = ("temp", "flow")

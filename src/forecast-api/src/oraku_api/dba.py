@@ -10,7 +10,7 @@ from aare.locations import LOC_ALIAS
 from aare_timescale.forecasts import select_forecasts
 from aare_timescale.postgres import copy_to_df
 
-from lib.dto import ModelInfo
+from oraku_api.dto import ModelInfo
 
 
 async def _fetch_flow_forecast(

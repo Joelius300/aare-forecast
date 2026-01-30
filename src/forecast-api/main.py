@@ -6,13 +6,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aare_logging.logging import setup_logging
-from lib.access_log_filter import AccessLogFilter
-from lib.dba import init_db_pool
-from lib.dto import Config
-from lib.oraku_settings import settings
-from lib.routers.forecast import router as forecast_router
-from lib.routers.health import router as health_router
-from lib.server_caching import init_latest_caches
+from oraku_api.access_log_filter import AccessLogFilter
+from oraku_api.dba import init_db_pool
+from oraku_api.dto import Config
+from oraku_api.oraku_settings import settings
+from oraku_api.routers.forecast import router as forecast_router
+from oraku_api.routers.health import router as health_router
+from oraku_api.server_caching import init_latest_caches
 
 setup_logging(
     settings.logging_level,

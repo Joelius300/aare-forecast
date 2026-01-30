@@ -84,11 +84,15 @@ class _ParamsManager:
             if self._params_file is None:
                 raise ValueError("Called read_params outside of a DVC context but no params file path is set!")
 
+        # if a params file is set, we want to use that regardless of whether we're in a DVC context or not
+        # (already printed a warning when setting it inside a DVC context).
+        if self._params_file is not None:
             try:
                 return _read_params_file(self._params_file)
             except Exception as e:
                 raise ValueError(f"Could not read params from file '{self.params_file}': {e}") from e
 
+        # no params file set, use DVC params (with lazy dvc import)
         try:
             return _read_dvc_params()
         except Exception as e:

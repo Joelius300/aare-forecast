@@ -2,7 +2,6 @@
 name = "aare-train"
 version = "0.1.0"
 description = "Shared library for aare-oraku training, inference, etc. Quite heavy atm, should be split."
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "u8darts[torch]~=0.38.0",

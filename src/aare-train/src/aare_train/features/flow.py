@@ -1,6 +1,6 @@
-from aare_train.constants import LOC_BERN
 import pandas as pd
 
+from aare.constants import LOC_BERN
 from aare_train.features.base.single_field_feature import SingleFieldFeature
 from aare_train.preparation import remove_period
 from aare_train.fetching.remote_existenz_store import FieldRequest
@@ -14,6 +14,7 @@ class Flow(SingleFieldFeature):
 
     def _remove_faulty_periods(self, df: pd.DataFrame) -> pd.DataFrame:
         # the periods below are for just for bern. once we want flow from other locations, rethink this.
+        # TODO the type checker is right, this is str vs int -> always true
         if self.field.location != LOC_BERN:
             return df
 

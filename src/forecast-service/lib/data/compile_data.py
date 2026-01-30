@@ -6,7 +6,7 @@ import pandas as pd
 from darts import TimeSeries
 
 from aare_train.compat.types import ExtremeLags, DataTransformers
-from aare_train.constants import TIME
+from aare.constants import TIME
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
 from aare_train.features.base.feature import Feature
 from aare_train.features.registry import FEATURES

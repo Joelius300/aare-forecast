@@ -55,6 +55,7 @@ conflicts = [[
 
 [manifest]
 members = [
+    "aare",
     "aare-forecast",
     "aare-logging",
     "aare-oraku-api",
@@ -72,12 +73,18 @@ overrides = [
 ]
 
 [[package]]
+name = "aare"
+version = "0.1.0"
+source = { editable = "src/aare" }
+
+[[package]]
 name = "aare-forecast"
 version = "0.1.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "aare" },
     { name = "aare-logging" },
     { name = "aare-timescale" },
     { name = "aare-train", extra = ["dvc"] },
@@ -109,6 +116,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aare", editable = "src/aare" },
     { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "aare-train", extras = ["gpu-auto", "dvc"], editable = "src/aare-train" },
@@ -151,6 +159,7 @@ name = "aare-oraku-api"
 version = "0.1.0"
 source = { virtual = "src/forecast-api" }
 dependencies = [
+    { name = "aare" },
     { name = "aare-logging" },
     { name = "aare-timescale" },
     { name = "fastapi" },
@@ -167,6 +176,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aare", editable = "src/aare" },
     { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "fastapi", specifier = ">=0.116.1" },
@@ -184,6 +194,7 @@ name = "aare-oraku-forecast"
 version = "0.2.3"
 source = { virtual = "src/forecast-service" }
 dependencies = [
+    { name = "aare" },
     { name = "aare-logging" },
     { name = "aare-timescale" },
     { name = "configargparse" },
@@ -204,6 +215,7 @@ gpu-auto = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aare", editable = "src/aare" },
     { name = "aare-logging", editable = "src/aare-logging" },
     { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "aare-train", extras = ["cpu"], marker = "extra == 'cpu'", editable = "src/aare-train" },
@@ -231,6 +243,7 @@ name = "aare-train"
 version = "0.1.0"
 source = { editable = "src/aare-train" }
 dependencies = [
+    { name = "aare" },
     { name = "influxdb-client" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -261,6 +274,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aare", editable = "src/aare" },
     { name = "dvc", marker = "extra == 'dvc'", specifier = ">=3.58.0" },
     { name = "influxdb-client", specifier = ">=1.48.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },

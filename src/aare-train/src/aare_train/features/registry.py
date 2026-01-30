@@ -5,7 +5,7 @@ from typing import Any, cast, overload
 from aare_train.features.rainfall import Rainfall
 from aare_train.features.relative_humidity import RelativeHumidity
 from aare_train.features.wind import Wind
-from aare_train.locations import LOC_ALIAS
+from aare.locations import LOC_ALIAS
 import numpy as np
 from darts.dataprocessing.transformers import Mapper
 

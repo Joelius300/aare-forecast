@@ -9,7 +9,7 @@ import torch.cuda
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
 
-from aare_train.constants import TIME
+from aare.constants import TIME
 from aare_train.darts_utils import to_ts
 
 

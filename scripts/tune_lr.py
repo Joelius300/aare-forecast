@@ -1,7 +1,7 @@
 import itertools
 import logging
 
-from aare_train.constants import RANDOM_SEED
+from aare.constants import RANDOM_SEED
 from aare_train.tuning.lr_tuner import DuplicateLagsPruner, LRTuner
 import matplotlib.pyplot as plt
 import mlflow

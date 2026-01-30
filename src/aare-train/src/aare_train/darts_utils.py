@@ -8,7 +8,7 @@ from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.utils.ts_utils import retain_period_common_to_all
 
-from aare_train.constants import TIME
+from aare.constants import TIME
 from aare_train.utils import ensure_frame
 
 logger = logging.getLogger(__name__)

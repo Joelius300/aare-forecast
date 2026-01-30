@@ -13,6 +13,7 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=src/aare/pyproject.toml,target=src/aare/pyproject.toml \
     --mount=type=bind,source=src/aare-train/pyproject.toml,target=src/aare-train/pyproject.toml \
     --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/aare-timescale/pyproject.toml,target=src/aare-timescale/pyproject.toml \
@@ -22,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments
 
 # which files/dirs are copied is controlled by the .dockerignore file.
-# wouldn't need sources for forecast-service, but they carry almost no weight so whatever.
+# wouldn't need sources for forecast-api, but they carry almost no weight so whatever.
 COPY . /app
 
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts

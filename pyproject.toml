@@ -7,6 +7,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "aare",
     "aare-train[gpu-auto,dvc]",
     "aare-logging",
     "aare-timescale",
@@ -85,6 +86,7 @@ override-dependencies = [
 members = ["src/*"]
 
 [tool.uv.sources]
+aare = { workspace = true }
 aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }

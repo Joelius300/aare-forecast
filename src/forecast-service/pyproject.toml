@@ -4,6 +4,7 @@ version = "0.2.3"
 description = "Forecast service to fetch external data and persist forecasts to a DB"
 requires-python = ">=3.12"
 dependencies = [
+    "aare",
     "aare-logging",
     "aare-timescale",
     "configargparse>=1.7.1",
@@ -20,6 +21,7 @@ cpu = ["aare-train[cpu]"]
 conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
 
 [tool.uv.sources]
+aare = { workspace = true }
 aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }

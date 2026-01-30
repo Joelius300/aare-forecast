@@ -1,2 +1,3 @@
 Shared code for training and currently also inference service. Many functions and classes could/should be split
-into other packages to avoid installing training deps in the inference service.
+into other packages to avoid installing training deps in the inference service. Some should also go into aare (core).
+The goal is to do this step by step as the applications grow (TODO).

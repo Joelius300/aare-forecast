@@ -1,6 +1,6 @@
 from typing import override
 
-from aare_train.constants import RANDOM_SEED
+from aare.constants import RANDOM_SEED
 from aare_train.evaluation.eval_metric import EvalMetric
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
 from aare_train.params.params_types import Params

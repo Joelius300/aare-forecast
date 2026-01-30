@@ -7,8 +7,8 @@ from typing import cast, Literal, Optional
 import pandas as pd
 from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImportUsage]
 
-from aare_train.constants import TIME
-from aare_train.locations import translate_location
+from aare.constants import TIME
+from aare.locations import translate_location
 
 logger = logging.getLogger(__name__)
 

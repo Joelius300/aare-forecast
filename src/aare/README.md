@@ -1,0 +1,1 @@
+Lightweight shared package for constants and utils used during training, eval, inference, the api, etc.

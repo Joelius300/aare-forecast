@@ -1,6 +1,6 @@
 import logging
 
-from aare_train.constants import RANDOM_SEED
+from aare.constants import RANDOM_SEED
 from aare_train.tuning.gru_tuner import GRUTuner
 import matplotlib.pyplot as plt
 import mlflow

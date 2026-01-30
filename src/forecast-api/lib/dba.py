@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta, tzinfo
 from typing import cast, LiteralString
 
-from aare_train.locations import LOC_ALIAS
 import pandas as pd
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from lib.dto import ModelInfo
+from aare.locations import LOC_ALIAS
 from aare_timescale.forecasts import select_forecasts
 from aare_timescale.postgres import copy_to_df
+
+from lib.dto import ModelInfo
 
 
 async def _fetch_flow_forecast(

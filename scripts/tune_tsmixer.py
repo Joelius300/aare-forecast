@@ -1,6 +1,6 @@
 import logging
 
-from aare_train.constants import RANDOM_SEED
+from aare.constants import RANDOM_SEED
 import matplotlib.pyplot as plt
 import mlflow
 import optuna

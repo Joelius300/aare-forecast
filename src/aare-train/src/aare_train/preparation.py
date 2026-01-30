@@ -6,7 +6,7 @@ import pandas as pd
 from darts import TimeSeries
 from typing_extensions import deprecated
 
-from aare_train.constants import TEMP, TIME
+from aare.constants import TEMP, TIME
 from aare_train.params import read_params
 from aare_train.utils import between, fill_with_hard_limit
 from aare_train.darts_utils import to_ts

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Shared library for aare-oraku training, inference, etc. Quite heavy atm, should be split."
 requires-python = ">=3.11"
 dependencies = [
+    "aare",
     "u8darts[torch]~=0.38.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",
@@ -26,6 +27,7 @@ dvc = ["dvc>=3.58.0"]
 conflicts = [[{ extra = "gpu-auto" }, { extra = "gpu" }, { extra = "cpu" }]]
 
 [tool.uv.sources]
+aare = { workspace = true }
 torch = [
     { index = "pytorch-auto", extra = "gpu-auto" },
     { index = "pytorch-cpu", extra = "cpu" },

@@ -1,4 +1,4 @@
-from aare_train.constants import LOC_BERN
+from aare.constants import LOC_BERN
 from aare_train.params import read_params
 from aare_train.fetching.remote_existenz_store import RemoteExistenzStore
 

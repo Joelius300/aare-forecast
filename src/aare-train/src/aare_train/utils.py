@@ -6,7 +6,7 @@ from typing import cast, overload, Callable, Any
 
 import pandas as pd
 
-from aare_train.constants import TIME
+from aare.constants import TIME
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
 import logging
 from typing import TypedDict, Literal, cast
 
-from aare_train.constants import (
+from aare.constants import (
     LOC_BERN,
     LOC_BERN_SMN,
     LOC_BRNZ,

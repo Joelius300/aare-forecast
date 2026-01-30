@@ -5,7 +5,6 @@
 !/src
 !/pyproject.toml
 !/uv.lock
-!/deploy
 
 # ignore unnecessary files inside allowed directories, must be after allow statements
 **/*~
@@ -17,6 +16,7 @@
 **/*.pyc
 **/Dockerfile
 **/.env
+**/README.md
 
 # these should already be ignored, this is just double wrapping from before
 .venv

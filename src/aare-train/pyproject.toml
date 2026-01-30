@@ -56,6 +56,5 @@ explicit = true
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# build the package under src/aare (and use that as package root)
 [tool.hatch.build.targets.wheel]
-packages = ["src/aare"]
+packages = ["src/aare_train"]

@@ -6,7 +6,7 @@ import pandas as pd
 from psycopg import sql
 from psycopg_pool import AsyncConnectionPool
 
-from aare.storage.metadata import AareModel
+from aare_train.storage.metadata import AareModel
 from aare_timescale.timescale_table import TimescaleTable
 
 from lib.args import CliArgs

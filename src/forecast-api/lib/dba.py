@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, tzinfo
 from typing import cast, LiteralString
 
-from aare.locations import LOC_ALIAS
+from aare_train.locations import LOC_ALIAS
 import pandas as pd
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row

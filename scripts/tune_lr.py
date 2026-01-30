@@ -1,8 +1,8 @@
 import itertools
 import logging
 
-from aare.constants import RANDOM_SEED
-from aare.tuning.lr_tuner import DuplicateLagsPruner, LRTuner
+from aare_train.constants import RANDOM_SEED
+from aare_train.tuning.lr_tuner import DuplicateLagsPruner, LRTuner
 import matplotlib.pyplot as plt
 import mlflow
 import optuna
@@ -10,9 +10,9 @@ import torch
 from lightning_fabric import seed_everything
 from optuna.samplers import TPESampler
 
-from aare.fetching.feature_identifiers import FeatureIdentifiers
-from aare.params import read_params
-from aare.paths import OPTUNA_STORE_URI
+from aare_train.fetching.feature_identifiers import FeatureIdentifiers
+from aare_train.params import read_params
+from aare_train.paths import OPTUNA_STORE_URI
 
 logger = logging.getLogger(__name__)
 

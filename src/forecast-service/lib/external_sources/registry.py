@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import TypedDict
 
-from aare.constants import LOC_BERN, LOC_BRGG, LOC_HAGN, LOC_THUN, LOC_BIEL, LOC_INT
+from aare_train.constants import LOC_BERN, LOC_BRGG, LOC_HAGN, LOC_THUN, LOC_BIEL, LOC_INT
 from psycopg_pool import AsyncConnectionPool
 
 from aare_timescale.timescale_table import TimescaleTable

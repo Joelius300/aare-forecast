@@ -15,9 +15,9 @@
 # ///
 import logging
 
-from aare.evaluation.pipeline import evaluation_pipeline_uni
-from aare.params import read_params
-from aare.wrappers.timesfm import TimesFmDarts
+from aare_train.evaluation.pipeline import evaluation_pipeline_uni
+from aare_train.params import read_params
+from aare_train.wrappers.timesfm import TimesFmDarts
 
 
 def main():

@@ -22,10 +22,10 @@ from psycopg_pool import AsyncConnectionPool
 
 from aare_logging.logging import setup_logging
 from aare_timescale.timescale_table import TimescaleTable
-from aare.compat.types import DataTransformers
-from aare.storage.metadata import AareModel
-from aare.storage.model import load_model
-from aare.params import set_params_file
+from aare_train.compat.types import DataTransformers
+from aare_train.storage.metadata import AareModel
+from aare_train.storage.model import load_model
+from aare_train.params import set_params_file
 from lib.data.compile_data import get_inference_data, scale_inference_data
 from lib.data.inference_data import InferenceData
 from lib.external_sources.external_source import ExternalSource

@@ -5,13 +5,13 @@ import darts
 import pandas as pd
 from darts import TimeSeries
 
-from aare.compat.types import ExtremeLags, DataTransformers
-from aare.constants import TIME
-from aare.fetching.feature_identifiers import FeatureIdentifiers
-from aare.features.base.feature import Feature
-from aare.features.registry import FEATURES
-from aare.preparation import resample
-from aare.fetching.remote_existenz_store import RemoteExistenzStore, FieldRequest
+from aare_train.compat.types import ExtremeLags, DataTransformers
+from aare_train.constants import TIME
+from aare_train.fetching.feature_identifiers import FeatureIdentifiers
+from aare_train.features.base.feature import Feature
+from aare_train.features.registry import FEATURES
+from aare_train.preparation import resample
+from aare_train.fetching.remote_existenz_store import RemoteExistenzStore, FieldRequest
 from lib.data.inference_data import InferenceData
 from lib.external_sources.translations import MEAS_TRANS
 

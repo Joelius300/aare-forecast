@@ -14,8 +14,7 @@ class Flow(SingleFieldFeature):
 
     def _remove_faulty_periods(self, df: pd.DataFrame) -> pd.DataFrame:
         # the periods below are for just for bern. once we want flow from other locations, rethink this.
-        # TODO the type checker is right, this is str vs int -> always true
-        if self.field.location != LOC_BERN:
+        if self.field.location != str(LOC_BERN):
             return df
 
         df = df.copy()

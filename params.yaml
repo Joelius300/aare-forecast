@@ -50,13 +50,13 @@ features:
       linear_gap_bound: 3
       cubic_gap_bound: 10
 split:
-  # 12 years in total (2013-2025)
-  train_split: "2013-09-01"
-  # 8 years training
-  val_split: "2021-09-01"
-  # 2 years validation; summer is harder to predict (higher variance), val should not be winter-biased
-  test_split: "2023-09-01"
-  # 1.6+ years test -> expected to eval at ~2y
+  # 22 years in total (2004-2026)
+  train_split: "2004-02-01"
+  # 13 years training
+  val_split: "2017-02-01"
+  # 5 years validation
+  test_split: "2022-02-01"
+  # 4+ years test -> expected to eval at early 2026
 validation:
   stride: 24  # one eval per day, anything coprime with 24 will make sure all hours are used as starts equally
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.

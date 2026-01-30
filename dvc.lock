@@ -16,67 +16,67 @@ stages:
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2023-09-01'
-        split.val_split: '2021-09-01'
+        split.test_split: '2022-02-01'
+        split.val_split: '2017-02-01'
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: a646bbac44d517f012c965f32ef7b5be
+      md5: b225f7532a2a07c67af1642c86403306
       size: 10629
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: 169f4f00bbb6d8bda941dc0ddeb358b0
+      md5: 5582bbc57951d2c65027875a52545f04
       size: 15822
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: cc54ebcd6ed5c064902645a87aaa2037
+      md5: 1e29a9348237532fd5434211a4a8c3b1
       size: 10629
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: 19c2619feb19fc41bb83fec468429f79
+      md5: 530f0b45ce232de04a4106783b0546ba
       size: 180
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 1143b70178cfd854cc3a2691d345399a
-      size: 178
+      md5: 70e7e39c4d338190e487d976860e23fd
+      size: 179
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 6ed3c773d199c422cb8200340495f753
+      md5: 8b0cf24ef3e41e58e6eccacefe96391c
       size: 178
     - path: data/metrics/raw/LOCF.csv
       hash: md5
-      md5: 06dbdbda036879668306415ec237f7b9
-      size: 6641670
+      md5: 0fabee8d958059608f035a2331b95271
+      size: 16289262
     - path: data/metrics/raw/MEAN.csv
       hash: md5
-      md5: 33db0aab556f8e06bfebb4fe0e8cdd32
-      size: 6708260
+      md5: 7b8c310d6fca42ef36639f021efcc194
+      size: 16691113
     - path: data/metrics/raw/SNAIVE.csv
       hash: md5
-      md5: af96f5809bc765cb7666c5fa25f7c52c
-      size: 6685345
+      md5: ab6dca2b81c098efd5050e79a31a9c00
+      size: 16431650
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2023-09-01'
-        split.val_split: '2021-09-01'
+        split.test_split: '2022-02-01'
+        split.val_split: '2017-02-01'
         timesfm.version: 200m
         validation.min_lookback_hours: 24
         validation.stride: 24
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 980d258b9c942c9432b87d6ccae0550f
+      md5: 01f7fdb6813b8a086341119df26a5619
       size: 28407
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: daf751bb78dd76cfb9deb94568a4478d
-      size: 179
+      md5: 7b6f4dcb965aea76dc636f5cbc3db496
+      size: 180
     - path: data/metrics/raw/TIMESFM.csv
       hash: md5
-      md5: 03f58d95a96c1906a86231a555d67fb8
-      size: 6599597
+      md5: 3c6d97191e43f3c82fdba801c0ec33c3
+      size: 16395799

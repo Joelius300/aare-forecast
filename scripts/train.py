@@ -1,17 +1,25 @@
 import argparse
+from collections.abc import Callable
 import logging
 from typing import Any
 
 from aare.constants import RANDOM_SEED
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
-from aare_train.models import GRUTrainer, LRTrainer, TSMixerTrainer
-from aare_train.params import read_params
+from aare_train.models import GRUTrainer, LRTrainer, TSMixerTrainer, BaseTrainer
+from aare_train.params import Params, read_params
 import matplotlib.pyplot as plt
 import mlflow
 import torch
 from lightning_fabric import seed_everything
 
 logger = logging.getLogger(__name__)
+
+MODEL_TRAINERS: dict[str, Callable[[Params, FeatureIdentifiers], BaseTrainer]] = {
+    "GRU": GRUTrainer,
+    "LR": LRTrainer,
+    "TSMIXER": TSMixerTrainer,
+}
+MODEL_TYPES = tuple(k.lower() for k in MODEL_TRAINERS.keys())
 
 
 def parse_features(targets: list[str], future: list[str] | None) -> FeatureIdentifiers:
@@ -24,7 +32,7 @@ def parse_features(targets: list[str], future: list[str] | None) -> FeatureIdent
 
 def parse_hyperparameters(args: list[str]) -> dict[str, Any]:
     """Parse hyperparameters from command line arguments in key=value format."""
-    hparams = {}
+    hparams: dict[str, Any] = {}
     for arg in args:
         if "=" not in arg:
             raise ValueError(f"Invalid hyperparameter format: {arg}. Expected key=value")
@@ -65,9 +73,10 @@ Examples:
         """,
     )
 
+    # TODO consolidate common args with tune.py into some importable helper function and type them
     parser.add_argument(
         "model_type",
-        choices=["gru", "lr", "tsmixer"],
+        choices=MODEL_TYPES,
         help="Type of model to train",
     )
     parser.add_argument(
@@ -123,17 +132,15 @@ Examples:
     # create trainer based on model type
     logger.info(f"Training {args.model_type.upper()} with hyperparameters: {hparams}")
 
-    if args.model_type == "gru":
-        trainer = GRUTrainer(params, features)
-    elif args.model_type == "lr":
-        trainer = LRTrainer(params, features)
-    elif args.model_type == "tsmixer":
-        trainer = TSMixerTrainer(params, features)
-    else:
+    trainer_cls = MODEL_TRAINERS.get(args.model_type.upper())
+    if trainer_cls is None:
         raise ValueError(f"Unknown model type: {args.model_type}")
+
+    trainer = trainer_cls(params, features)
 
     # train and optionally evaluate
     mlflow.set_experiment(experiment_name)
+    metrics = None
     with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
         mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
         mlflow.log_params(trainer.hparams_general)
@@ -141,7 +148,6 @@ Examples:
         model = trainer.build_model(**hparams)
         trainer.fit(model)
 
-        metrics = None
         if args.evaluate:
             metrics = trainer.evaluate(model, run)
 

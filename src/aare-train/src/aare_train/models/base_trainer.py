@@ -9,6 +9,7 @@ from darts.models.forecasting.torch_forecasting_model import TorchForecastingMod
 from darts.models.forecasting.sklearn_model import SKLearnModel
 from mlflow import ActiveRun
 from matplotlib import pyplot as plt
+from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import MLFlowLogger
 
@@ -88,11 +89,17 @@ class BaseTrainer(ABC):
         log_every_n_steps: int = 50,
     ):
         """Get pytorch lightning trainer parameters for torch models."""
+        run = mlflow.active_run()
+        assert run is not None, "no active mlflow run"
         mlflow_logger = MLFlowLogger(
-            model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=mlflow.active_run().info.run_id
+            model_name,
+            # they fucked up their default which is evaluated at the import of the module, so set_tracking_uri is ignored
+            # https://github.com/Lightning-AI/pytorch-lightning/discussions/11197#discussioncomment-9164713
+            tracking_uri=os.getenv("MLFLOW_TRACKING_URI"),
+            run_id=run.info.run_id,  # pyright: ignore[reportUnknownArgumentType]
         )
 
-        callbacks = []
+        callbacks: list[Callback] = []
         if early_stopping_var:
             callbacks.append(EarlyStopping(early_stopping_var, patience=early_stopping_patience))
 
@@ -111,16 +118,18 @@ class BaseTrainer(ABC):
         mlflow.log_metrics(self._prefix_dict(metrics, prefix))
 
     @abstractmethod
-    def build_model(self, **hparams) -> ModelType:
+    def build_model(self, **hparams: Any) -> ModelType:
         """Build and return the model with given hyperparameters."""
         pass
 
-    def fit(self, model: ModelType):
+    def fit(self, model: ModelType) -> ModelType:
         """Fit the model on training data with validation."""
         assert "series" in self.scalers
         assert "future_covariates" in self.scalers
         assert self.train_fc_subs is not None
         assert self.val_fc_subs is not None
+
+        mlflow.log_params(self.hparams_general)
 
         orig_series = len(self.train_target_subs)
         orig_series_len = sum((len(x) for x in self.train_target_subs))
@@ -157,8 +166,8 @@ class BaseTrainer(ABC):
 
         return model.fit(**fit_args)  # pyright: ignore[reportArgumentType]
 
-    def evaluate(self, model: ModelType, run: ActiveRun) -> EvalMetric:
-        """Evaluate the model on validation data."""
+    def evaluate(self, model: ModelType, run: ActiveRun | None) -> EvalMetric:
+        """Evaluate the model on validation data and optionally log metrics and the sample figure to mlflow."""
         metrics, samples = evaluate_model(
             model,
             self.val_target_subs,
@@ -175,9 +184,10 @@ class BaseTrainer(ABC):
         )
 
         metrics_dict = metrics.to_dict()
-        self.log_metrics_prefix(metrics_dict, "eval")
-        sample_fig = samples.plot(str(run.info.run_name))
-        mlflow.log_figure(sample_fig, artifact_file="samples.png")
-        plt.close(sample_fig)  # otherwise it's kept in memory, well done matplotlib
+        if run is not None:
+            self.log_metrics_prefix(metrics_dict, "eval")
+            sample_fig = samples.plot(str(run.info.run_name))  # pyright: ignore[reportUnknownMemberType]
+            mlflow.log_figure(sample_fig, artifact_file="samples.png")
+            plt.close(sample_fig)  # otherwise it's kept in memory, well done matplotlib
 
         return metrics

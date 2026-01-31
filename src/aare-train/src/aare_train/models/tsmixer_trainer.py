@@ -1,4 +1,4 @@
-from typing import override
+from typing import override, Any
 
 from aare_train.models.base_trainer import BaseTrainer, ModelType
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
@@ -17,7 +17,7 @@ class TSMixerTrainer(BaseTrainer):
         super().__init__(params, features)
 
     @override
-    def build_model(
+    def build_model(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         *,
         input_chunk_length: int = 24,
@@ -33,7 +33,7 @@ class TSMixerTrainer(BaseTrainer):
         add_year_enc: bool = False,
         early_stopping_patience: int = 5,
         model_name: str = "TSMixer",
-        pl_trainer_kwargs: dict | None = None,
+        pl_trainer_kwargs: dict[str, Any] | None = None,
     ) -> ModelType:
         hparams_model = {
             "input_chunk_length": input_chunk_length,

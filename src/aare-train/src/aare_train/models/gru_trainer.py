@@ -1,4 +1,4 @@
-from typing import override
+from typing import override, Any
 
 from aare.constants import RANDOM_SEED
 from aare_train.models.base_trainer import BaseTrainer, ModelType
@@ -17,8 +17,9 @@ class GRUTrainer(BaseTrainer):
     def __init__(self, params: Params, features: FeatureIdentifiers):
         super().__init__(params, features)
 
+    # could use TypedDict and Unpack but I don't think there's any benefit here
     @override
-    def build_model(
+    def build_model(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         *,
         input_chunk_length: int = 24,
@@ -32,7 +33,7 @@ class GRUTrainer(BaseTrainer):
         add_year_enc: bool = False,
         early_stopping_patience: int = 5,
         model_name: str = "GRU",
-        pl_trainer_kwargs: dict | None = None,
+        pl_trainer_kwargs: dict[str, Any] | None = None,
     ) -> ModelType:
         hparams_model = dict(
             model="GRU",

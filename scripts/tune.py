@@ -44,6 +44,7 @@ Examples:
         """,
     )
 
+    # TODO consolidate common args with tune.py into some importable helper function and type them
     parser.add_argument(
         "model_type",
         choices=["gru", "lr", "tsmixer"],
@@ -81,6 +82,7 @@ Examples:
         type=int,
         help="Number of trials to run (default: unlimited, stop with Ctrl+C)",
     )
+    # todo think about what you want to do with this
     parser.add_argument(
         "--lr-regularization",
         choices=["none", "lasso", "ridge", "elastic"],
@@ -127,6 +129,7 @@ Examples:
     with mlflow.start_run(
         run_name=study_name, description=f"Tune hparams of {tuner.model_name} without changing features"
     ) as parent_run:
+        # TODO wtf is this not duplicated?!?!
         mlflow.set_tag("optuna_study", study.study_name)
         study.set_user_attr("mlflow_exp_id", parent_run.info.experiment_id)
         study.set_user_attr("mlflow_parent_run_id", parent_run.info.run_id)
@@ -154,6 +157,7 @@ Examples:
 
 
 if __name__ == "__main__":
+    raise NotImplementedError("you need to fix some things here, at least the todos")
     logging.basicConfig(level=logging.INFO)
     torch.set_float32_matmul_precision("medium")
     seed_everything(RANDOM_SEED)

@@ -19,7 +19,7 @@ class LRTrainer(BaseTrainer):
         super().__init__(params, features)
 
     @override
-    def build_model(
+    def build_model(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         *,
         lag_max: int = 24,

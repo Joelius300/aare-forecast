@@ -34,7 +34,7 @@ class TSMixerTuner(BaseTuner):
         add_year_enc = trial.suggest_categorical("add_year_enc", [True, False])
 
         # get pruning-enabled trainer kwargs
-        pl_trainer_kwargs = self.get_trainer_params_with_pruning(trial, self.model_name)
+        pl_trainer_kwargs = self.get_trainer_params(trial, self.model_name)
 
         # build model via trainer
         return self.trainer.build_model(

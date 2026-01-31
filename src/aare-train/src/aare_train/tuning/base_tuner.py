@@ -1,15 +1,13 @@
 from abc import ABC, abstractmethod
-import os
-from typing import Any, cast
-from collections.abc import Iterator, Mapping
+from typing import Any
+from collections.abc import Iterator
 
+from aare_train.models import BaseTrainer
 import mlflow
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.models.forecasting.sklearn_model import SKLearnModel
 from mlflow import ActiveRun
 from optuna import Trial, TrialPruned
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.loggers import MLFlowLogger
 
 from aare_train.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
 from aare_train.evaluation.eval_metric import EvalMetric
@@ -25,34 +23,24 @@ class BaseTuner(ABC):
         self.params = params
         self.features = features
         self.current_run: ActiveRun | None = None
-        self._trainer = None  # lazily created
-
-        # compute hparams_general from params (no data fetching)
-        self.horizon = params["general"]["forecast_horizon"]
-        self.hparams_general = {
-            "horizon": self.horizon,
-            "val_stride": params["validation"]["stride"],
-            "split_train": params["split"]["train_split"],
-            "split_val": params["split"]["val_split"],
-            "split_test": params["split"]["test_split"],
-            "features_targets": features["targets"],
-            "features_future": features.get("future", []),
-            "features_past": features.get("past", []),
-        }
+        self._trainer: BaseTrainer | None = None  # lazily created
 
     @property
-    def trainer(self):
-        """Lazily create trainer once."""
+    def trainer(self) -> BaseTrainer:
+        """Get lazily created trainer instance."""
         if self._trainer is None:
             self._trainer = self.create_trainer()
+
+        assert self._trainer is not None, "create_trainer returned None!"
+
         return self._trainer
 
     @abstractmethod
-    def create_trainer(self):
+    def create_trainer(self) -> BaseTrainer:
         """Create the trainer instance for this tuner."""
         pass
 
-    def get_trainer_params_with_pruning(
+    def get_trainer_params(
         self,
         trial: Trial,
         model_name: str,
@@ -62,30 +50,16 @@ class BaseTuner(ABC):
         log_every_n_steps: int = 50,
     ):
         """Get pytorch lightning trainer parameters with optuna pruning callback."""
-        assert self.current_run is not None
-        # they fucked up their default which is evaluated at the import of the module, so set_tracking_uri is ignored
-        # https://github.com/Lightning-AI/pytorch-lightning/discussions/11197#discussioncomment-9164713
-        mlflow_logger = MLFlowLogger(
-            model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=self.current_run.info.run_id
+        params = self.trainer.get_trainer_params(
+            model_name, early_stopping_var, early_stopping_patience, log_every_n_steps
         )
 
-        callbacks = []
-        if early_stopping_var:
-            callbacks.append(EarlyStopping(early_stopping_var, patience=early_stopping_patience))
-
         if pruning_var:
+            callbacks = params["callbacks"]
+            assert isinstance(callbacks, list)
             callbacks.append(PyTorchLightningPruningCallback(trial, monitor=pruning_var))
 
-        return {
-            "logger": mlflow_logger,
-            "callbacks": callbacks,
-            "log_every_n_steps": log_every_n_steps,
-        }
-
-    @staticmethod
-    def _prefix_dict(vals: Mapping[str, Any], prefix: str):
-        prefix = prefix.removesuffix("_")
-        return {prefix + "_" + key: value for key, value in vals.items()}
+        return params
 
     @staticmethod
     def prune_if_requested(trial: Trial):
@@ -111,8 +85,7 @@ class BaseTuner(ABC):
             mlflow.set_tag("optuna_study", trial.study.study_name)
             mlflow.set_tag("optuna_trial", trial.number)
 
-            mlflow.log_dict(cast(dict, read_params(ensure_dvc=True)), "params.yaml")
-            mlflow.log_params(self.hparams_general)
+            mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
 
             model = self.get_model(trial)
             self.prune_if_requested(trial)  # check if we should even start training

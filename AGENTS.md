@@ -1,6 +1,6 @@
 # AGENTS.md - Aare Forecast Project
 
-This document provides guidance for AI coding agents working in this repository.
+This document provides guidance for AI coding agents working in this repository. All code but be concise, practial and beautiful without overengineering.
 
 ## Project Overview
 
@@ -20,12 +20,13 @@ A Python ML project for forecasting Aare river temperature in Bern, Switzerland.
 
 ```
 src/
-  aare-shared/     # Shared ML library (features, evaluation, storage) for use in service and notebooks (but NOT in API)
+  aare/            # Shared library for the core constants, types and utils. Can be used everywhere.
+  aare-train/      # Shared ML library (features, evaluation, storage) for use in service and notebooks (but NOT in API)
   aare-logging/    # Logging utilities with Loki support
   aare-timescale/  # TimescaleDB ORM/utilities
   forecast-api/    # FastAPI REST API for serving forecasts
   forecast-service/ # Service to create forecasts and store them
-scripts/           # DVC pipeline scripts
+scripts/           # Scripts for DVC pipeline and manual training, eval, etc.
 notebooks/         # Jupyter notebooks for exploration and experimentation
 reports/           # Marimo analysis notebooks for interested non-technical people
 data/              # DVC-tracked data files
@@ -38,15 +39,16 @@ All commands use `just` (command runner) and `uv` (package manager):
 ```bash
 # Setup
 just sync              # Install all dependencies (uv sync --all-packages)
-just install-kernel    # Install Jupyter kernel
 
 # Linting & Formatting
-just lint              # Run ruff check --fix, ruff format, basedpyright
+just lint              # Run ruff check --fix, ruff format, basedpyright (has some preexisting type errors)
 just format            # Run ruff format only
 
-# Running Services
+# Running Services locally
 just api               # Run API locally (uvicorn with reload)
-just forecast          # Run forecast service
+just forecast          # Run forecast service locally
+just api-docker        # Run latest API image locally, must build-api first
+just forecast-docker   # Run latest forcast service image locally, must build-service first
 
 # ML Tools
 just mlflow            # Start MLflow UI
@@ -60,7 +62,6 @@ just repro -s <stage>  # Run specific DVC stage
 # Building Docker Images
 just build-service     # Build forecast service Docker image
 just build-api         # Build API Docker image
-just build             # Build all images in parallel
 ```
 
 ### Running Single Tests
@@ -96,9 +97,9 @@ import pandas as pd
 from darts import TimeSeries
 from fastapi import FastAPI, HTTPException, Depends
 
-# 3. Local imports (use relative imports within same package)
-from aare.storage.model import load_model
-from lib.args import parse_cli_args
+# 3. Local imports (always use absolute imports)
+from aare_train.storage.model import load_model
+from oraku_forecast.args import parse_cli_args
 ```
 
 ### Naming Conventions
@@ -169,7 +170,7 @@ async def lifespan(app: FastAPI):
     await db_pool.close()
 
 
-# use TaskGroup for concurrent operations
+# use TaskGroup for concurrent operations (or asyncio.gather)
 async with asyncio.TaskGroup() as tg:
     fetch_task = tg.create_task(source.fetch())
     tg.create_task(table.ensure_table_exists())
@@ -197,14 +198,6 @@ class Feature(ABC):
 - Services use `configargparse` with env prefix `ORAKU_`
 - API uses `pydantic-settings` with env prefix `ORAKU_`
 - Dev config stored in `/dev_config.yaml` for service and `/src/forecast-api/.env` for API
-
-## Pre-commit Hooks
-
-Configured in `.pre-commit-config.yaml`:
-
-- `ruff check --fix` and `ruff format` (local hooks)
-- `uv-lock` and `uv-export`
-- `dvc-pre-commit`
 
 ## Common Patterns
 

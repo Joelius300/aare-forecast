@@ -45,6 +45,7 @@ reportRedeclaration = "warning"
 reportMissingImports = "error"
 reportUnusedCallResult = false
 reportExplicitAny = "information"
+reportUnannotatedClassAttribute = "information"
 
 ignore = [
     "src/aare-train/src/aare/compat/optuna_lightning_integration.py",

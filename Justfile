@@ -17,7 +17,7 @@ repro *FLAGS:
 lint:
   uv run ruff check --fix
   uv run ruff format
-  uv run basedpyright
+  uv run basedpyright --level error
 
 [group('dev')]
 format:

@@ -88,6 +88,7 @@ def get_data_stats(train_target_subs: list[TimeSeries], val_target_subs: list[Ti
     """Get some train/val data stats for logging."""
     train_lens = [len(x) for x in train_target_subs]
     val_lens = [len(x) for x in val_target_subs]
+
     return {
         "train_lens": train_lens,
         "train_len_total": sum(train_lens),

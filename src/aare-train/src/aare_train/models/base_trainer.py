@@ -35,12 +35,12 @@ class BaseTrainer(ABC):
             split_params=params["split"],
         )
 
-        self.train = ds.get_train()
-        self.val = ds.get_val()
+        self._train = ds.get_train()
+        self._val = ds.get_val()
 
         self.tz = params["general"]["timezone"]
-        self.train_target_subs, self.train_fc_subs = self.train[0], self.train[2]
-        self.val_target_subs, self.val_fc_subs = self.val[0], self.val[2]
+        self.train_target_subs, self.train_fc_subs = self._train[0], self._train[2]
+        self.val_target_subs, self.val_fc_subs = self._val[0], self._val[2]
         self.scalers = get_scalers(self.train_target_subs, train_fc_subs=self.train_fc_subs)
         self.horizon = params["general"]["forecast_horizon"]
         self.stride = params["validation"]["stride"]
@@ -96,8 +96,8 @@ class BaseTrainer(ABC):
             self.val_fc_subs = [x for x in self.val_fc_subs if len(x) >= model.training_length]
 
         data_stats = get_data_stats(self.train_target_subs, self.val_target_subs)
-        data_stats["sub_series_dropped"] = orig_series - data_stats["train_n_subs"]
-        data_stats["sub_series_dropped_len"] = orig_series_len - data_stats["train_len_total"]
+        data_stats["sub_series_dropped"] = orig_series - cast(int, data_stats["train_n_subs"])
+        data_stats["sub_series_dropped_len"] = orig_series_len - cast(int, data_stats["train_len_total"])
 
         self.log_params_prefix(data_stats, "data")
 
@@ -144,7 +144,7 @@ class BaseTrainer(ABC):
         """Train the model and optionally evaluate it."""
         mlflow.set_experiment(experiment_name)
         with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
-            mlflow.log_dict(cast(dict, read_params(ensure_dvc=True)), "params.yaml")
+            mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
             mlflow.log_params(self.hparams_general)
 
             model = self.build_model()
@@ -155,3 +155,5 @@ class BaseTrainer(ABC):
                 metrics = self.evaluate(model, run)
 
             return model, metrics
+
+        raise ValueError("Literally no idea how you could get here, but pyright is complaining...")

@@ -59,8 +59,9 @@ class FeatureSet:
         return self._store.query(period, self._all_fields)
 
     def _prepare(
-        self, df: pd.DataFrame
+        self, df: pd.DataFrame, min_len: int = 1
     ) -> tuple[list[TimeSeries], Optional[list[TimeSeries]], Optional[list[TimeSeries]]]:
+        assert min_len >= 1, f"invalid min_len {min_len}"
         df = resample(df)
 
         # make all the features and combine them into a single wide series
@@ -87,8 +88,9 @@ class FeatureSet:
         # split into a list of TimeSeries (subseries) with all the same components but sliced to be non-overlapping periods without NaNs
         subs = extract_subseries(wide, mode="any")
 
-        # fix the very weird case where splitting on gaps results in 0-length subseries ?!
-        subs = [sub for sub in subs if len(sub) > 0]
+        # make sure all splits contain at least min_len data points
+        # also fixes the very weird case where splitting on gaps results in 0-length subseries ?!
+        subs = [sub for sub in subs if len(sub) >= min_len]
 
         # reconstruct target, pc and fc so that there is one list per target/pc/fc with aligned TimeSeries that
         # all contain all components of all features of that type (one feature may contain multiple components)
@@ -99,11 +101,14 @@ class FeatureSet:
         # now targets, pc and fc all have the same number of subseries, all aligned (same time period), and no nans.
         return targets, pc, fc
 
-    def get_train(self):
-        return self._prepare(self._fetch_all((self._train_split, self._val_split)))
+    def get_train(self, min_len: int = 1):
+        """Get clean non-null training data split into subseries of at least min_len points."""
+        return self._prepare(self._fetch_all((self._train_split, self._val_split)), min_len)
 
-    def get_val(self):
-        return self._prepare(self._fetch_all((self._val_split, self._test_split)))
+    def get_val(self, min_len: int = 1):
+        """Get clean non-null validation data split into subseries of at least min_len points."""
+        return self._prepare(self._fetch_all((self._val_split, self._test_split)), min_len)
 
-    def get_test(self):
-        return self._prepare(self._fetch_all(self._test_split))  # no upper bound ( = now() )
+    def get_test(self, min_len: int = 1):
+        """Get clean non-null test data split into subseries of at least min_len points."""
+        return self._prepare(self._fetch_all(self._test_split), min_len)  # no upper bound ( = now() )

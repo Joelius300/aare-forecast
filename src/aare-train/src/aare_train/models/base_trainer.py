@@ -134,6 +134,8 @@ class BaseTrainer(ABC):
         orig_series = len(self.train_target_subs)
         orig_series_len = sum((len(x) for x in self.train_target_subs))
 
+        # todo replace this with min_len in data fetching with featureset, apparently also needed for LR. You loose
+        #  the dropped stats, but I think that's okay.
         if isinstance(model, RNNModel):
             # some training series might be too short for the model if it needs 4 days (horizon) for val and 1 day lookback (input)
             # I believe this only applies to RNNModels because it's handled automatically for non-AR models via the extreme_lags

@@ -85,7 +85,7 @@ class BaseTuner(ABC):
             mlflow.set_tag("optuna_study", trial.study.study_name)
             mlflow.set_tag("optuna_trial", trial.number)
 
-            mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
+            mlflow.log_dict(read_params(ensure_dvc=True), "params.yaml")  # pyright: ignore[reportArgumentType]
 
             model = self.get_model(trial)
             self.prune_if_requested(trial)  # check if we should even start training

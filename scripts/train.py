@@ -142,7 +142,7 @@ Examples:
     mlflow.set_experiment(experiment_name)
     metrics = None
     with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
-        mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
+        mlflow.log_dict(read_params(ensure_dvc=True), "params.yaml")  # pyright: ignore[reportArgumentType]
         mlflow.log_params(trainer.hparams_general)
 
         model = trainer.build_model(**hparams)

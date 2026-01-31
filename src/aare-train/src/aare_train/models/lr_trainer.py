@@ -47,19 +47,6 @@ class LRTrainer(BaseTrainer):
         if regularization == "elastic" and l1_ratio is None:
             raise ValueError("l1_ratio must be specified for elastic regularization")
 
-    def _get_add_encoders(self) -> dict[str, dict[str, list[str]]] | None:
-        """Get the add_encoders configuration."""
-        if not self.add_day_enc and not self.add_year_enc:
-            return None
-
-        enc = []
-        if self.add_day_enc:
-            enc.append("hour")
-        if self.add_year_enc:
-            enc.append("day_of_year")
-
-        return {"cyclic": {"future": enc}}
-
     @override
     def build_model(self) -> ModelType:
         lags_raw = list(range(-self.lag_max, -1, self.lag_step))
@@ -82,7 +69,7 @@ class LRTrainer(BaseTrainer):
             "output_chunk_length": self.output_chunk_length,
             "use_static_covariates": False,
             "multi_models": True,
-            "add_encoders": self._get_add_encoders(),
+            "add_encoders": self.get_add_encoders(self.add_day_enc, self.add_year_enc),
         }
 
         self.log_params_prefix(

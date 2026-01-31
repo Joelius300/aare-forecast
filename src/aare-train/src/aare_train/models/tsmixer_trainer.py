@@ -1,5 +1,4 @@
 from typing import override
-import os
 
 from aare_train.models.base_trainer import BaseTrainer, ModelType
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
@@ -9,9 +8,6 @@ import torch
 import torch.nn as nn
 from torchmetrics import MetricCollection
 import torchmetrics
-from pytorch_lightning.callbacks import EarlyStopping
-from pytorch_lightning.loggers import MLFlowLogger
-import mlflow
 
 
 class TSMixerTrainer(BaseTrainer):
@@ -35,6 +31,7 @@ class TSMixerTrainer(BaseTrainer):
         add_year_enc: bool = False,
         early_stopping_patience: int = 5,
         model_name: str = "TSMixer",
+        pl_trainer_kwargs: dict | None = None,
     ):
         super().__init__(params, features)
         self.model_name = model_name
@@ -50,33 +47,7 @@ class TSMixerTrainer(BaseTrainer):
         self.add_day_enc = add_day_enc
         self.add_year_enc = add_year_enc
         self.early_stopping_patience = early_stopping_patience
-
-    def _get_add_encoders(self) -> dict[str, dict[str, list[str]]] | None:
-        """Get the add_encoders configuration."""
-        if not self.add_day_enc and not self.add_year_enc:
-            return None
-
-        enc = []
-        if self.add_day_enc:
-            enc.append("hour")
-        if self.add_year_enc:
-            enc.append("day_of_year")
-
-        return {"cyclic": {"future": enc}}
-
-    def _get_trainer_params(self):
-        """Get the pytorch lightning trainer parameters."""
-        mlflow_logger = MLFlowLogger(
-            self.model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=mlflow.active_run().info.run_id
-        )
-
-        callbacks = [EarlyStopping("val_loss", patience=self.early_stopping_patience)]
-
-        return {
-            "logger": mlflow_logger,
-            "callbacks": callbacks,
-            "log_every_n_steps": 50,
-        }
+        self._pl_trainer_kwargs = pl_trainer_kwargs
 
     @override
     def build_model(self) -> ModelType:
@@ -91,7 +62,7 @@ class TSMixerTrainer(BaseTrainer):
             "norm_type": "LayerNorm",
             "normalize_before": False,
             "use_static_covariates": False,
-            "add_encoders": self._get_add_encoders(),
+            "add_encoders": self.get_add_encoders(self.add_day_enc, self.add_year_enc),
             "batch_size": self.batch_size,
             "n_epochs": self.max_n_epochs,
             "optimizer_cls": torch.optim.Adam,
@@ -104,7 +75,8 @@ class TSMixerTrainer(BaseTrainer):
                 }
             ),
             "save_checkpoints": False,
-            "pl_trainer_kwargs": self._get_trainer_params(),
+            "pl_trainer_kwargs": self._pl_trainer_kwargs
+            or self.get_trainer_params(self.model_name, early_stopping_patience=self.early_stopping_patience),
         }
 
         self.log_params_prefix(hparams_model, "model")

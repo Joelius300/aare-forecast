@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, cast
 from collections.abc import Mapping
+import os
 
 import mlflow
 from darts.models import RNNModel
@@ -8,6 +9,8 @@ from darts.models.forecasting.torch_forecasting_model import TorchForecastingMod
 from darts.models.forecasting.sklearn_model import SKLearnModel
 from mlflow import ActiveRun
 from matplotlib import pyplot as plt
+from pytorch_lightning.callbacks import EarlyStopping
+from pytorch_lightning.loggers import MLFlowLogger
 
 from aare_train.evaluation.evaluation import evaluate_model
 from aare_train.evaluation.eval_metric import EvalMetric
@@ -62,6 +65,42 @@ class BaseTrainer(ABC):
     def _prefix_dict(vals: Mapping[str, Any], prefix: str):
         prefix = prefix.removesuffix("_")
         return {prefix + "_" + key: value for key, value in vals.items()}
+
+    @staticmethod
+    def get_add_encoders(add_day_enc: bool, add_year_enc: bool) -> dict[str, dict[str, list[str]]] | None:
+        """Get the add_encoders configuration for cyclic temporal features."""
+        if not add_day_enc and not add_year_enc:
+            return None
+
+        enc = []
+        if add_day_enc:
+            enc.append("hour")
+        if add_year_enc:
+            enc.append("day_of_year")
+
+        return {"cyclic": {"future": enc}}
+
+    def get_trainer_params(
+        self,
+        model_name: str,
+        early_stopping_var: str | None = "val_loss",
+        early_stopping_patience: int = 5,
+        log_every_n_steps: int = 50,
+    ):
+        """Get pytorch lightning trainer parameters for torch models."""
+        mlflow_logger = MLFlowLogger(
+            model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=mlflow.active_run().info.run_id
+        )
+
+        callbacks = []
+        if early_stopping_var:
+            callbacks.append(EarlyStopping(early_stopping_var, patience=early_stopping_patience))
+
+        return {
+            "logger": mlflow_logger,
+            "callbacks": callbacks,
+            "log_every_n_steps": log_every_n_steps,
+        }
 
     def log_params_prefix(self, params: Mapping[str, Any], prefix: str):
         """Log all params in a dict with an added prefix"""

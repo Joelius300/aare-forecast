@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import os
-from typing import Any, Optional, cast
+from typing import Any, cast
 from collections.abc import Iterator, Mapping
 
 import mlflow
@@ -30,6 +30,8 @@ class BaseTuner(ABC):
     def __init__(self, model_name: str, params: Params, features: FeatureIdentifiers):
         self.model_name = model_name
         self.current_run: ActiveRun | None = None
+        self.params = params
+        self.features = features
 
         if features.get("past") is not None:
             raise NotImplementedError("Past covariates are not yet supported")
@@ -64,20 +66,29 @@ class BaseTuner(ABC):
             "features_past": features.get("past", []),
         }
 
-    def get_trainer_params(
+    def _copy_data_from_trainer(self, trainer):
+        """Copy data attributes from a trainer to use the same prepared data."""
+        self.train_target_subs = trainer.train_target_subs
+        self.train_fc_subs = trainer.train_fc_subs
+        self.val_target_subs = trainer.val_target_subs
+        self.val_fc_subs = trainer.val_fc_subs
+        self.scalers = trainer.scalers
+
+    def get_trainer_params_with_pruning(
         self,
         trial: Trial,
+        model_name: str,
         early_stopping_var: str | None = "val_loss",
-        early_stopping_patience=5,
+        early_stopping_patience: int = 5,
         pruning_var: str | None = "val_mae",
-        log_every_n_steps=50,
+        log_every_n_steps: int = 50,
     ):
-        """Get the common trainer parameters for pl_trainer_kwargs"""
+        """Get pytorch lightning trainer parameters with optuna pruning callback."""
         assert self.current_run is not None
         # they fucked up their default which is evaluated at the import of the module, so set_tracking_uri is ignored
         # https://github.com/Lightning-AI/pytorch-lightning/discussions/11197#discussioncomment-9164713
         mlflow_logger = MLFlowLogger(
-            self.model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=self.current_run.info.run_id
+            model_name, tracking_uri=os.getenv("MLFLOW_TRACKING_URI"), run_id=self.current_run.info.run_id
         )
 
         callbacks = []
@@ -87,37 +98,11 @@ class BaseTuner(ABC):
         if pruning_var:
             callbacks.append(PyTorchLightningPruningCallback(trial, monitor=pruning_var))
 
-        # TODO add callback to do a full evaluation with our evaluate_model every 10-20 epochs maybe?
-
         return {
             "logger": mlflow_logger,
             "callbacks": callbacks,
             "log_every_n_steps": log_every_n_steps,
         }
-
-    @staticmethod
-    def suggest_add_encoders(trial: Trial) -> Optional[dict[str, dict[str, list[str]]]]:
-        """
-        Suggest values for 'add_encoders' with cyclic daily and yearly encoding.
-
-        The optuna keys are:
-
-        - add_day_enc
-        - add_year_enc
-        """
-        add_day_enc = trial.suggest_categorical("add_day_enc", [True, False])
-        add_year_enc = trial.suggest_categorical("add_year_enc", [True, False])
-
-        if not add_day_enc and not add_year_enc:
-            return None
-
-        enc = []
-        if add_day_enc:
-            enc.append("hour")
-        if add_year_enc:
-            enc.append("day_of_year")
-
-        return {"cyclic": {"future": enc}}
 
     @staticmethod
     def _prefix_dict(vals: Mapping[str, Any], prefix: str):

@@ -14,10 +14,12 @@ import torchmetrics
 class GRUTrainer(BaseTrainer):
     """Trainer for GRU models with configurable hyperparameters."""
 
-    def __init__(
+    def __init__(self, params: Params, features: FeatureIdentifiers):
+        super().__init__(params, features)
+
+    @override
+    def build_model(
         self,
-        params: Params,
-        features: FeatureIdentifiers,
         *,
         input_chunk_length: int = 24,
         hidden_dim: int = 32,
@@ -31,43 +33,27 @@ class GRUTrainer(BaseTrainer):
         early_stopping_patience: int = 5,
         model_name: str = "GRU",
         pl_trainer_kwargs: dict | None = None,
-    ):
-        super().__init__(params, features)
-        self.model_name = model_name
-        self.input_chunk_length = input_chunk_length
-        self.hidden_dim = hidden_dim
-        self.n_rnn_layers = n_rnn_layers
-        self.dropout = dropout
-        self.lr = lr
-        self.batch_size = batch_size
-        self.max_n_epochs = max_n_epochs
-        self.add_day_enc = add_day_enc
-        self.add_year_enc = add_year_enc
-        self.early_stopping_patience = early_stopping_patience
-        self._pl_trainer_kwargs = pl_trainer_kwargs
-
-    @override
-    def build_model(self) -> ModelType:
+    ) -> ModelType:
         hparams_model = dict(
             model="GRU",
-            input_chunk_length=self.input_chunk_length,
-            hidden_dim=self.hidden_dim,
-            n_rnn_layers=self.n_rnn_layers,
-            dropout=self.dropout,
+            input_chunk_length=input_chunk_length,
+            hidden_dim=hidden_dim,
+            n_rnn_layers=n_rnn_layers,
+            dropout=dropout,
             # output_chunk_length is always 1 for RNNs, but at inference time,
             # we want to predict more than 1 data point at once. To better model
             # that behaviour, it takes a training_length and will do
             # training_length - input_chunk_length (= forecast_horizon) steps
             # and combine the loss of all of them before optimizing.
             # https://github.com/unit8co/darts/issues/1397#issuecomment-1331936411
-            training_length=self.horizon + self.input_chunk_length,
+            training_length=self.horizon + input_chunk_length,
             # training kwargs
-            model_name=self.model_name,
+            model_name=model_name,
             random_state=RANDOM_SEED,
-            batch_size=self.batch_size,
-            n_epochs=self.max_n_epochs,
+            batch_size=batch_size,
+            n_epochs=max_n_epochs,
             optimizer_cls=torch.optim.Adam,
-            optimizer_kwargs=dict(lr=self.lr),
+            optimizer_kwargs=dict(lr=lr),
             loss_fn=nn.MSELoss(),
             torch_metrics=MetricCollection(
                 {
@@ -76,9 +62,9 @@ class GRUTrainer(BaseTrainer):
                 }
             ),
             save_checkpoints=False,
-            pl_trainer_kwargs=self._pl_trainer_kwargs
-            or self.get_trainer_params(self.model_name, early_stopping_patience=self.early_stopping_patience),
-            add_encoders=self.get_add_encoders(self.add_day_enc, self.add_year_enc),
+            pl_trainer_kwargs=pl_trainer_kwargs
+            or self.get_trainer_params(model_name, early_stopping_patience=early_stopping_patience),
+            add_encoders=self.get_add_encoders(add_day_enc, add_year_enc),
         )
 
         self.log_params_prefix(hparams_model, "model")

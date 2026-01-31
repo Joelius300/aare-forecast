@@ -124,16 +124,26 @@ Examples:
     logger.info(f"Training {args.model_type.upper()} with hyperparameters: {hparams}")
 
     if args.model_type == "gru":
-        trainer = GRUTrainer(params, features, **hparams)
+        trainer = GRUTrainer(params, features)
     elif args.model_type == "lr":
-        trainer = LRTrainer(params, features, **hparams)
+        trainer = LRTrainer(params, features)
     elif args.model_type == "tsmixer":
-        trainer = TSMixerTrainer(params, features, **hparams)
+        trainer = TSMixerTrainer(params, features)
     else:
         raise ValueError(f"Unknown model type: {args.model_type}")
 
     # train and optionally evaluate
-    model, metrics = trainer.train(run_name, experiment_name, evaluate=args.evaluate)
+    mlflow.set_experiment(experiment_name)
+    with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
+        mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
+        mlflow.log_params(trainer.hparams_general)
+
+        model = trainer.build_model(**hparams)
+        trainer.fit(model)
+
+        metrics = None
+        if args.evaluate:
+            metrics = trainer.evaluate(model, run)
 
     if metrics:
         logger.info(f"Evaluation metrics: MAE={metrics.mae:.3f}, RMSE={metrics.rmse:.3f}")

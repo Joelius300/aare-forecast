@@ -18,7 +18,7 @@ from aare_train.fetching.feature_identifiers import FeatureIdentifiers
 from aare_train.fetching.feature_set import FeatureSet
 from aare_train.features.registry import FEATURES
 from aare_train.normalization import get_scalers
-from aare_train.params import read_params, Params
+from aare_train.params import Params
 from aare_train.darts_utils import get_data_stats
 
 ModelType = TorchForecastingModel | SKLearnModel
@@ -111,8 +111,8 @@ class BaseTrainer(ABC):
         mlflow.log_metrics(self._prefix_dict(metrics, prefix))
 
     @abstractmethod
-    def build_model(self) -> ModelType:
-        """Build and return the model with configured hyperparameters."""
+    def build_model(self, **hparams) -> ModelType:
+        """Build and return the model with given hyperparameters."""
         pass
 
     def fit(self, model: ModelType):
@@ -169,6 +169,9 @@ class BaseTrainer(ABC):
             data_transformers=self.scalers,
             tz=self.tz,
             month_filter=self.season,
+            # TODO only evaluate on the data that makes sense if season is set
+            # TODO parallelization
+            # TODO allow storing artifacts like the raw metrics
         )
 
         metrics_dict = metrics.to_dict()
@@ -178,21 +181,3 @@ class BaseTrainer(ABC):
         plt.close(sample_fig)  # otherwise it's kept in memory, well done matplotlib
 
         return metrics
-
-    def train(self, run_name: str, experiment_name: str, evaluate: bool = True) -> tuple[ModelType, EvalMetric | None]:
-        """Train the model and optionally evaluate it."""
-        mlflow.set_experiment(experiment_name)
-        with mlflow.start_run(run_name=run_name, log_system_metrics=True) as run:
-            mlflow.log_dict(read_params(ensure_dvc=True).__dict__, "params.yaml")
-            mlflow.log_params(self.hparams_general)
-
-            model = self.build_model()
-            self.fit(model)
-
-            metrics = None
-            if evaluate:
-                metrics = self.evaluate(model, run)
-
-            return model, metrics
-
-        raise ValueError("Literally no idea how you could get here, but pyright is complaining...")

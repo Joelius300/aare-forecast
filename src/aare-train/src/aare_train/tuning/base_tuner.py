@@ -4,24 +4,17 @@ from typing import Any, cast
 from collections.abc import Iterator, Mapping
 
 import mlflow
-from darts.models import RNNModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.models.forecasting.sklearn_model import SKLearnModel
 from mlflow import ActiveRun
 from optuna import Trial, TrialPruned
 from pytorch_lightning.callbacks import EarlyStopping
 from pytorch_lightning.loggers import MLFlowLogger
-from matplotlib import pyplot as plt
 
 from aare_train.compat.optuna_lightning_integration import PyTorchLightningPruningCallback
-from aare_train.evaluation.evaluation import evaluate_model
 from aare_train.evaluation.eval_metric import EvalMetric
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers
-from aare_train.fetching.feature_set import FeatureSet
-from aare_train.features.registry import FEATURES
-from aare_train.normalization import get_scalers
 from aare_train.params import read_params, Params
-from aare_train.darts_utils import get_data_stats
 
 ModelType = TorchForecastingModel | SKLearnModel
 
@@ -29,35 +22,16 @@ ModelType = TorchForecastingModel | SKLearnModel
 class BaseTuner(ABC):
     def __init__(self, model_name: str, params: Params, features: FeatureIdentifiers):
         self.model_name = model_name
-        self.current_run: ActiveRun | None = None
         self.params = params
         self.features = features
+        self.current_run: ActiveRun | None = None
+        self._trainer = None  # lazily created
 
-        if features.get("past") is not None:
-            raise NotImplementedError("Past covariates are not yet supported")
-
-        ds = FeatureSet(
-            targets=FEATURES.get_many(features["targets"]),
-            future=FEATURES.get_many(features.get("future")),
-            past=FEATURES.get_many(features.get("past")),
-            split_params=params["split"],
-        )
-
-        self.train = ds.get_train()
-        self.val = ds.get_val()
-
-        self.tz = params["general"]["timezone"]
-        self.train_target_subs, self.train_fc_subs = self.train[0], self.train[2]
-        self.val_target_subs, self.val_fc_subs = self.val[0], self.val[2]
-        self.scalers = get_scalers(self.train_target_subs, train_fc_subs=self.train_fc_subs)
+        # compute hparams_general from params (no data fetching)
         self.horizon = params["general"]["forecast_horizon"]
-        self.stride = params["validation"]["stride"]
-        self.min_lookback_hours = params["validation"]["min_lookback_hours"]
-        self.season = params["general"]["season_start"], params["general"]["season_end"]
-
         self.hparams_general = {
             "horizon": self.horizon,
-            "val_stride": self.stride,
+            "val_stride": params["validation"]["stride"],
             "split_train": params["split"]["train_split"],
             "split_val": params["split"]["val_split"],
             "split_test": params["split"]["test_split"],
@@ -66,13 +40,17 @@ class BaseTuner(ABC):
             "features_past": features.get("past", []),
         }
 
-    def _copy_data_from_trainer(self, trainer):
-        """Copy data attributes from a trainer to use the same prepared data."""
-        self.train_target_subs = trainer.train_target_subs
-        self.train_fc_subs = trainer.train_fc_subs
-        self.val_target_subs = trainer.val_target_subs
-        self.val_fc_subs = trainer.val_fc_subs
-        self.scalers = trainer.scalers
+    @property
+    def trainer(self):
+        """Lazily create trainer once."""
+        if self._trainer is None:
+            self._trainer = self.create_trainer()
+        return self._trainer
+
+    @abstractmethod
+    def create_trainer(self):
+        """Create the trainer instance for this tuner."""
+        pass
 
     def get_trainer_params_with_pruning(
         self,
@@ -109,14 +87,6 @@ class BaseTuner(ABC):
         prefix = prefix.removesuffix("_")
         return {prefix + "_" + key: value for key, value in vals.items()}
 
-    def log_params_prefix(self, params: Mapping[str, Any], prefix: str):
-        """Log all params in a dict with an added prefix"""
-        mlflow.log_params(self._prefix_dict(params, prefix))
-
-    def log_metrics_prefix(self, metrics: Mapping[str, Any], prefix: str):
-        """Log all metrics in a dict with an added prefix"""
-        mlflow.log_metrics(self._prefix_dict(metrics, prefix))
-
     @staticmethod
     def prune_if_requested(trial: Trial):
         if trial.should_prune():
@@ -134,72 +104,6 @@ class BaseTuner(ABC):
         """Get the metric(s) that optuna should minimize."""
         return metrics.mae
 
-    def fit(self, model: ModelType):
-        assert "series" in self.scalers
-        assert "future_covariates" in self.scalers
-        assert self.train_fc_subs is not None
-        assert self.val_fc_subs is not None
-
-        orig_series = len(self.train_target_subs)
-        orig_series_len = sum((len(x) for x in self.train_target_subs))
-
-        if isinstance(model, RNNModel):
-            # some training series might be too short for the model if it needs 4 days (horizon) for val and 1 day lookback (input)
-            # I believe this only applies to RNNModels because it's handled automatically for non-AR models via the extreme_lags
-            # which are in turn just derived from output_chunk_length, etc.
-            self.train_target_subs = [x for x in self.train_target_subs if len(x) >= model.training_length]
-            self.train_fc_subs = [x for x in self.train_fc_subs if len(x) >= model.training_length]
-            self.val_target_subs = [x for x in self.val_target_subs if len(x) >= model.training_length]
-            self.val_fc_subs = [x for x in self.val_fc_subs if len(x) >= model.training_length]
-
-        data_stats = get_data_stats(self.train_target_subs, self.val_target_subs)
-        data_stats["sub_series_dropped"] = orig_series - data_stats["train_n_subs"]
-        data_stats["sub_series_dropped_len"] = orig_series_len - data_stats["train_len_total"]
-
-        self.log_params_prefix(data_stats, "data")
-
-        scaler_target = self.scalers["series"]
-        scaler_fc = self.scalers["future_covariates"]
-
-        fit_args = dict(
-            series=scaler_target.transform(self.train_target_subs),
-            future_covariates=scaler_fc.transform(self.train_fc_subs),
-        )
-
-        if isinstance(model, TorchForecastingModel):
-            # torch models do validation during training, sklearn models don't
-            fit_args |= dict(
-                val_series=scaler_target.transform(self.val_target_subs),
-                val_future_covariates=scaler_fc.transform(self.val_fc_subs),
-            )
-
-        # I'm impressed how much it can statically derive, but somehow it still thinks this is wrong
-        return model.fit(**fit_args)  # pyright: ignore[reportArgumentType]
-
-    def evaluate(self, model: ModelType, run: ActiveRun) -> EvalMetric:
-        metrics, samples = evaluate_model(
-            model,
-            self.val_target_subs,
-            self.horizon,
-            self.stride,
-            self.min_lookback_hours,
-            future_cov=self.val_fc_subs,
-            data_transformers=self.scalers,
-            tz=self.tz,
-            month_filter=self.season,
-            # TODO only evaluate on the data that makes sense if season is set
-            # TODO parallelization
-            # TODO allow storing artifacts like the raw metrics
-        )
-
-        metrics_dict = metrics.to_dict()
-        self.log_metrics_prefix(metrics_dict, "eval")
-        sample_fig = samples.plot(str(run.info.run_name))
-        mlflow.log_figure(sample_fig, artifact_file="samples.png")
-        plt.close(sample_fig)  # otherwise it's kept in memory, well done matplotlib
-
-        return metrics
-
     def __call__(self, trial: Trial):
         with mlflow.start_run(nested=True, log_system_metrics=True) as run:
             self.current_run = run
@@ -213,9 +117,9 @@ class BaseTuner(ABC):
             model = self.get_model(trial)
             self.prune_if_requested(trial)  # check if we should even start training
 
-            self.fit(model)
-
-            metrics = self.evaluate(model, run)
+            # use trainer methods
+            self.trainer.fit(model)
+            metrics = self.trainer.evaluate(model, run)
 
             # this is what optuna optimizes
             return self.get_optim_vars(metrics, model)

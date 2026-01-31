@@ -46,6 +46,10 @@ class LRTuner(BaseTuner):
         self.enabled_regularizations = enabled_regularizations
 
     @override
+    def create_trainer(self):
+        return LRTrainer(self.params, self.features)
+
+    @override
     def get_model(self, trial: Trial) -> ModelType:
         # suggest hyperparameters
         lag_max = trial.suggest_int("lag_max", 22, 24)
@@ -75,10 +79,8 @@ class LRTuner(BaseTuner):
         if regularization == "elastic":
             l1_ratio = trial.suggest_float("l1_ratio", 0.05, 1, step=0.05)
 
-        # create trainer with suggested hyperparameters
-        trainer = LRTrainer(
-            self.params,
-            self.features,
+        # build model via trainer
+        return self.trainer.build_model(
             lag_max=lag_max,
             lag_step=lag_step,
             output_chunk_length=output_chunk_length,
@@ -89,10 +91,6 @@ class LRTuner(BaseTuner):
             add_year_enc=add_year_enc,
             model_name=self.model_name,
         )
-
-        # use the trainer's data and build model
-        self._copy_data_from_trainer(trainer)
-        return trainer.build_model()
 
     @override
     def get_optim_vars(self, metrics: EvalMetric, model: ModelType):

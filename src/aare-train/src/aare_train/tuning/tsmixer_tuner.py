@@ -13,9 +13,12 @@ class TSMixerTuner(BaseTuner):
         self, model_name: str, params: Params, features: FeatureIdentifiers, batch_size: int, max_n_epochs: int
     ):
         super().__init__(model_name, params, features)
-        self.model_name = model_name
         self.batch_size = batch_size
         self.max_n_epochs = max_n_epochs
+
+    @override
+    def create_trainer(self):
+        return TSMixerTrainer(self.params, self.features)
 
     @override
     def get_model(self, trial: Trial) -> ModelType:
@@ -30,10 +33,11 @@ class TSMixerTuner(BaseTuner):
         add_day_enc = trial.suggest_categorical("add_day_enc", [True, False])
         add_year_enc = trial.suggest_categorical("add_year_enc", [True, False])
 
-        # create trainer with suggested hyperparameters and pruning-enabled trainer kwargs
-        trainer = TSMixerTrainer(
-            self.params,
-            self.features,
+        # get pruning-enabled trainer kwargs
+        pl_trainer_kwargs = self.get_trainer_params_with_pruning(trial, self.model_name)
+
+        # build model via trainer
+        return self.trainer.build_model(
             input_chunk_length=input_chunk_length,
             output_chunk_length=output_chunk_length,
             hidden_size=hidden_size,
@@ -46,12 +50,8 @@ class TSMixerTuner(BaseTuner):
             add_day_enc=add_day_enc,
             add_year_enc=add_year_enc,
             model_name=self.model_name,
-            pl_trainer_kwargs=self.get_trainer_params_with_pruning(trial, self.model_name),
+            pl_trainer_kwargs=pl_trainer_kwargs,
         )
-
-        # use the trainer's data and build model
-        self._copy_data_from_trainer(trainer)
-        return trainer.build_model()
 
     @override
     def get_optim_vars(self, metrics: EvalMetric, model: ModelType):

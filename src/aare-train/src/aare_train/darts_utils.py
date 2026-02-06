@@ -1,14 +1,16 @@
 import logging
-from typing import cast
+from collections.abc import Sequence
+from typing import cast, overload
 
 import darts
 import numpy as np
 import pandas as pd
 from darts import TimeSeries
-from darts.models.forecasting.forecasting_model import ForecastingModel
+from darts.models.forecasting.forecasting_model import ForecastingModel, GlobalForecastingModel
 from darts.utils.ts_utils import retain_period_common_to_all
 
 from aare.constants import TIME
+from aare_train.compat.types import ExtremeLags
 from aare_train.utils import ensure_frame
 
 logger = logging.getLogger(__name__)
@@ -114,3 +116,37 @@ def trunc_common(*ts: TimeSeries):
 
     # then reconstruct the individual series
     return tuple([longest[ts.components.to_list()] for ts in tss])
+
+
+@overload
+def exclude_short_series(series: Sequence[TimeSeries], min_len: int) -> list[TimeSeries]:
+    pass
+
+
+@overload
+def exclude_short_series(series: None, min_len: int) -> None:
+    pass
+
+
+def exclude_short_series(series: Sequence[TimeSeries] | None, min_len: int) -> list[TimeSeries] | None:
+    """Create a new list only containing series that are at least min_len long."""
+    return [ts for ts in series if len(ts) >= min_len] if series is not None else None
+
+
+def model_needs_fc(model: GlobalForecastingModel):
+    """
+    Get whether the model is using future covariates per extreme_lags.
+    model.uses_future_covariates is only set after fitting.
+    Returns true with a warning if future covariates are required but the lags are only in the past.
+    """
+    lags: ExtremeLags = model.extreme_lags
+    max_fut_lag = lags[5]
+
+    # if the max future lag is none, no future covariates are used at all
+    if max_fut_lag is None:
+        return False
+
+    if max_fut_lag < 0:
+        logger.warning("Maximum future lag is less than 0, so you could use past covariates instead.")
+
+    return True

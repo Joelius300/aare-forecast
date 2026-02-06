@@ -3,6 +3,7 @@ from typing import Any, cast
 from collections.abc import Mapping
 import os
 
+from darts import TimeSeries
 import mlflow
 from darts.models import RNNModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
@@ -20,7 +21,8 @@ from aare_train.fetching.feature_set import FeatureSet
 from aare_train.features.registry import FEATURES
 from aare_train.normalization import get_scalers
 from aare_train.params import Params
-from aare_train.darts_utils import get_data_stats
+from aare_train.darts_utils import get_data_stats, exclude_short_series, model_needs_fc
+from aare_train.compat.types import DataTransformers
 
 ModelType = TorchForecastingModel | SKLearnModel
 
@@ -42,10 +44,10 @@ class BaseTrainer(ABC):
         self._train = ds.get_train()
         self._val = ds.get_val()
 
+        self._scalers: DataTransformers | None = None
+        self._val_subs: tuple[list[TimeSeries], list[TimeSeries] | None] | None = None
+
         self.tz = params["general"]["timezone"]
-        self.train_target_subs, self.train_fc_subs = self._train[0], self._train[2]
-        self.val_target_subs, self.val_fc_subs = self._val[0], self._val[2]
-        self.scalers = get_scalers(self.train_target_subs, train_fc_subs=self.train_fc_subs)
         self.horizon = params["general"]["forecast_horizon"]
         self.stride = params["validation"]["stride"]
         self.min_lookback_hours = params["validation"]["min_lookback_hours"]
@@ -124,63 +126,80 @@ class BaseTrainer(ABC):
 
     def fit(self, model: ModelType) -> ModelType:
         """Fit the model on training data with validation."""
-        assert "series" in self.scalers
-        assert "future_covariates" in self.scalers
-        assert self.train_fc_subs is not None
-        assert self.val_fc_subs is not None
-
         mlflow.log_params(self.hparams_general)
 
-        orig_series = len(self.train_target_subs)
-        orig_series_len = sum((len(x) for x in self.train_target_subs))
+        self._scalers = None
+        self._val_subs = None
 
-        # todo replace this with min_len in data fetching with featureset, apparently also needed for LR. You loose
-        #  the dropped stats, but I think that's okay.
-        if isinstance(model, RNNModel):
-            # some training series might be too short for the model if it needs 4 days (horizon) for val and 1 day lookback (input)
-            # I believe this only applies to RNNModels because it's handled automatically for non-AR models via the extreme_lags
-            # which are in turn just derived from output_chunk_length, etc.
-            self.train_target_subs = [x for x in self.train_target_subs if len(x) >= model.training_length]
-            self.train_fc_subs = [x for x in self.train_fc_subs if len(x) >= model.training_length]
-            self.val_target_subs = [x for x in self.val_target_subs if len(x) >= model.training_length]
-            self.val_fc_subs = [x for x in self.val_fc_subs if len(x) >= model.training_length]
+        train_target, _, train_fc = self._train
+        val_target, _, val_fc = self._val
+        scalers = get_scalers(train_target, train_fc_subs=train_fc)
 
-        data_stats = get_data_stats(self.train_target_subs, self.val_target_subs)
-        data_stats["sub_series_dropped"] = orig_series - cast(int, data_stats["train_n_subs"])
+        assert (train_fc is not None) == (val_fc is not None), "train has fc but val does not, or vice versa"
+        assert model_needs_fc(model) == (train_fc is not None), "future covariates not in line with model support"
+
+        orig_series_n_subs = len(train_target)
+        orig_series_len = sum(len(x) for x in train_target)
+        min_len = model.training_length if isinstance(model, RNNModel) else abs(model.extreme_lags[0] or 0)
+        if min_len < 1:
+            raise ValueError(f"Invalid min_len for training in {min_len}")
+
+        # Some training series might be too short for the model if it needs 4 days (horizon) for val and 1 day lookback (input)
+        # Previously, I believed this only applied to RNNModels because it's handled automatically for non-AR models via the extreme_lags
+        # which are in turn just derived from output_chunk_length, etc. but that does not seem to be the case.
+        train_target = exclude_short_series(train_target, min_len)
+        train_fc = exclude_short_series(train_fc, min_len)
+        val_target = exclude_short_series(val_target, min_len)
+        val_fc = exclude_short_series(val_fc, min_len)
+
+        data_stats = get_data_stats(train_target, val_target)
+        data_stats["sub_series_dropped"] = orig_series_n_subs - cast(int, data_stats["train_n_subs"])
         data_stats["sub_series_dropped_len"] = orig_series_len - cast(int, data_stats["train_len_total"])
 
         self.log_params_prefix(data_stats, "data")
 
-        scaler_target = self.scalers["series"]
-        scaler_fc = self.scalers["future_covariates"]
+        scaler_target = scalers.get("series")
+        assert scaler_target is not None, "target scaler is none"
+        scaler_fc = scalers.get("future_covariates")
+        assert (train_fc is None) == (scaler_fc is None)
 
         fit_args = dict(
-            series=scaler_target.transform(self.train_target_subs),
-            future_covariates=scaler_fc.transform(self.train_fc_subs),
+            series=scaler_target.transform(train_target),
+            future_covariates=scaler_fc.transform(train_fc) if scaler_fc and train_fc else None,
         )
 
         if isinstance(model, TorchForecastingModel):
             # torch models do validation during training, sklearn models don't
             fit_args |= dict(
-                val_series=scaler_target.transform(self.val_target_subs),
-                val_future_covariates=scaler_fc.transform(self.val_fc_subs),
+                val_series=scaler_target.transform(val_target),
+                val_future_covariates=scaler_fc.transform(val_fc) if scaler_fc and val_fc else None,
             )
 
-        return model.fit(**fit_args)  # pyright: ignore[reportArgumentType]
+        model.fit(**fit_args)  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
+
+        self._scalers = scalers
+        self._val_subs = val_target, val_fc
+
+        return model
 
     def evaluate(self, model: ModelType, run: ActiveRun | None) -> EvalMetric:
         """Evaluate the model on validation data and optionally log metrics and the sample figure to mlflow."""
+        if self._val_subs is None:
+            raise ValueError("Must first successfully train a model to then evaluate with appropriate scaling.")
+
+        val_target, val_fc = self._val_subs
+
         metrics, samples = evaluate_model(
             model,
-            self.val_target_subs,
+            val_target,
             self.horizon,
             self.stride,
             self.min_lookback_hours,
-            future_cov=self.val_fc_subs,
-            data_transformers=self.scalers,
+            future_cov=val_fc,
+            data_transformers=self._scalers,
             tz=self.tz,
             month_filter=self.season,
-            # TODO only evaluate on the data that makes sense if season is set
+            # TODO only evaluate on the data that makes sense if season is set (performance optimization)
             # TODO parallelization
             # TODO allow storing artifacts like the raw metrics
         )

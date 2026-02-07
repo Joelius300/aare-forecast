@@ -8,7 +8,6 @@ import mlflow
 from darts.models import RNNModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.models.forecasting.sklearn_model import SKLearnModel
-from mlflow import ActiveRun
 from matplotlib import pyplot as plt
 from pytorch_lightning import Callback
 from pytorch_lightning.callbacks import EarlyStopping
@@ -43,9 +42,6 @@ class BaseTrainer(ABC):
 
         self._train = ds.get_train()
         self._val = ds.get_val()
-
-        self._scalers: DataTransformers | None = None
-        self._val_subs: tuple[list[TimeSeries], list[TimeSeries] | None] | None = None
 
         self.tz = params["general"]["timezone"]
         self.horizon = params["general"]["forecast_horizon"]
@@ -124,12 +120,9 @@ class BaseTrainer(ABC):
         """Build and return the model with given hyperparameters."""
         pass
 
-    def fit(self, model: ModelType) -> ModelType:
+    def fit(self, model: ModelType, evaluate: bool = True) -> tuple[DataTransformers, EvalMetric | None]:
         """Fit the model on training data with validation."""
         mlflow.log_params(self.hparams_general)
-
-        self._scalers = None
-        self._val_subs = None
 
         train_target, _, train_fc = self._train
         val_target, _, val_fc = self._val
@@ -177,18 +170,16 @@ class BaseTrainer(ABC):
 
         model.fit(**fit_args)  # pyright: ignore[reportArgumentType, reportUnknownMemberType]
 
-        self._scalers = scalers
-        self._val_subs = val_target, val_fc
+        metrics = None
+        if evaluate:
+            metrics = self._evaluate(model, val_target, val_fc, scalers)
 
-        return model
+        return scalers, metrics
 
-    def evaluate(self, model: ModelType, run: ActiveRun | None) -> EvalMetric:
+    def _evaluate(
+        self, model: ModelType, val_target: list[TimeSeries], val_fc: list[TimeSeries] | None, scalers: DataTransformers
+    ) -> EvalMetric:
         """Evaluate the model on validation data and optionally log metrics and the sample figure to mlflow."""
-        if self._val_subs is None:
-            raise ValueError("Must first successfully train a model to then evaluate with appropriate scaling.")
-
-        val_target, val_fc = self._val_subs
-
         metrics, samples = evaluate_model(
             model,
             val_target,
@@ -196,7 +187,7 @@ class BaseTrainer(ABC):
             self.stride,
             self.min_lookback_hours,
             future_cov=val_fc,
-            data_transformers=self._scalers,
+            data_transformers=scalers,
             tz=self.tz,
             month_filter=self.season,
             # TODO only evaluate on the data that makes sense if season is set (performance optimization)
@@ -205,6 +196,8 @@ class BaseTrainer(ABC):
         )
 
         metrics_dict = metrics.to_dict()
+        run = mlflow.active_run()
+
         if run is not None:
             self.log_metrics_prefix(metrics_dict, "eval")
             sample_fig = samples.plot(str(run.info.run_name))  # pyright: ignore[reportUnknownMemberType]

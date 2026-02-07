@@ -1,4 +1,6 @@
+import logging
 import pickle
+from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -17,9 +19,27 @@ MODEL_SUFFIX = ".model.pkl"
 SCALER_SUFFIX = ".scaler.pkl"
 PARAMS_SUFFIX = ".params.yaml"
 
+logger = logging.getLogger(__name__)
+
 
 def _make_model_base_path_relative(name: str, version: str):
     return Path(f"./{name}-{version}")
+
+
+def _clean_model_params(params: dict[str, Any]):
+    # for now only the 'model' entry is problematic. could also check for trivial types instead.
+    return {key: value for key, value in params.items() if key != "model"}
+
+
+def get_current_commit() -> str | None:
+    try:
+        from git import Repo
+
+        repo = Repo(search_parent_directories=True)
+        return repo.head.commit.hexsha
+    except Exception as e:
+        logger.warning("Could not get current commit of repo, using None", exc_info=e)
+        return None
 
 
 def save_model(
@@ -29,9 +49,14 @@ def save_model(
     features: FeatureIdentifiers,
     scalers: DataTransformers,
     run_info: Any,  # no type -> no import of mlflow in aare-train, at least if possible. maybe skinny if forced.
+    hparams: dict[str, Any],
     override: bool = False,
 ):
-    """Store a model with all necessary information including a metadata file."""
+    """
+    Store a model with all necessary information including a metadata file.
+    Note, this will also store things like the current time, current commit and derived info from the run_info and
+    hparams for reproducibility, so supply them. Will refuse to override unless version is 'dev' or override=True.
+    """
     base_path = _make_model_base_path_relative(name, version)
     model_folder = MODELS_FOLDER / base_path
     model_folder.mkdir(exist_ok=True, parents=True)
@@ -52,14 +77,21 @@ def save_model(
     params_path_rel = base_path.with_suffix(PARAMS_SUFFIX)
 
     meta: AareModel = {
+        "name": name,
+        "version": version,
+        "model_cls": model_cls,
         "model_path": str(model_path_rel),
         "scalers_path": str(scalers_path_rel),
         "params_path": str(params_path_rel),
-        "model_cls": model_cls,
         "features": features,
-        "name": name,
-        "version": version,
-        "mlflow": get_mlflow_info(run_info),
+        "hparams": hparams,
+        "hparams_internal": _clean_model_params(model.model_params),
+        "origin": {
+            "mlflow": get_mlflow_info(run_info),
+            # yes, this insane snippet is required to get a json-serializable timezone aware timestamp from ms epoch.
+            "train_time": datetime.fromtimestamp(run_info.start_time / 1000).astimezone().isoformat(),
+            "last_commit": get_current_commit(),
+        },
     }
 
     # save model (meta) info (json)

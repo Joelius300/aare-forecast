@@ -17,7 +17,7 @@ class MlFlowInfo(TypedDict):
 
 
 # no import of mlflow in aare-train, at least if possible. maybe skinny if forced.
-def get_mlflow_info(run_info) -> MlFlowInfo:
+def get_mlflow_info(run_info: Any) -> MlFlowInfo:
     return {
         "run_name": str(run_info.run_name),
         "exp_id": run_info.experiment_id,
@@ -25,18 +25,25 @@ def get_mlflow_info(run_info) -> MlFlowInfo:
     }
 
 
+class OriginInfo(TypedDict):
+    mlflow: MlFlowInfo
+    train_time: str  # isoformat
+    last_commit: str | None
+
+
 class AareModel(TypedDict):
     """Info about an aare model, needed for inference."""
 
+    name: str
+    version: str
+    model_cls: type[GlobalForecastingModel]
     model_path: str
     scalers_path: str
     params_path: str
-    model_cls: type[GlobalForecastingModel]
     features: FeatureIdentifiers
-    # metadata for transparency and diagnostics
-    name: str
-    version: str
-    mlflow: MlFlowInfo  # for precise traceability/transparency
+    hparams: dict[str, Any]
+    hparams_internal: dict[str, Any]  # darts exposes the params for the underlying model
+    origin: OriginInfo
 
 
 def _get_class_by_name(name: str):

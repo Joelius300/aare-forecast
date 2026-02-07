@@ -92,7 +92,7 @@ class BaseTuner(ABC):
 
             # use trainer methods
             self.trainer.fit(model)
-            metrics = self.trainer.evaluate(model, run)
+            metrics = self.trainer._evaluate(model, run)
 
             # this is what optuna optimizes
             return self.get_optim_vars(metrics, model)

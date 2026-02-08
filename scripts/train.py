@@ -12,7 +12,7 @@ import mlflow
 import torch
 from lightning_fabric import seed_everything
 
-from aare_train.storage.model import save_model
+from aare_train.storage.model import model_exists, save_model
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +133,9 @@ Examples:
     experiment_name: str = args.experiment_name or model_name
     model_version: str = args.version
 
+    if model_version != "dev" and model_exists(model_name, model_version):
+        raise ValueError(f"Model {model_name}-{model_version} already exists.")
+
     # create trainer based on model type
     logger.info(f"Training {args.model_type.upper()} with hyperparameters: {hparams}")
 
@@ -140,12 +143,12 @@ Examples:
     if trainer_cls is None:
         raise ValueError(f"Unknown model type: {args.model_type}")
 
-    trainer = trainer_cls(params, features)
-
     # train and optionally evaluate
     mlflow.set_experiment(experiment_name)
     with mlflow.start_run(log_system_metrics=True) as run:
         mlflow.log_dict(read_params(ensure_dvc=True), "params.yaml")  # pyright: ignore[reportArgumentType]
+
+        trainer = trainer_cls(params, features)
         mlflow.log_params(trainer.hparams_general)
 
         model = trainer.build_model(**hparams)

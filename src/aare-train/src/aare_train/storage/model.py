@@ -42,6 +42,17 @@ def get_current_commit() -> str | None:
         return None
 
 
+def model_exists(
+    name: str,
+    version: str,
+) -> bool:
+    """Returns whether the model folder exists."""
+    base_path = _make_model_base_path_relative(name, version)
+    model_folder = MODELS_FOLDER / base_path
+
+    return model_folder.is_dir()
+
+
 def save_model(
     name: str,
     version: str,
@@ -59,14 +70,15 @@ def save_model(
     """
     base_path = _make_model_base_path_relative(name, version)
     model_folder = MODELS_FOLDER / base_path
+
+    if model_folder.is_dir() and not override and version != "dev":
+        raise ValueError(f"There already is a model at {model_folder} but override is False and version != dev")
+
     model_folder.mkdir(exist_ok=True, parents=True)
 
     # redundancy in the folder path and filename, but just want to make sure it's always clear which model
     # and version the file is by just looking at the file (not inside, not its parent).
     meta_path = model_folder / base_path.with_suffix(META_SUFFIX)
-
-    if meta_path.exists() and not override and version != "dev":
-        raise ValueError(f"There already is a model at {meta_path} but override is False")
 
     model_cls = type(model)
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"

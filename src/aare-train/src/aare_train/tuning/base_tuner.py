@@ -91,8 +91,7 @@ class BaseTuner(ABC):
             self.prune_if_requested(trial)  # check if we should even start training
 
             # use trainer methods
-            self.trainer.fit(model)
-            metrics = self.trainer._evaluate(model, run)
+            _, metrics = self.trainer.fit(model)
 
             # this is what optuna optimizes
             return self.get_optim_vars(metrics, model)

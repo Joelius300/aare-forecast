@@ -1,8 +1,10 @@
 import argparse
 import logging
+from collections.abc import Sequence
+from dataclasses import dataclass
 
 from aare.constants import RANDOM_SEED
-from aare_train.fetching.feature_identifiers import FeatureIdentifiers
+from aare_train.cli.parsing import parse_features
 from aare_train.tuning.gru_tuner import GRUTuner
 from aare_train.tuning.lr_tuner import LRTuner, DuplicateLagsPruner
 from aare_train.tuning.tsmixer_tuner import TSMixerTuner
@@ -19,15 +21,17 @@ from optuna.samplers import TPESampler
 logger = logging.getLogger(__name__)
 
 
-def parse_features(targets: list[str], future: list[str] | None) -> FeatureIdentifiers:
-    """Parse feature lists into FeatureIdentifiers."""
-    return {
-        "targets": targets,
-        "future": future or [],
-    }
+@dataclass
+class TuneArgs:
+    model_type: str
+    targets: Sequence[str]
+    future: Sequence[str]
+    study_name: str | None
+    batch_size: int
+    max_epochs: int
 
 
-def main():
+def parse_args():
     parser = argparse.ArgumentParser(
         description="Run hyperparameter tuning for a model",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -77,11 +81,6 @@ Examples:
         "--study-name",
         help="Custom Optuna study name (default: tune-{model_type})",
     )
-    parser.add_argument(
-        "--n-trials",
-        type=int,
-        help="Number of trials to run (default: unlimited, stop with Ctrl+C)",
-    )
     # todo think about what you want to do with this
     parser.add_argument(
         "--lr-regularization",
@@ -92,7 +91,12 @@ Examples:
 
     args = parser.parse_args()
 
+    return TuneArgs(**args.__dict__)
+
+
+def main():
     # parse features
+    args = parse_args()
     features = parse_features(args.targets, args.future)
     params = read_params()
 
@@ -103,6 +107,7 @@ Examples:
     # create tuner based on model type
     logger.info(f"Setting up tuner for {model_name}")
 
+    # todo organize and cleanup
     if args.model_type == "gru":
         tuner = GRUTuner(model_name, params, features, args.batch_size, args.max_epochs)
         pruner = HyperbandPruner(max_resource=args.max_epochs)
@@ -150,7 +155,7 @@ Examples:
 
         # run optimization
         logger.info(f"Starting optimization (n_trials={args.n_trials or 'unlimited'})")
-        study.optimize(tuner, n_trials=args.n_trials)
+        study.optimize(tuner)
 
         logger.info(f"Best trial: {study.best_trial.number} with MAE={study.best_value:.3f}")
         logger.info(f"Best hyperparameters: {study.best_params}")

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import cast
 
@@ -131,7 +132,7 @@ def _fetch_future(
     return future
 
 
-def _get_features_and_fields(feature_ids: list[str]):
+def _get_features_and_fields(feature_ids: Sequence[str]):
     features = [FEATURES[f] for f in feature_ids]
     fields = list(set(field for f in features for field in f.required_fields))
 

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, cast
+from typing import Any, Literal, cast, overload
 from collections.abc import Mapping
 import os
 
@@ -118,6 +118,14 @@ class BaseTrainer(ABC):
     @abstractmethod
     def build_model(self, **hparams: Any) -> ModelType:
         """Build and return the model with given hyperparameters."""
+        pass
+
+    @overload
+    def fit(self, model: ModelType, evaluate: Literal[True] = True) -> tuple[DataTransformers, EvalMetric]:
+        pass
+
+    @overload
+    def fit(self, model: ModelType, evaluate: Literal[False]) -> tuple[DataTransformers, Literal[None]]:
         pass
 
     def fit(self, model: ModelType, evaluate: bool = True) -> tuple[DataTransformers, EvalMetric | None]:

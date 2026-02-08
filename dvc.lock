@@ -27,7 +27,7 @@ stages:
       size: 10629
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: bcbcbe2057a2b1f3fb1ff7090cc3b1af
+      md5: b72b666b571c71f7346f433ba3bae326
       size: 15822
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
@@ -39,7 +39,7 @@ stages:
       size: 176
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 55ca669f8f5891ce234c8df98e6a1758
+      md5: edb3ca167e7cdad09c692c461ff987fb
       size: 179
     - path: data/metrics/SNAIVE.json
       hash: md5
@@ -51,8 +51,8 @@ stages:
       size: 17098112
     - path: data/metrics/raw/MEAN.csv
       hash: md5
-      md5: ce892f439c989096b93a9b27302fbe0a
-      size: 17430602
+      md5: 2619d85e07d3efcba73dfccf3e05bd87
+      size: 17427809
     - path: data/metrics/raw/SNAIVE.csv
       hash: md5
       md5: 0feb67f5f8d3f231dc7f4c09c68357a6

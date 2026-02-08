@@ -5,7 +5,7 @@ description = "Shared library for aare-oraku training, inference, etc. Quite hea
 requires-python = ">=3.11"
 dependencies = [
     "aare",
-    "u8darts[torch]~=0.38.0",
+    "u8darts[torch]~=0.40.0",
     "influxdb-client>=1.48.0",
     "matplotlib>=3.10.0",
     "numpy>=2.0.0",

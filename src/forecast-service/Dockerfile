@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/forecast-service/pyproject.toml,target=src/forecast-service/pyproject.toml \
     --mount=type=bind,source=src/forecast-api/pyproject.toml,target=src/forecast-api/pyproject.toml \
     uv sync --locked --no-install-project --no-dev --extra cpu --package=aare-oraku-forecast \
-    && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments
+    && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments cryptography
 
 # which files/dirs are copied is controlled by the .dockerignore file.
 # wouldn't need sources for forecast-api, but they carry almost no weight so whatever.
@@ -29,7 +29,7 @@ COPY . /app
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --extra cpu --package=aare-oraku-forecast \
-    && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments
+    && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments cryptography
 
 # must be same base image as builder, otherwise copying venv won't work
 FROM python:3.12-slim-bookworm

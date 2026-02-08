@@ -19,44 +19,44 @@ stages:
         split.test_split: '2022-02-01'
         split.val_split: '2017-02-01'
         validation.min_lookback_hours: 24
-        validation.stride: 24
+        validation.stride: 23
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: b225f7532a2a07c67af1642c86403306
+      md5: a4edbf65a8097829e564005f7dfb15b9
       size: 10629
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: 5582bbc57951d2c65027875a52545f04
+      md5: bcbcbe2057a2b1f3fb1ff7090cc3b1af
       size: 15822
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 1e29a9348237532fd5434211a4a8c3b1
+      md5: 7fc55228d3b5cad8a45ecbaa3ceb4b74
       size: 10629
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: 530f0b45ce232de04a4106783b0546ba
-      size: 180
+      md5: b501196808cab01b9416a07df850fd56
+      size: 176
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: 70e7e39c4d338190e487d976860e23fd
+      md5: 55ca669f8f5891ce234c8df98e6a1758
       size: 179
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 8b0cf24ef3e41e58e6eccacefe96391c
-      size: 178
+      md5: 4727a596d8af7395aca269cb5011a7a0
+      size: 179
     - path: data/metrics/raw/LOCF.csv
       hash: md5
-      md5: 0fabee8d958059608f035a2331b95271
-      size: 16289262
+      md5: eff42d34e5a531a19fac06d29f3c85b4
+      size: 17098112
     - path: data/metrics/raw/MEAN.csv
       hash: md5
-      md5: 7b8c310d6fca42ef36639f021efcc194
-      size: 16691113
+      md5: ce892f439c989096b93a9b27302fbe0a
+      size: 17430602
     - path: data/metrics/raw/SNAIVE.csv
       hash: md5
-      md5: ab6dca2b81c098efd5050e79a31a9c00
-      size: 16431650
+      md5: 0feb67f5f8d3f231dc7f4c09c68357a6
+      size: 17159481
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -66,17 +66,17 @@ stages:
         split.val_split: '2017-02-01'
         timesfm.version: 200m
         validation.min_lookback_hours: 24
-        validation.stride: 24
+        validation.stride: 23
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 01f7fdb6813b8a086341119df26a5619
+      md5: eead1c0ddd5f5f1c8746821e837f4c0d
       size: 28407
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 7b6f4dcb965aea76dc636f5cbc3db496
-      size: 180
+      md5: b0b19083a8d75df1e299980dee4891ff
+      size: 179
     - path: data/metrics/raw/TIMESFM.csv
       hash: md5
-      md5: 3c6d97191e43f3c82fdba801c0ec33c3
-      size: 16395799
+      md5: 629ea809adb3a427cf9e5bf0de14e7f6
+      size: 17090090

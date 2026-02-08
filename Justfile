@@ -25,7 +25,7 @@ format:
 
 [group('ML')]
 mlflow:
-  uv run mlflow ui
+  uv run mlflow ui --backend-store-uri sqlite:///mlruns.db
 
 [group('ML')]
 optuna:

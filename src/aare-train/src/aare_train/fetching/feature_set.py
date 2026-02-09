@@ -101,14 +101,24 @@ class FeatureSet:
         # now targets, pc and fc all have the same number of subseries, all aligned (same time period), and no nans.
         return targets, pc, fc
 
+    def get(self, start: str, end: str | None, min_len: int = 1):
+        """
+        Get clean non-null data for the specified period split into subseries of at least min_len points.
+        If end is None, will get all data up to now.
+        """
+        return self._prepare(self._fetch_all((start, end) if end else start), min_len)
+
     def get_train(self, min_len: int = 1):
         """Get clean non-null training data split into subseries of at least min_len points."""
-        return self._prepare(self._fetch_all((self._train_split, self._val_split)), min_len)
+        return self.get(self._train_split, self._val_split, min_len)
 
     def get_val(self, min_len: int = 1):
         """Get clean non-null validation data split into subseries of at least min_len points."""
-        return self._prepare(self._fetch_all((self._val_split, self._test_split)), min_len)
+        return self.get(self._val_split, self._test_split, min_len)
 
-    def get_test(self, min_len: int = 1):
-        """Get clean non-null test data split into subseries of at least min_len points."""
-        return self._prepare(self._fetch_all(self._test_split), min_len)  # no upper bound ( = now() )
+    def get_test(self, end: str | None = None, min_len: int = 1):
+        """
+        Get clean non-null test data split into subseries of at least min_len points.
+        Returns all data up to now unless you specify an end time.
+        """
+        return self.get(self._test_split, end, min_len)

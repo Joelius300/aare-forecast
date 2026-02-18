@@ -59,7 +59,7 @@ app.include_router(forecast_router)
 app.include_router(health_router)
 
 
-# Yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
+# yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
 @app.get("/config")
 async def get_config() -> Config:
     """Get the config the API is running with. Things like maximum_forecast_age, timezone, etc."""

@@ -3,6 +3,7 @@ from datetime import datetime, UTC
 from typing import Annotated
 
 from fastapi import HTTPException, Depends, Header, Query, Response, APIRouter
+from oraku_api.variables import VARIABLES_EXT2INT
 from psycopg import AsyncConnection
 
 from oraku_api.client_caching import get_last_modified, set_client_caching, response_still_fresh
@@ -22,7 +23,6 @@ from oraku_api.server_caching import CachesType
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
 
 API_DESC = (
     "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified. "
@@ -87,7 +87,8 @@ async def _get_forecast(
             + "If you want the latest forecasts (furthest into the future), omit the 'from' parameter.",
         )
 
-    default_latest_cache = latest_caches[variable]
+    internal_var = VARIABLES_EXT2INT[variable]
+    default_latest_cache = latest_caches[internal_var]
 
     # it's a cacheable request:
     # if no 'from' was passed at all (fetching latest),
@@ -109,7 +110,7 @@ async def _get_forecast(
         logger.debug("[server-side cache] hit cache in forecast endpoint")
     else:
         run_ts, df = await fetch_forecast(
-            conn, variable, from_, horizon, city, settings.maximum_forecast_age, settings.tz
+            conn, internal_var, from_, horizon, city, settings.maximum_forecast_age, settings.tz
         )
 
         logger.debug("[server-side cache] had to fetch in forecast endpoint")
@@ -142,12 +143,12 @@ async def _get_forecast(
 
     model = None
     if model_info:
-        if variable == "temp":
-            model = await fetch_model_info(conn, run_ts)
-        else:
-            assert variable == "flow", "variable neither temp nor flow"
+        if internal_var == "flow":
             # fake model version to show it's an external model, versioned via when it was run I guess...
             model = ModelInfo(name="BAFU-Hochwasser", version=run_ts.date().isoformat())
+        else:
+            assert internal_var == "temp", f"invalid internal variable: {internal_var}"
+            model = await fetch_model_info(conn, run_ts)
 
     if fetching_latest:
         # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
@@ -157,12 +158,12 @@ async def _get_forecast(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )
 
-    df = df[["time", variable]].rename(columns={variable: "value"})
+    df = df[["time", internal_var]].rename(columns={internal_var: "value"})
 
     return ForecastPayload(
-        data=ForecastColumnData.model_validate(df.to_dict(orient="list"))  # pyright: ignore[reportUnknownMemberType]
+        data=ForecastColumnData.model_validate(df.to_dict(orient="list"))
         if format == ForecastDataFormat.COLUMN
-        else ForecastRowData.model_validate(df.to_dict(orient="records")),  # pyright: ignore[reportUnknownMemberType]
+        else ForecastRowData.model_validate(df.to_dict(orient="records")),
         metadata=ForecastMetadata(
             variable=variable,
             last_updated=run_ts,
@@ -173,9 +174,6 @@ async def _get_forecast(
     )
 
 
-# temperature forecast is the main task of the oraku, so generic /forecast endpoint also returns variable "temp"
-@router.get("/forecast", description=API_DESC, response_model=ForecastPayload)
-@router.get("/forecast/temp", description=API_DESC, response_model=ForecastPayload)
 @router.get("/forecast/temperature", description=API_DESC, response_model=ForecastPayload)
 async def get_temp_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
@@ -196,7 +194,7 @@ async def get_temp_forecasts(
         settings=settings,
         latest_caches=latest_caches,
         response=response,
-        variable="temp",
+        variable="temperature",
         from_=from_,
         horizon=horizon,
         city=city,

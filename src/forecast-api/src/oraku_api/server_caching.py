@@ -2,9 +2,7 @@ from datetime import timedelta
 
 from oraku_api.latest_cache import LatestCache
 from oraku_api.oraku_settings import OrakuSettings
-
-# valid variables are used as caching keys and must match the df column names
-VALID_VARIABLES = ("temp", "flow")
+from oraku_api.variables import VARIABLES_INTERNAL
 
 CachesType = dict[str, LatestCache]
 
@@ -19,5 +17,5 @@ def init_latest_caches(settings: OrakuSettings) -> CachesType:
         var: LatestCache(
             timedelta(seconds=settings.expected_interval_sec), timedelta(seconds=settings.cache_tolerance_sec)
         )
-        for var in VALID_VARIABLES
+        for var in VARIABLES_INTERNAL
     }

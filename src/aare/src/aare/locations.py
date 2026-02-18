@@ -26,6 +26,7 @@ class LocationIds(TypedDict):
     smn: str | None
 
 
+# location lookup for all aare guru locations to their respective hydro and smn ids.
 # the keys to this dictionary are how features are reference, so the 'bern' in temp_bern (both in the string form
 # and in the darts timeseries) comes from here, keep this in mind.
 LOC_ALIAS: dict[str, LocationIds] = {
@@ -59,6 +60,7 @@ LOC_ALIAS: dict[str, LocationIds] = {
     },
 }
 
+# inverse of LOC_ALIAS specifically for hydro, so from hydro code (2135) to aare guru location (bern)
 LOC_HYDRO_ALIAS: dict[int, str] = {
     cast(int, loc_ids["hydro"]): loc for loc, loc_ids in LOC_ALIAS.items() if loc_ids.get("hydro")
 }

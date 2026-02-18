@@ -1,3 +1,8 @@
+"""
+Constants for various ids, columns, etc.
+Most of it is from the project's infancy and abstracted away, but it can still be used directly if needed.
+"""
+
 # location codes (hydro)
 LOC_BERN = 2135  # Bern, Schönau
 LOC_THUN = 2030
@@ -18,7 +23,7 @@ LOC_HAGN_SMN = None  # Cressier?
 LOC_BIEL_SMN = None  # Grenchen?
 LOC_BRGG_SMN = None  # Buchs (AG), Lägern, Beznau?
 
-# column names for raw influx hydro data
+# column names for raw influx hydro data (legacy)
 TIME = "_time"
 TEMP = "temperature"
 

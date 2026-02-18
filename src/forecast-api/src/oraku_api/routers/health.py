@@ -13,7 +13,7 @@ from oraku_api.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["health"])
 
 
 @router.head("/health")  # uptimerobot sends head by default

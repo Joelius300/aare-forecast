@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from aare_logging.logging import setup_logging
 from oraku_api.access_log_filter import AccessLogFilter
 from oraku_api.dba import init_db_pool
-from oraku_api.dto import Config
 from oraku_api.oraku_settings import settings
+from oraku_api.routers.boilerplate import router as boilerplate_router
 from oraku_api.routers.forecast import router as forecast_router
 from oraku_api.routers.health import router as health_router
 from oraku_api.server_caching import init_latest_caches
@@ -45,7 +45,22 @@ async def lifespan(_app: FastAPI):
     await db_pool.close()
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    title="Aare Oraku",
+    description="""
+API to get forecasts for the Swiss river Aare, intended for use in [aare.guru](https://aare.guru).
+Still in early stages, so don't expect perfect accuracy.
+The endpoints may also change at any time, there is no guarantee on backwards compatibility.
+For statistical purposes, please add &app={your app name} and optionally &version={your app version} to all of your requests.
+    """,
+    # contact= TODO
+    # version=, TODO
+    license_info={
+        "name": "AGPLv3 or later",
+        "identifier": "AGPL-3.0-or-later",
+    },
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,26 +70,9 @@ app.add_middleware(
     max_age=86400,  # 24h
 )
 
+app.include_router(boilerplate_router)
 app.include_router(forecast_router)
 app.include_router(health_router)
-
-
-# yes, using async for non-async methods is better in FastAPI (except if there is blocking IO in the function)
-@app.get("/config")
-async def get_config() -> Config:
-    """Get the config the API is running with. Things like maximum_forecast_age, timezone, etc."""
-    return Config(
-        timezone=settings.timezone,
-        maximum_forecast_age=settings.maximum_forecast_age,
-        default_horizon=settings.default_horizon,
-        maximum_horizon=settings.maximum_horizon,
-        available_cities=settings.available_cities,
-    )
-
-
-@app.get("/")
-async def get_index() -> str:
-    return "«Bitte anthropomorphisier mi nid, i bi doch nume chli fancy Math u Statistik», seit ds Oraku"
 
 
 if __name__ == "__main__":

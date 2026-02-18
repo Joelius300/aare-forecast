@@ -22,7 +22,7 @@ from oraku_api.server_caching import CachesType
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["forecast"])
 
 API_DESC = (
     "Get the latest forecasts made before the specified time, or the most recent forecasts if not specified. "
@@ -30,19 +30,19 @@ API_DESC = (
     f"(currently '{settings.timezone}'). Unless you truly need it, do not set 'from', it allows for better caching!\n\n"
     "You may optionally specify a horizon in hours if you want determinism or do not want the default. "
     "'last_updated' is the exact timestamp when the returned forecast was made. It must be between the specified "
-    f"time ('from') and {settings.maximum_forecast_age} before that. If no forecast was made in that timeframe, "
-    f"an empty response is returned where 'last_updated' is null.\n\nFor statistical purposes, "
-    "please add &app={your app name} and optionally add &version={your app version} to all of your requests."
+    f"time ('from') and {settings.maximum_forecast_age} before that (maximum_forecast_age). "
+    f"If no forecast was made in that timeframe, an empty response is returned where 'last_updated' is null."
 )
 API_DESC_FLOW = (
     "Almost the same as the temperature forecast (/forecast/temperature) with a few important differences. "
-    "These forecasts are NOT made by the aare oraku, instead they come from "
+    "These forecasts are NOT made by the Aare Oraku, instead they come from "
     "[FOEN/BAFU flood forecasts](https://www.bafu.admin.ch/en/hydrological-forecasts-and-warnings) and are intended "
     "to keep the population safe in case of floods and to aid with planning for power plants and similar. "
     "As such, they are only calculated once per day, unless there currently is a flood expected. "
     "Without historical data to conduct a deeper analysis it's impossible to say what biases this might "
     "lead to (e.g. overshoots more often than it undershoots). In the future, a custom model could refine the BAFU "
-    "forecasts for our use-case."
+    f"forecasts for our use-case. Also note that flow forecasts might be older than {settings.maximum_forecast_age} "
+    "(maximum_forecast_age) with respect to 'from', which isn't possible for the temperature forecast."
 )
 FROM_API_DESC = (
     "Only set if you want a forecast made before a specific time! "
@@ -175,7 +175,7 @@ async def _get_forecast(
 
 
 @router.get("/forecast/temperature", description=API_DESC, response_model=ForecastPayload)
-async def get_temp_forecasts(
+async def get_temperature_forecasts(
     conn: Annotated[AsyncConnection, Depends(open_db)],
     settings: Annotated[OrakuSettings, Depends(get_settings)],
     latest_caches: Annotated[CachesType, Depends(get_caches)],

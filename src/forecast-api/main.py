@@ -13,6 +13,7 @@ from oraku_api.routers.boilerplate import router as boilerplate_router
 from oraku_api.routers.forecast import router as forecast_router
 from oraku_api.routers.health import router as health_router
 from oraku_api.server_caching import init_latest_caches
+from oraku_api.version import __version__
 
 setup_logging(
     settings.logging_level,
@@ -55,7 +56,7 @@ The endpoints may also change at any time, there is no guarantee on backwards co
 For statistical purposes, please add &app={your app name} and optionally &version={your app version} to all of your requests.
     """,
     # contact= TODO
-    # version=, TODO
+    version=__version__,
     license_info={
         "name": "AGPLv3 or later",
         "identifier": "AGPL-3.0-or-later",

@@ -43,6 +43,7 @@ build-service tag='latest':
 
 [group('build')]
 build-api tag='latest':
+  -uv version --package aare-oraku-api {{tag}}  # try setting version, ignore if failed
   docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:{{tag}} -t aare-oraku-api:latest
 
 [group('build')]

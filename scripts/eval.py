@@ -1,12 +1,27 @@
 import argparse
+import json
+import pickle
+from datetime import datetime
 import logging
 from dataclasses import dataclass
 
+from pandas import DataFrame
+
+from aare_train.evaluation.eval_metric import EvalMetric
+from aare_train.evaluation.evaluation import evaluate_model
+from aare_train.evaluation.forecast_samples import ForecastSamples
+from aare_train.features.registry import FEATURES
+from aare_train.fetching.feature_set import FeatureSet
+from aare_train.params import read_params
+from aare_train.paths import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER
 from aare_train.storage.model import load_model
 
 logger = logging.getLogger(__name__)
 
 MODEL_NAME_SEP = "-"
+NOW_SUFFIX = "__NOW__"
+
+params = read_params(ensure_dvc=True)
 
 
 @dataclass
@@ -14,9 +29,15 @@ class EvalArgs:
     model_name: str
     model_version: str
     stride: int
+    horizon: int
     store: bool
+    override: bool
+    suffix: str
     # todo start and end times, can/should be used to see how much worse the model is when using weather forecasts
     #  instead of true measurement data.
+    min_lookback_hours: int
+    season: tuple[int, int]
+    tz: str
 
 
 def parse_args():
@@ -32,19 +53,17 @@ def parse_args():
     )
 
     parser.add_argument(
-        "model_name",
-        required=True,
-        help="Name of model",
-    )
-    parser.add_argument(
-        "model_version",
-        help="Model version",
-        default=None,
+        "model",
+        help="Model including name and version, e.g. LR-dev",
     )
     parser.add_argument(
         "--stride",
-        "-s",
         help="Evaluation stride, will take dvc param if not specified",
+        default=None,
+    )
+    parser.add_argument(
+        "--horizon",
+        help="Forecast horizon, will take dvc param if not specified",
         default=None,
     )
     parser.add_argument(
@@ -54,28 +73,91 @@ def parse_args():
         action="store_false",
         help="Don't store results to disk",
     )
+    parser.add_argument(
+        "--override",
+        dest="override",
+        default=False,
+        action="store_true",
+        help="Override files even if version is not dev",
+    )
+    parser.add_argument(
+        "--suffix",
+        nargs="?",
+        const=NOW_SUFFIX,  # value when flag is present but no argument
+        default=None,  # when flag is not present at all
+        help="Optional suffix for stored results. If flag is provided without value, the current time is used.",
+    )
 
     args = parser.parse_args()
-    args = EvalArgs(**args.__dict__)
+    name, version = args.model.split(MODEL_NAME_SEP, maxsplit=2)
 
-    if not args.model_version:
-        if MODEL_NAME_SEP not in args.model_name:
-            raise ValueError(
-                f"Specified model as a combined value ('{args.model_name}'), "
-                + "but could be split into name and version"
-            )
+    if args.stride is None:
+        args.stride = params["validation"]["stride"]
 
-        name, version = args.model_name.split(MODEL_NAME_SEP, maxsplit=2)
-        args.model_name = name
-        args.model_version = version
+    if args.horizon is None:
+        args.horizon = params["general"]["forecast_horizon"]
 
-    return args
+    min_lookback_hours = params["validation"]["min_lookback_hours"]
+    season = params["general"]["season_start"], params["general"]["season_end"]
+    tz = params["general"]["timezone"]
+    # todo: add from/to resp. period as well as --val (default) and --test.
+
+    suffix = args.suffix if args.suffix != NOW_SUFFIX else datetime.now().isoformat()
+
+    return EvalArgs(
+        name, version, args.stride, args.horizon, args.store, args.override, suffix, min_lookback_hours, season, tz
+    )
+
+
+def store_results(args: EvalArgs, metrics: EvalMetric, raw_metrics: DataFrame, samples: ForecastSamples):
+    name = args.model_name + MODEL_NAME_SEP + args.model_version
+    if args.suffix:
+        name += f"-{args.suffix}"
+
+    metrics_path = METRICS_FOLDER / f"{name}.json"
+    if not args.override and args.model_version != "dev" and metrics_path.exists():
+        raise ValueError("Cannot store results to disk because they already exist and override isn't set.")
+
+    with open(metrics_path, "wt") as metrics_file:
+        json.dump(metrics.to_dict(), metrics_file)
+
+    with open(FORECAST_SAMPLES_FOLDER / f"{name}.pkl", "wb") as forecast_sample_file:
+        pickle.dump(samples, forecast_sample_file)
+
+    raw_metrics.to_csv(METRICS_FOLDER / "raw" / f"{name}.csv")
 
 
 def main():
     args = parse_args()
     meta, model, scalers = load_model(name=args.model_name, version=args.model_version)
-    # todo :)
+    fs = FeatureSet(
+        FEATURES.get_many(meta["features"]["targets"]),
+        past=FEATURES.get_many(meta["features"].get("past")),
+        future=FEATURES.get_many(meta["features"].get("future")),
+        split_params=params["split"],  # todo remove, see below
+    )
+
+    # todo: always use from/to, potentially populated from the split_params, but always use get()
+    targets, _, fc = fs.get_val()
+
+    metrics, samples, raw_metrics = evaluate_model(
+        model,
+        targets,
+        args.horizon,
+        args.stride,
+        args.min_lookback_hours,
+        future_cov=fc,
+        tz=args.tz,
+        month_filter=args.season,
+        data_transformers=scalers,
+        get_raw=True,
+    )
+
+    print(f"Evaluation of {args.model_name}{MODEL_NAME_SEP}{args.model_version}:")
+    print(metrics)  # could also use fancy tools to make a table etc. but eh
+
+    if args.store:
+        store_results(args, metrics, raw_metrics, samples)
 
 
 if __name__ == "__main__":

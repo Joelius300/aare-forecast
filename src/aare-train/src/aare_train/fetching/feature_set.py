@@ -24,9 +24,9 @@ class FeatureSet:
         self,
         targets: Feature | list[Feature],
         *,
-        past: Optional[list[Feature]] = None,
-        future: Optional[list[Feature]] = None,
-        split_params: SplitParams,
+        past: list[Feature] | None = None,
+        future: list[Feature] | None = None,
+        split_params: SplitParams | None = None,
     ):
         if not targets:
             raise ValueError("Must provide targets")
@@ -41,9 +41,7 @@ class FeatureSet:
         self._targets: list[Feature] = targets if isinstance(targets, list) else [targets]
         self._past = past
         self._future = future
-        self._train_split = split_params["train_split"]
-        self._val_split = split_params["val_split"]
-        self._test_split = split_params["test_split"]
+        self._split_params = split_params
 
     @property
     def _all_features(self):
@@ -110,15 +108,24 @@ class FeatureSet:
 
     def get_train(self, min_len: int = 1):
         """Get clean non-null training data split into subseries of at least min_len points."""
-        return self.get(self._train_split, self._val_split, min_len)
+        if not self._split_params:
+            raise ValueError("'train' data is not defined if split params aren't provided.")
+
+        return self.get(self._split_params["train_split"], self._split_params["val_split"], min_len)
 
     def get_val(self, min_len: int = 1):
         """Get clean non-null validation data split into subseries of at least min_len points."""
-        return self.get(self._val_split, self._test_split, min_len)
+        if not self._split_params:
+            raise ValueError("'val' data is not defined if split params aren't provided.")
+
+        return self.get(self._split_params["val_split"], self._split_params["test_split"], min_len)
 
     def get_test(self, end: str | None = None, min_len: int = 1):
         """
         Get clean non-null test data split into subseries of at least min_len points.
         Returns all data up to now unless you specify an end time.
         """
-        return self.get(self._test_split, end, min_len)
+        if not self._split_params:
+            raise ValueError("'test' data is not defined if split params aren't provided.")
+
+        return self.get(self._split_params["test_split"], end, min_len)

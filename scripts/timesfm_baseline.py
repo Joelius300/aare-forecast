@@ -1,8 +1,7 @@
 # /// script
 # requires-python = ">=3.10,<3.12"
 # dependencies = [
-#     "aare-train",
-#     "darts==0.36.0",
+#     "aare-train[gpu-auto]",
 #     "dvc",
 #     "influxdb-client",
 #     "pandas",

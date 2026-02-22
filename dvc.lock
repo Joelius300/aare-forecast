@@ -47,16 +47,16 @@ stages:
       size: 179
     - path: data/metrics/raw/LOCF.parquet
       hash: md5
-      md5: 48721af7f2678220bc1290558804be3a
-      size: 1084351
+      md5: 5765fb4619c7d0a769a03ad3e2b591ad
+      size: 1205475
     - path: data/metrics/raw/MEAN.parquet
       hash: md5
-      md5: af5e376f5561a5bfa1d2dfa9aeaeacae
-      size: 1544324
+      md5: 6eaece3d64935c7c6ef9596042fb91b1
+      size: 1662361
     - path: data/metrics/raw/SNAIVE.parquet
       hash: md5
-      md5: edf001d25e34c8b70cad633f4ab3d5bd
-      size: 1179998
+      md5: dafe4e24b38a0b02cd9e68a1d13230ea
+      size: 1299280
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -96,5 +96,5 @@ stages:
       size: 181
     - path: data/metrics/raw/LR-dev.parquet
       hash: md5
-      md5: 0cfe8ec0781541d302836132a0561a12
-      size: 3933288
+      md5: b6dfa07d229ed121d40048b8774b0d5a
+      size: 4054568

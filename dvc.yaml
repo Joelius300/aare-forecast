@@ -1,6 +1,6 @@
 stages:
   establish-baselines:
-    cmd: python scripts/establish_baselines.py
+    cmd: uv run scripts/establish_baselines.py
     params:
       - general.forecast_horizon
       - split.val_split
@@ -11,9 +11,9 @@ stages:
       - data/forecast_samples/LOCF.pkl
       - data/forecast_samples/SNAIVE.pkl
       - data/forecast_samples/MEAN.pkl
-      - data/metrics/raw/LOCF.csv
-      - data/metrics/raw/SNAIVE.csv
-      - data/metrics/raw/MEAN.csv
+      - data/metrics/raw/LOCF.parquet
+      - data/metrics/raw/SNAIVE.parquet
+      - data/metrics/raw/MEAN.parquet
     metrics:
       - data/metrics/LOCF.json
       - data/metrics/SNAIVE.json
@@ -29,6 +29,16 @@ stages:
       - timesfm.version
     outs:
       - data/forecast_samples/TIMESFM.pkl
-      - data/metrics/raw/TIMESFM.csv
+      - data/metrics/raw/TIMESFM.parquet
     metrics:
       - data/metrics/TIMESFM.json
+  train-eval-model:
+    cmd: uv run scripts/train.py lr --targets temp_bern
+      --future tt_bern tt_bern_log tt_bern_cube tt_bern_sqrt tt_bern_ma3
+      --hparams regularization=none lag_max=24 lag_step=6 --no-mlflow --no-evaluate &&
+      uv run scripts/eval.py LR-dev
+    outs:
+      - data/forecast_samples/LR-dev.pkl
+      - data/metrics/raw/LR-dev.parquet
+    metrics:
+      - data/metrics/LR-dev.json

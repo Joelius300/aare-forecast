@@ -12,7 +12,7 @@ stages:
       md5: 6547aaa17c0d6547eca649c9bd551884
       size: 474
   establish-baselines:
-    cmd: python scripts/establish_baselines.py
+    cmd: uv run scripts/establish_baselines.py
     params:
       params.yaml:
         general.forecast_horizon: 96
@@ -45,18 +45,18 @@ stages:
       hash: md5
       md5: 4727a596d8af7395aca269cb5011a7a0
       size: 179
-    - path: data/metrics/raw/LOCF.csv
+    - path: data/metrics/raw/LOCF.parquet
       hash: md5
-      md5: eff42d34e5a531a19fac06d29f3c85b4
-      size: 17098112
-    - path: data/metrics/raw/MEAN.csv
+      md5: 48721af7f2678220bc1290558804be3a
+      size: 1084351
+    - path: data/metrics/raw/MEAN.parquet
       hash: md5
-      md5: 2619d85e07d3efcba73dfccf3e05bd87
-      size: 17427809
-    - path: data/metrics/raw/SNAIVE.csv
+      md5: af5e376f5561a5bfa1d2dfa9aeaeacae
+      size: 1544324
+    - path: data/metrics/raw/SNAIVE.parquet
       hash: md5
-      md5: 0feb67f5f8d3f231dc7f4c09c68357a6
-      size: 17159481
+      md5: edf001d25e34c8b70cad633f4ab3d5bd
+      size: 1179998
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -76,7 +76,25 @@ stages:
       hash: md5
       md5: b0b19083a8d75df1e299980dee4891ff
       size: 179
-    - path: data/metrics/raw/TIMESFM.csv
+    - path: data/metrics/raw/TIMESFM.parquet
       hash: md5
-      md5: 629ea809adb3a427cf9e5bf0de14e7f6
-      size: 17090090
+      md5: 5f37f7cf1f82f912d08bdffc86c37411
+      size: 2624374
+  train-eval-model:
+    cmd: uv run scripts/train.py lr --targets temp_bern --future tt_bern 
+      tt_bern_log tt_bern_cube tt_bern_sqrt tt_bern_ma3 --hparams 
+      regularization=none lag_max=24 lag_step=6 --no-mlflow --no-evaluate && uv 
+      run scripts/eval.py LR-dev
+    outs:
+    - path: data/forecast_samples/LR-dev.pkl
+      hash: md5
+      md5: 819bf43bb0a958c71b5dfaff795c4882
+      size: 31169
+    - path: data/metrics/LR-dev.json
+      hash: md5
+      md5: 9590addd84f252d6fa73c1ac23ddca2d
+      size: 181
+    - path: data/metrics/raw/LR-dev.parquet
+      hash: md5
+      md5: 0cfe8ec0781541d302836132a0561a12
+      size: 3933288

@@ -5,7 +5,6 @@ import os
 
 from darts import TimeSeries
 import mlflow
-from darts.models import RNNModel
 from darts.models.forecasting.torch_forecasting_model import TorchForecastingModel
 from darts.models.forecasting.sklearn_model import SKLearnModel
 from matplotlib import pyplot as plt
@@ -20,7 +19,7 @@ from aare_train.fetching.feature_set import FeatureSet
 from aare_train.features.registry import FEATURES
 from aare_train.normalization import get_scalers
 from aare_train.params import Params
-from aare_train.darts_utils import get_data_stats, exclude_short_series, model_needs_fc
+from aare_train.darts_utils import get_data_stats, exclude_short_series, get_model_min_len, model_needs_fc
 from aare_train.compat.types import DataTransformers
 
 ModelType = TorchForecastingModel | SKLearnModel
@@ -141,7 +140,7 @@ class BaseTrainer(ABC):
 
         orig_series_n_subs = len(train_target)
         orig_series_len = sum(len(x) for x in train_target)
-        min_len = model.training_length if isinstance(model, RNNModel) else abs(model.extreme_lags[0] or 0)
+        min_len = get_model_min_len(model)
         if min_len < 1:
             raise ValueError(f"Invalid min_len for training in {min_len}")
 

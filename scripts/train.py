@@ -1,4 +1,6 @@
 import argparse
+from pathlib import Path
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 import logging
@@ -26,6 +28,7 @@ class TrainArgs:
     evaluate: bool
     experiment_name: str | None
     version: str
+    mlflow: bool
 
 
 def parse_args():
@@ -71,15 +74,9 @@ def parse_args():
         help="Hyperparameters in key=value format (e.g., lr=0.001 hidden_dim=64)",
     )
     parser.add_argument(
-        "--evaluate",
-        dest="evaluate",
-        action="store_true",
-        default=True,
-        help="Evaluate the model after training (default: True)",
-    )
-    parser.add_argument(
         "--no-evaluate",
         dest="evaluate",
+        default=True,
         action="store_false",
         help="Skip evaluation after training",
     )
@@ -91,6 +88,13 @@ def parse_args():
         "--version",
         help="Model version to store (default: dev)",
         default="dev",
+    )
+    parser.add_argument(
+        "--no-mlflow",
+        dest="mlflow",
+        default=True,
+        action="store_false",
+        help="Log mlflow to a temporary file and discard after",
     )
 
     args = parser.parse_args()
@@ -120,6 +124,13 @@ def main():
     if trainer_cls is None:
         raise ValueError(f"Unknown model type: {args.model_type}")
 
+    if args.mlflow:
+        mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
+    else:
+        # will be reused if multiple runs don't want mlflow tracking. kinda crazy this can't be disabled globally.
+        temp_dir = Path(tempfile.gettempdir()) / "temp_mlflow_logging"
+        mlflow.set_tracking_uri(f"sqlite:///{temp_dir}/mlflow.db")
+
     # train and optionally evaluate
     mlflow.set_experiment(experiment_name)
     with mlflow.start_run(log_system_metrics=True) as run:
@@ -144,6 +155,5 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
     seed_everything(RANDOM_SEED)
     plt.rcParams["figure.figsize"] = (16, 9)
-    mlflow.set_tracking_uri(uri="http://127.0.0.1:5000")
 
     main()

@@ -1,4 +1,6 @@
 import itertools
+import json
+import pickle
 from datetime import tzinfo
 import logging
 from typing import Literal, overload
@@ -10,12 +12,14 @@ import numpy as np
 from darts import TimeSeries
 from darts.models.forecasting.forecasting_model import ForecastingModel
 from darts.utils.missing_values import extract_subseries
+from pandas import DataFrame
 
 from aare_train.compat.types import DataTransformers
 from aare_train.evaluation.eval_forecast import EvalForecast
 from aare_train.evaluation.forecast_samples import ForecastSamples
 from aare_train.evaluation.eval_metric import EvalMetric
 from aare_train.evaluation.historical_forecasts import historical_forecasts
+from aare_train.paths import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER
 from aare_train.utils import relocalize_times
 from aare_train.darts_utils import get_context_len
 
@@ -316,5 +320,27 @@ def get_metrics(hf_df: pd.DataFrame):
 
 def join_start_end(metric_df: pd.DataFrame, hf_df: pd.DataFrame) -> pd.DataFrame:
     """Get the start and end times per historical forecast and join them to another df by run_ts."""
-    min_max_time = hf_df["time"].groupby(hf_df["run_ts"]).agg(["min", "max"])  # pyright: ignore[reportUnknownMemberType]
+    min_max_time = hf_df["time"].groupby(hf_df["run_ts"]).agg(["min", "max"])
     return metric_df.join(min_max_time.rename(columns=dict(min="start", max="end")), on="run_ts")
+
+
+def store_results(
+    name: str, metrics: EvalMetric, raw_metrics: DataFrame, samples: ForecastSamples, override: bool = False
+):
+    """Store evaluation results under the respective folders using the provided name.
+
+    - aggregated metrics = /data/metrics/{name}.json
+    - raw metrics = /data/metrics/raw/{name}.parquet
+    - sample forecasts = /data/forecast_samples/{name}.pkl
+    """
+    metrics_path = METRICS_FOLDER / f"{name}.json"
+    if not override and metrics_path.exists():
+        raise ValueError("Cannot store results to disk because they already exist and override isn't set.")
+
+    with open(metrics_path, "wt") as metrics_file:
+        json.dump(metrics.to_dict(), metrics_file)
+
+    with open(FORECAST_SAMPLES_FOLDER / f"{name}.pkl", "wb") as forecast_sample_file:
+        pickle.dump(samples, forecast_sample_file)
+
+    raw_metrics.to_parquet(METRICS_FOLDER / "raw" / f"{name}.parquet", compression="gzip")

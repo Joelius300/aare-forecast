@@ -2,3 +2,8 @@
 /SNAIVE.csv
 /MEAN.csv
 /TIMESFM.csv
+/LOCF.parquet
+/SNAIVE.parquet
+/MEAN.parquet
+/TIMESFM.parquet
+/LR-dev.parquet

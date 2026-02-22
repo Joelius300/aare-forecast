@@ -1,19 +1,13 @@
 import argparse
-import json
-import pickle
-from datetime import datetime
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 
-from pandas import DataFrame
 
-from aare_train.evaluation.eval_metric import EvalMetric
-from aare_train.evaluation.evaluation import evaluate_model
-from aare_train.evaluation.forecast_samples import ForecastSamples
+from aare_train.evaluation.evaluation import evaluate_model, store_results
 from aare_train.features.registry import FEATURES
 from aare_train.fetching.feature_set import FeatureSet
 from aare_train.params import read_params
-from aare_train.paths import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER
 from aare_train.storage.model import load_model
 
 logger = logging.getLogger(__name__)
@@ -59,11 +53,13 @@ def parse_args():
     parser.add_argument(
         "--stride",
         help="Evaluation stride, will take dvc param if not specified",
+        type=int,
         default=None,
     )
     parser.add_argument(
         "--horizon",
         help="Forecast horizon, will take dvc param if not specified",
+        type=int,
         default=None,
     )
     parser.add_argument(
@@ -102,29 +98,11 @@ def parse_args():
     tz = params["general"]["timezone"]
     # todo: add from/to resp. period as well as --val (default) and --test.
 
-    suffix = args.suffix if args.suffix != NOW_SUFFIX else datetime.now().isoformat()
+    suffix = args.suffix if args.suffix != NOW_SUFFIX else datetime.now().strftime("%Y%m%dT%H%M%S")
 
     return EvalArgs(
         name, version, args.stride, args.horizon, args.store, args.override, suffix, min_lookback_hours, season, tz
     )
-
-
-def store_results(args: EvalArgs, metrics: EvalMetric, raw_metrics: DataFrame, samples: ForecastSamples):
-    name = args.model_name + MODEL_NAME_SEP + args.model_version
-    if args.suffix:
-        name += f"-{args.suffix}"
-
-    metrics_path = METRICS_FOLDER / f"{name}.json"
-    if not args.override and args.model_version != "dev" and metrics_path.exists():
-        raise ValueError("Cannot store results to disk because they already exist and override isn't set.")
-
-    with open(metrics_path, "wt") as metrics_file:
-        json.dump(metrics.to_dict(), metrics_file)
-
-    with open(FORECAST_SAMPLES_FOLDER / f"{name}.pkl", "wb") as forecast_sample_file:
-        pickle.dump(samples, forecast_sample_file)
-
-    raw_metrics.to_csv(METRICS_FOLDER / "raw" / f"{name}.csv")
 
 
 def main():
@@ -156,8 +134,14 @@ def main():
     print(f"Evaluation of {args.model_name}{MODEL_NAME_SEP}{args.model_version}:")
     print(metrics)  # could also use fancy tools to make a table etc. but eh
 
-    if args.store:
-        store_results(args, metrics, raw_metrics, samples)
+    if not args.store:
+        return
+
+    name = args.model_name + MODEL_NAME_SEP + args.model_version
+    if args.suffix:
+        name += f"-{args.suffix}"
+
+    store_results(name, metrics, raw_metrics, samples, override=args.override or args.model_version == "dev")
 
 
 if __name__ == "__main__":

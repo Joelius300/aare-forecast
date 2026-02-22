@@ -150,3 +150,22 @@ def model_needs_fc(model: GlobalForecastingModel):
         logger.warning("Maximum future lag is less than 0, so you could use past covariates instead.")
 
     return True
+
+
+def get_model_min_len(model: GlobalForecastingModel):
+    """
+    Get the minimum required length of a training series so that darts has all required
+    past data plus all the true future values required to calculate a loss.
+    Darts already does something like this internally, so often times it doesn't seem necessary to filter beforehand,
+    but apparently it can still fail for some reason, so we have to manually filter first.
+    """
+    from darts.models import RNNModel
+
+    if isinstance(model, RNNModel):
+        return model.training_length
+
+    # for now this seems to work, but I think it would actually need to be something like below, right??
+    return abs(model.extreme_lags[0] or 0)
+    # return max(abs(model.extreme_lags[0] or 0), abs(model.extreme_lags[2] or 0), abs(model.extreme_lags[4] or 0)) + max(
+    #     model.extreme_lags[1] or 0, model.extreme_lags[3] or 0, model.extreme_lags[5] or 0
+    # )

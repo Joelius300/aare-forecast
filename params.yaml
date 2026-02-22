@@ -13,9 +13,8 @@ features:
       high_cutoff: 25
       diff_threshold: 0.6  # 0.995 quantile
     interpolate:
-      # depending on how good imputation is,
-      # could lower these a bit.
       # They work often, but sometimes fail badly.
+      # Could try model based imputation for larger gaps (10-50h)
       linear_gap_bound: 3
       cubic_gap_bound: 25
   flow:  # flow [m3/s]
@@ -58,7 +57,8 @@ split:
   test_split: "2022-02-01"
   # 4+ years test -> expected to eval at early 2026
 validation:
-  stride: 23  # one eval per day, anything coprime with 24 will make sure all hours are used as starts equally
+  # note, anything coprime with 24 will make sure all hours are used as starts equally.
+  stride: 23
   # how many previous hours should AT LEAST be included when storing forecasts. will take INPUT_CHUNK_SIZE if bigger.
   min_lookback_hours: 24
 timesfm:

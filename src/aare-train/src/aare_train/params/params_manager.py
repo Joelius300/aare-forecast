@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 def _read_dvc_params():
     import dvc.api
 
-    return cast(Params, dvc.api.params_show())
+    # noinspection PyInvalidCast
+    return cast(Params, dvc.api.params_show())  # pyright: ignore[reportInvalidCast]
 
 
 @cache

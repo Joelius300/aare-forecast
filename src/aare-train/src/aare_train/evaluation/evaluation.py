@@ -225,6 +225,7 @@ def get_median_and_samples(
     argsort = metric_df[metric].argsort()
     # using len // 2 results in taking the worst of the 2 median ones if n is even (pessimistic)
     best_i, worst_i, med_i = argsort.iat[0], argsort.iat[-1], argsort.iat[len(argsort) // 2]
+    best_i, worst_i, med_i = int(best_i), int(worst_i), int(med_i)  # pyright: ignore[reportArgumentType]
 
     # only need metric columns from now on (in expected order!)
     metric_df = metric_df[metric_names]

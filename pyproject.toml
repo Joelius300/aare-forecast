@@ -49,8 +49,10 @@ reportUnannotatedClassAttribute = "information"
 reportAny = "information"
 
 ignore = [
-    "src/aare-train/src/aare/compat/optuna_lightning_integration.py",
-    "src/aare-train/src/aare/wrappers/timesfm.py",
+    "src/aare-train/src/aare_train/compat/optuna_lightning_integration.py",
+    "src/aare-train/src/aare_train/wrappers/timesfm.py",
+    "notebooks/",
+    "reports/",
 ]
 
 # fixes `lib` absolute imports, all "aare-*" packages are installed so no need

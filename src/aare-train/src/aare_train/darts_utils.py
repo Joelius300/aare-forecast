@@ -115,7 +115,9 @@ def trunc_common(*ts: TimeSeries):
     longest = full.longest_contiguous_slice(mode="any")  # then slice and only keep the longest period without nan
 
     # then reconstruct the individual series
-    return tuple([longest[ts.components.to_list()] for ts in tss])
+    return tuple(
+        [longest[ts.components.to_list()] for ts in tss]  # pyright: ignore[reportArgumentType,reportCallIssue]
+    )
 
 
 @overload

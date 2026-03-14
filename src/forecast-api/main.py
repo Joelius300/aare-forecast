@@ -53,14 +53,16 @@ app = FastAPI(
 API to get forecasts for the Swiss river Aare, intended for use in [aare.guru](https://aare.guru).
 Still in early stages, so don't expect perfect accuracy.
 The endpoints may also change at any time, there is no guarantee on backwards compatibility.
-For statistical purposes, please add &app={your app name} and optionally &version={your app version} to all of your requests.
-    """,
-    # contact= TODO
+
+If you call the API from your own app/site, please add &app={your app name} 
+and optionally &version={your app version} to all of your requests. Note the usage/licensing restriction below.
+
+This API may only be used for personal and educational projects. Neither the API endpoints nor 
+the data provided by the API may be used commercially. Please contact us for further information.
+
+[Source code](https://github.com/Joelius300/aare-forecast) (License: AGPLv3)
+""",
     version=__version__,
-    license_info={
-        "name": "AGPLv3 or later",
-        "identifier": "AGPL-3.0-or-later",
-    },
 )
 app.add_middleware(
     CORSMiddleware,

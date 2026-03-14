@@ -29,8 +29,7 @@ def _add_unique_day_attribute(ts: TimeSeries, tz: str | tzinfo | None = None) ->
     ts_det = ts if ts.is_deterministic else ts.with_values(ts.values(sample=0))  # take only first sample
 
     # add_datetime_attribute works now as it's deterministic
-    # typing bug in darts: https://github.com/unit8co/darts/issues/2926
-    with_year_day = ts_det.add_datetime_attribute("day_of_year", tz=tz).add_datetime_attribute("year", tz=tz)  # pyright: ignore[reportArgumentType]
+    with_year_day = ts_det.add_datetime_attribute("day_of_year", tz=tz).add_datetime_attribute("year", tz=tz)
 
     # create unique day id that's still human-readable just in case
     day_vals = with_year_day["year"] * 1000 + with_year_day["day_of_year"]

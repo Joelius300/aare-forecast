@@ -16,70 +16,70 @@ stages:
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2022-02-01'
-        split.val_split: '2017-02-01'
+        split.test_split: '2023-02-01'
+        split.val_split: '2019-02-01'
         validation.min_lookback_hours: 24
         validation.stride: 23
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: a4edbf65a8097829e564005f7dfb15b9
+      md5: 8012bfe7f9f5e86b62d32e25b7df87b7
       size: 10629
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
-      md5: b72b666b571c71f7346f433ba3bae326
+      md5: e254639b1cfc10da90564c87eeca8404
       size: 15822
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 7fc55228d3b5cad8a45ecbaa3ceb4b74
+      md5: e2a69928b9eed16adbf3a432965b93e2
       size: 10629
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: b501196808cab01b9416a07df850fd56
-      size: 176
+      md5: db525a4670cc042cb5481170037c53d3
+      size: 179
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: edb3ca167e7cdad09c692c461ff987fb
-      size: 179
+      md5: c66c4c43fa83504d1a25610a5217dc4c
+      size: 180
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: 4727a596d8af7395aca269cb5011a7a0
-      size: 179
+      md5: 3bba03ed6654a680e395342c7c66640f
+      size: 180
     - path: data/metrics/raw/LOCF.parquet
       hash: md5
-      md5: 5765fb4619c7d0a769a03ad3e2b591ad
-      size: 1205475
+      md5: 6ccc4fcb5041cd4216ff1db06c476ec5
+      size: 1087674
     - path: data/metrics/raw/MEAN.parquet
       hash: md5
-      md5: 6eaece3d64935c7c6ef9596042fb91b1
-      size: 1662361
+      md5: c7c8da94752eb8d341a7d7986d34e29b
+      size: 1480580
     - path: data/metrics/raw/SNAIVE.parquet
       hash: md5
-      md5: dafe4e24b38a0b02cd9e68a1d13230ea
-      size: 1299280
+      md5: f5eea23959744764e572cf3517893d94
+      size: 1167445
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
       params.yaml:
         general.forecast_horizon: 96
-        split.test_split: '2022-02-01'
-        split.val_split: '2017-02-01'
+        split.test_split: '2023-02-01'
+        split.val_split: '2019-02-01'
         timesfm.version: 200m
         validation.min_lookback_hours: 24
         validation.stride: 23
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: eead1c0ddd5f5f1c8746821e837f4c0d
+      md5: f27b83380c47c1adfc2b7425373ba29c
       size: 28407
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: b0b19083a8d75df1e299980dee4891ff
-      size: 179
+      md5: 7f845f70b1daa5276d29460f716b534b
+      size: 180
     - path: data/metrics/raw/TIMESFM.parquet
       hash: md5
-      md5: 5f37f7cf1f82f912d08bdffc86c37411
-      size: 2624374
+      md5: cad21717de547e6df98575b317bccaed
+      size: 2150103
   train-eval-model:
     cmd: uv run scripts/train.py lr --targets temp_bern --future tt_bern 
       tt_bern_log tt_bern_cube tt_bern_sqrt tt_bern_ma3 --hparams 
@@ -88,13 +88,13 @@ stages:
     outs:
     - path: data/forecast_samples/LR-dev.pkl
       hash: md5
-      md5: 819bf43bb0a958c71b5dfaff795c4882
-      size: 31169
+      md5: 8ec0937586ca85edae0e394bd7fe9945
+      size: 30946
     - path: data/metrics/LR-dev.json
       hash: md5
-      md5: 9590addd84f252d6fa73c1ac23ddca2d
-      size: 181
+      md5: a609e290dff174a30ed2f0f6cae05e44
+      size: 179
     - path: data/metrics/raw/LR-dev.parquet
       hash: md5
-      md5: b6dfa07d229ed121d40048b8774b0d5a
-      size: 4054568
+      md5: 39e36aa8f1ff6d1256979c199243167a
+      size: 3408343

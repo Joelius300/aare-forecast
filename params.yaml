@@ -51,11 +51,11 @@ features:
 split:
   # 22 years in total (2004-2026)
   train_split: "2004-02-01"
-  # 13 years training
-  val_split: "2017-02-01"
-  # 5 years validation
-  test_split: "2022-02-01"
-  # 4+ years test -> expected to eval at early 2026
+  # 15 years training
+  val_split: "2019-02-01"
+  # 4 years validation
+  test_split: "2023-02-01"
+  # 3+ years test -> expected to eval at early 2026
 validation:
   # note, anything coprime with 24 will make sure all hours are used as starts equally.
   stride: 23

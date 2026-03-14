@@ -21,7 +21,7 @@ params = read_params(ensure_dvc=True)
 @dataclass
 class EvalArgs:
     model_name: str
-    model_version: str
+    model_version: str | None
     stride: int
     horizon: int
     store: bool
@@ -37,7 +37,7 @@ class EvalArgs:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Evaluate a model",
+        description="Evaluate a model (on val data unless specified otherwise)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
     Examples:
@@ -93,7 +93,9 @@ def parse_args():
     )
 
     args = parser.parse_args()
-    name, version = args.model.split(MODEL_NAME_SEP, maxsplit=2)
+    name, version = (
+        args.model.split(MODEL_NAME_SEP, maxsplit=2) if (MODEL_NAME_SEP in args.model) else (args.model, None)
+    )
 
     if args.stride is None:
         args.stride = params["validation"]["stride"]
@@ -104,7 +106,7 @@ def parse_args():
     min_lookback_hours = params["validation"]["min_lookback_hours"]
     season = params["general"]["season_start"], params["general"]["season_end"]
     tz = params["general"]["timezone"]
-    # todo: add from/to resp. period as well as --val (default) and --test.
+    # todo: add from/to resp. period
 
     if args.use_test:
         if args.suffix is None or args.suffix == NOW_SUFFIX:
@@ -158,18 +160,18 @@ def main():
         get_raw=True,
     )
 
+    name_full = (args.model_name + MODEL_NAME_SEP + args.model_version) if args.model_version else args.model_name
     test_data_disclaimer = " (ON TEST DATA)" if args.use_test else ""
-    print(f"Evaluation of {args.model_name}{MODEL_NAME_SEP}{args.model_version}{test_data_disclaimer}:")
+    print(f"Evaluation of {name_full}{test_data_disclaimer}:")
     print(metrics)  # could also use fancy tools to make a table etc. but eh
 
     if not args.store:
         return
 
-    name = args.model_name + MODEL_NAME_SEP + args.model_version
     if args.suffix:
-        name += f"-{args.suffix}"
+        name_full += f"-{args.suffix}"
 
-    store_results(name, metrics, raw_metrics, samples, override=args.override or args.model_version == "dev")
+    store_results(name_full, metrics, raw_metrics, samples, override=args.override or args.model_version == "dev")
 
 
 if __name__ == "__main__":

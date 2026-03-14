@@ -2,7 +2,7 @@ import logging
 import pickle
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast, overload
 
 import yaml
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
@@ -22,7 +22,10 @@ PARAMS_SUFFIX = ".params.yaml"
 logger = logging.getLogger(__name__)
 
 
-def _make_model_base_path_relative(name: str, version: str):
+def _make_model_base_path_relative(name: str, version: str | None):
+    if not version:  # should only be used for baseline models
+        return Path(f"./{name}")
+
     return Path(f"./{name}-{version}")
 
 
@@ -130,11 +133,13 @@ def load_model_meta(
     name: str | None = None,
     version: str | None = None,
     make_paths_absolute: bool = True,
-):
+) -> AareModel:
     """Load a model meta dict from a specified path. For local dev, can also provide name and version."""
     if not meta_path:
-        if not name or not version:
-            raise ValueError("name and version must be provided if meta_path is not supplied")
+        if not name:
+            raise ValueError("name must be provided if meta_path is not supplied")
+        if not version:
+            logger.warning("Loading model without version, should only be used for baseline models!")
 
         base_path = _make_model_base_path_relative(name, version)
         # same path during training
@@ -175,6 +180,26 @@ def load_model_from_meta(
         scalers = pickle.load(file)
 
     return model, scalers
+
+
+@overload
+def load_model(
+    meta_path: str | Path,
+    *,
+    name: Literal[None] = None,
+    version: Literal[None] = None,
+) -> tuple[AareModel, GlobalForecastingModel, DataTransformers | None]:
+    pass
+
+
+@overload
+def load_model(
+    meta_path: Literal[None] = None,
+    *,
+    name: str,
+    version: str | None,
+) -> tuple[AareModel, GlobalForecastingModel, DataTransformers | None]:
+    pass
 
 
 def load_model(

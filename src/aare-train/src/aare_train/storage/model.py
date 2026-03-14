@@ -78,15 +78,16 @@ def save_model(
 
     # redundancy in the folder path and filename, but just want to make sure it's always clear which model
     # and version the file is by just looking at the file (not inside, not its parent).
-    meta_path = model_folder / base_path.with_suffix(META_SUFFIX)
+    # must keep base_path.suffix because versioned models already contains periods.
+    meta_path = model_folder / base_path.with_suffix(base_path.suffix + META_SUFFIX)
 
     model_cls = type(model)
     assert issubclass(model_cls, GlobalForecastingModel), f"model_cls '{model_cls}' is not a GlobalForecastingModel"
 
     # store paths in json as relative so you don't have to update them from dev to prod
-    model_path_rel = base_path.with_suffix(MODEL_SUFFIX)
-    scalers_path_rel = base_path.with_suffix(SCALER_SUFFIX)
-    params_path_rel = base_path.with_suffix(PARAMS_SUFFIX)
+    model_path_rel = base_path.with_suffix(base_path.suffix + MODEL_SUFFIX)
+    scalers_path_rel = base_path.with_suffix(base_path.suffix + SCALER_SUFFIX)
+    params_path_rel = base_path.with_suffix(base_path.suffix + PARAMS_SUFFIX)
 
     meta: AareModel = {
         "name": name,
@@ -137,7 +138,7 @@ def load_model_meta(
 
         base_path = _make_model_base_path_relative(name, version)
         # same path during training
-        meta_path = MODELS_FOLDER / base_path / base_path.with_suffix(META_SUFFIX)
+        meta_path = MODELS_FOLDER / base_path / base_path.with_suffix(base_path.suffix + META_SUFFIX)
 
     meta_path = Path(meta_path).absolute()  # turn it into an absolute path, should only be relative during dev tho
     if not meta_path.is_file() and meta_path.suffix == META_SUFFIX:

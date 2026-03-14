@@ -27,6 +27,7 @@ class EvalArgs:
     store: bool
     override: bool
     suffix: str
+    use_test: bool
     # todo start and end times, can/should be used to see how much worse the model is when using weather forecasts
     #  instead of true measurement data.
     min_lookback_hours: int
@@ -40,15 +41,15 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
     Examples:
-      uv run scripts/eval.py lr dev
+      uv run scripts/eval.py nowcasting_temp-dev
 
-      uv run scripts/eval.py gru-1.3 --stride 1
-            """,
+      uv run scripts/eval.py nowcasting_temp-1.3 --stride 1 --test
+""",
     )
 
     parser.add_argument(
         "model",
-        help="Model including name and version, e.g. LR-dev",
+        help="Model including name and version, e.g. nowcasting_temp-dev",
     )
     parser.add_argument(
         "--stride",
@@ -83,6 +84,13 @@ def parse_args():
         default=None,  # when flag is not present at all
         help="Optional suffix for stored results. If flag is provided without value, the current time is used.",
     )
+    parser.add_argument(
+        "--test",
+        dest="use_test",
+        default=False,
+        action="store_true",
+        help="Use test data as specified in dvc params. Implies --suffix test.",
+    )
 
     args = parser.parse_args()
     name, version = args.model.split(MODEL_NAME_SEP, maxsplit=2)
@@ -98,10 +106,26 @@ def parse_args():
     tz = params["general"]["timezone"]
     # todo: add from/to resp. period as well as --val (default) and --test.
 
+    if args.use_test:
+        if args.suffix is None or args.suffix == NOW_SUFFIX:
+            args.suffix = "test"
+        else:
+            raise ValueError("You may not provide a suffix when doing test eval.")
+
     suffix = args.suffix if args.suffix != NOW_SUFFIX else datetime.now().strftime("%Y%m%dT%H%M%S")
 
     return EvalArgs(
-        name, version, args.stride, args.horizon, args.store, args.override, suffix, min_lookback_hours, season, tz
+        name,
+        version,
+        args.stride,
+        args.horizon,
+        args.store,
+        args.override,
+        suffix,
+        args.use_test,
+        min_lookback_hours,
+        season,
+        tz,
     )
 
 
@@ -116,7 +140,10 @@ def main():
     )
 
     # todo: always use from/to, potentially populated from the split_params, but always use get()
-    targets, _, fc = fs.get_val()
+    if args.use_test:
+        targets, _, fc = fs.get_test()
+    else:
+        targets, _, fc = fs.get_val()
 
     metrics, samples, raw_metrics = evaluate_model(
         model,
@@ -131,7 +158,8 @@ def main():
         get_raw=True,
     )
 
-    print(f"Evaluation of {args.model_name}{MODEL_NAME_SEP}{args.model_version}:")
+    test_data_disclaimer = " (ON TEST DATA)" if args.use_test else ""
+    print(f"Evaluation of {args.model_name}{MODEL_NAME_SEP}{args.model_version}{test_data_disclaimer}:")
     print(metrics)  # could also use fancy tools to make a table etc. but eh
 
     if not args.store:

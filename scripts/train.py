@@ -26,8 +26,9 @@ class TrainArgs:
     future: Sequence[str]
     hparams: Sequence[str]
     evaluate: bool
-    experiment_name: str | None
+    name: str | None
     version: str
+    override: bool
     mlflow: bool
 
 
@@ -81,13 +82,21 @@ def parse_args():
         help="Skip evaluation after training",
     )
     parser.add_argument(
-        "--experiment-name",
-        help="Custom MLflow experiment name (default: model_type)",
+        "--name",
+        help="Model name (use case) name (default: model_type)",
+        required=True,
     )
     parser.add_argument(
         "--version",
         help="Model version to store (default: dev)",
         default="dev",
+    )
+    parser.add_argument(
+        "--override",
+        dest="override",
+        default=False,
+        action="store_true",
+        help="Override files even if version is not dev",
     )
     parser.add_argument(
         "--no-mlflow",
@@ -99,7 +108,17 @@ def parse_args():
 
     args = parser.parse_args()
 
-    return TrainArgs(**args.__dict__)
+    return TrainArgs(
+        args.model_type,
+        args.targets,
+        args.future,
+        args.hparams,
+        args.evaluate,
+        args.name,
+        args.version,
+        args.override,
+        args.mlflow,
+    )
 
 
 def main():
@@ -110,11 +129,10 @@ def main():
     params = read_params()
 
     # set default names
-    model_name: str = args.model_type.upper()
-    experiment_name: str = args.experiment_name or model_name
+    model_name: str = args.name or args.model_type.upper()
     model_version: str = args.version
 
-    if model_version != "dev" and model_exists(model_name, model_version):
+    if not args.override and model_version != "dev" and model_exists(model_name, model_version):
         raise ValueError(f"Model {model_name}-{model_version} already exists.")
 
     # create trainer based on model type
@@ -132,7 +150,7 @@ def main():
         mlflow.set_tracking_uri(f"sqlite:///{temp_dir}/mlflow.db")
 
     # train and optionally evaluate
-    mlflow.set_experiment(experiment_name)
+    mlflow.set_experiment(model_name)
     with mlflow.start_run(log_system_metrics=True) as run:
         mlflow.log_dict(read_params(ensure_dvc=True), "params.yaml")  # pyright: ignore[reportArgumentType]
 
@@ -147,7 +165,7 @@ def main():
         else:
             logger.info("Training completed without evaluation")
 
-        save_model(model_name, model_version, model, features, scalers, run.info, hparams)
+        save_model(model_name, model_version, model, features, scalers, run.info, hparams, args.override)
 
 
 if __name__ == "__main__":

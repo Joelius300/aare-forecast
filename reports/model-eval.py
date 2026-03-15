@@ -20,15 +20,19 @@ def _(mo):
 
     This notebook shows the accuracy of different Aare Oraku models and allows comparisons with baselines.
 
-    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. The forecast horizon(s) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
+    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. Which forecast horizon (how many hours into the future) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
     It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. During inference (on aare.guru), this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. How well the model performs with external forecast inputs we don't know yet, but it's very likely that it will be worse than this evaluation shows. How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model. To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated. At the same time, all historical forecasts including all external inputs are stored for future evaluation.
-    If you select the "validation" dataset instead of the test set, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias. The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
-
-    - TODO more notes on how this all works, caveats, what data, etc.
-    - TODO just recipe for building and publishing report
-    - TODO also publish json meta files for the models so we can display the features it uses
+    If you uncheck the test dataset and instead look at the validation data, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias. The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
     """)
+    return
+
+
+@app.cell
+def _():
+    # TODO more notes on how this all works, caveats, what data, etc.
+    # TODO just recipe for building and publishing report
+    # TODO also publish json meta files for the models so we can display the features it uses
     return
 
 
@@ -83,7 +87,7 @@ def _(mo):
 def _(horizon_range, hour_range, mo, model, model_metrics, month_range):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mo.md(
-        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire evaluation data, 75% of forecasts have a MAE of {model_metrics['mae_q75']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 75% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q75']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
+        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire evaluation data, 80% of forecasts have a MAE of {model_metrics['mae_q80']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 80% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q80']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
     ).callout("success")
     return
 
@@ -108,8 +112,10 @@ def _(
         # .group_by_dynamic("time", every="1d")
         .agg(
             _col.abs().median(),
-            _col.abs().quantile(0.125).name.suffix("_q12.5"),
-            _col.abs().quantile(0.875).name.suffix("_q87.5"),
+            _col.abs().quantile(0.1).name.suffix("_q10.0"),
+            _col.abs().quantile(0.25).name.suffix("_q25.0"),
+            _col.abs().quantile(0.75).name.suffix("_q75.0"),
+            _col.abs().quantile(0.9).name.suffix("_q90.0"),
             # item instead of first would be better, but needs polars >=1.35.0 and pyodide is behind
             pl.col("start_time", "end_time").unique().first(),
         )
@@ -125,7 +131,7 @@ def _(
     quantile_line_chart(
         _df,
         title="Forecast error over validation period",
-        subtitle="Prediction interval shows quantiles for errors within each forecast. 75% of all errors lie within shaded area. Weekly smoothing applied.",
+        subtitle="Prediction interval shows quantiles for errors within each forecast. 80% of all errors lie within shaded area, 50% within the inner shading. Weekly smoothing applied.",
         yaxis_label="Absolute Forecast Error [°C]",
     )
     return
@@ -147,8 +153,10 @@ def _(
         .group_by("lag")
         .agg(
             _col.abs().median(),
-            _col.abs().quantile(0.125).name.suffix("_q12.5"),
-            _col.abs().quantile(0.875).name.suffix("_q87.5"),
+            _col.abs().quantile(0.1).name.suffix("_q10.0"),
+            _col.abs().quantile(0.25).name.suffix("_q25.0"),
+            _col.abs().quantile(0.75).name.suffix("_q75.0"),
+            _col.abs().quantile(0.9).name.suffix("_q90.0"),
         )
         .sort("lag")
         .with_columns(valid=horizon_filter)
@@ -161,7 +169,7 @@ def _(
         yaxis_label="Absolute Forecast Error [°C]",
         xaxis_label="Hours into to future",
         title="Forecast error per hour into the future",
-        subtitle="Prediction interval shows quantiles for errors within each lag. 75% of all errors lie within shaded area.",
+        subtitle="Prediction interval shows quantiles for errors within each lag. 80% of all errors lie within shaded area, 50% within the inner shading.",
     )
     return
 
@@ -169,6 +177,14 @@ def _(
 @app.cell(hide_code=True)
 def _(px, run_metrics):
     px.violin(run_metrics, x=["madpd", "mae"], box=True, title="Distribution of MAE and MADPD of all forecasts")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Below you can inspect individual forecasts to 'get a feeling' instead of just relying on metrics.
+    """)
     return
 
 
@@ -234,12 +250,13 @@ def _():
 def _():
     import itertools
     from datetime import timedelta
+    import plotly
     import plotly.express as px
     import plotly.graph_objects as go
     import polars as pl
     import polars.selectors as cs
 
-    return cs, go, itertools, pl, px, timedelta
+    return cs, go, itertools, pl, plotly, px, timedelta
 
 
 @app.cell
@@ -352,20 +369,22 @@ def _(cs, filtered_all, pl):
 
     model_metrics = run_metrics.select(
         cs.float().median(),
+        cs.float().quantile(0.80).name.suffix("_q80"),
         cs.float().quantile(0.95).name.suffix("_q95"),
-        cs.float().quantile(0.75).name.suffix("_q75"),
     ).to_dicts()[0]
     return model_metrics, run_metrics
 
 
 @app.cell
-def _(add_ignored_rects, get_invalid_periods, go, pl):
+def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
     def quantile_line_chart(
         df: pl.DataFrame,
         x_col="run_ts",
         val_col="err",
-        lower_quant=0.125,
-        upper_quant=0.875,
+        lower_quant=0.1,
+        inner_lower_quant=0.25,
+        inner_upper_quant=0.75,
+        upper_quant=0.9,
         *,
         title: str,
         subtitle: str | None = None,
@@ -376,17 +395,11 @@ def _(add_ignored_rects, get_invalid_periods, go, pl):
         fig = go.Figure(
             [
                 go.Scatter(
-                    name=val_col,
-                    x=x,
-                    y=df[val_col],
-                    mode="lines",
-                ),
-                go.Scatter(
                     name=f"Q {upper_quant:.1%}",
                     x=x,
                     y=df[f"{val_col}_q{upper_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0),
+                    line=dict(width=0, color="rgb(109, 210, 189)"),
                     showlegend=False,
                 ),
                 go.Scatter(
@@ -394,9 +407,33 @@ def _(add_ignored_rects, get_invalid_periods, go, pl):
                     x=x,
                     y=df[f"{val_col}_q{lower_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0),
+                    line=dict(width=0, color="rgb(109, 210, 189)"),
                     showlegend=False,
                     fill="tonexty",
+                ),
+                go.Scatter(
+                    name=f"Q {inner_upper_quant:.1%}",
+                    x=x,
+                    y=df[f"{val_col}_q{inner_upper_quant * 100}"],
+                    mode="lines",
+                    line=dict(width=0, color="rgb(88, 170, 153)"),
+                    showlegend=False,
+                ),
+                go.Scatter(
+                    name=f"Q {inner_lower_quant:.1%}",
+                    x=x,
+                    y=df[f"{val_col}_q{inner_lower_quant * 100}"],
+                    mode="lines",
+                    line=dict(width=0, color="rgb(88, 170, 153)"),
+                    showlegend=False,
+                    fill="tonexty",
+                ),
+                go.Scatter(
+                    name=val_col,
+                    x=x,
+                    y=df[val_col],
+                    mode="lines",
+                    line=dict(color=plotly.colors.DEFAULT_PLOTLY_COLORS[0]),
                 ),
             ]
         )

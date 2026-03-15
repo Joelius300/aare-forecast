@@ -19,6 +19,7 @@ from aare_train.params import read_params
 from aare_train.wrappers.timesfm import TimesFmDarts
 
 
+# todo replace with darts integration of timesfm
 def main():
     params = read_params()
     horizon = params["general"]["forecast_horizon"]

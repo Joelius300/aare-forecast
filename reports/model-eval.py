@@ -3,13 +3,14 @@
 # dependencies = [
 #     "plotly[express]",
 #     "polars",
+#     "tzdata",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.18.4"
-app = marimo.App(width="medium", app_title="Aare Oraku Model Eval")
+__generated_with = "0.20.4"
+app = marimo.App(width="medium", app_title="Aare Oraku Model Evaluation")
 
 
 @app.cell
@@ -17,11 +18,11 @@ def _(mo):
     mo.md(r"""
     # Aare Oraku Model Evaluation
 
-    This notebook shows the accuracy of different Aare Oraku models.
+    This notebook shows the accuracy of different Aare Oraku models and allows comparisons with baselines.
 
     Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. The forecast horizon(s) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
-    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. During inference, this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. How well the model performs with external forecast inputs we don't know yet, but it's very likely that it will be worse than this evaluation shows. How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model. To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated. At the same time, all historical forecasts including all external inputs are stored for future evaluation.  
+    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. During inference (on aare.guru), this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. How well the model performs with external forecast inputs we don't know yet, but it's very likely that it will be worse than this evaluation shows. How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model. To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated. At the same time, all historical forecasts including all external inputs are stored for future evaluation.
     If you select the "validation" dataset instead of the test set, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias. The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
 
     - TODO more notes on how this all works, caveats, what data, etc.
@@ -38,6 +39,16 @@ def _(default_model, mo, model_names):
     return (model_select,)
 
 
+@app.cell
+def _(mo):
+    test_checkbox = mo.ui.checkbox(
+        label="Whether to use test data for the evaluation (as opposed to validation data with even more bias)",
+        value=True,
+    )
+    test_checkbox
+    return (test_checkbox,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     month_range = mo.ui.range_slider(1, 12, step=1, debounce=True, label="Months to include", value=[4, 9])
@@ -46,9 +57,16 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(max_horizon, mo):
+def _(get_horizon_range, max_horizon, mo, set_horizon_range):
+    # max_horizons depends on the data, so this need extra code to stay on the same value if the data changes
     horizon_range = mo.ui.range_slider(
-        1, max_horizon, step=1, debounce=True, label="Horizons to analyze", value=[1, 36]
+        1,
+        max_horizon,
+        step=1,
+        debounce=True,
+        label="Horizons to analyze",
+        value=get_horizon_range(),
+        on_change=set_horizon_range,
     )
     horizon_range
     return (horizon_range,)
@@ -65,7 +83,7 @@ def _(mo):
 def _(horizon_range, hour_range, mo, model, model_metrics, month_range):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mo.md(
-        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire validation series, 75% of forecasts have a MAE of {model_metrics['mae_q75']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 75% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q75']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
+        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire evaluation data, 75% of forecasts have a MAE of {model_metrics['mae_q75']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 75% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q75']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
     ).callout("success")
     return
 
@@ -205,17 +223,10 @@ def _(mo, pl, raw_metrics):
 
 
 @app.cell
-async def _():
+def _():
     import sys
 
     running_wasm = sys.platform == "emscripten"
-
-    if running_wasm:
-        import micropip
-
-        await micropip.install("tzdata")  # needed for timezones to work
-        await micropip.install("plotly[express]")  # needed to override wrongly installed plotly-express
-        await micropip.install("polars")  # just to be sure, would probably be installed regardless
     return (running_wasm,)
 
 
@@ -235,18 +246,18 @@ def _():
 def _(itertools):
     tz = "Europe/Zurich"
     models = {
-        "LR": [
-            "dev",
+        "nowcasting_temp": [
+            "1.0",
         ],
     }
-    baseline_models = ["LOCF", "SNAIVE", "MEAN", "TIMESFM"]
+    baseline_models = ["LOCF", "SNAIVE", "MEAN"]
 
     model_names = [
         f"{model}-{version}"
         for model_key, versions in models.items()
         for model, version in zip(itertools.repeat(model_key), versions)
     ] + baseline_models
-    default_model = "LR-dev"
+    default_model = "nowcasting_temp-1.0"
     return default_model, model_names, tz
 
 
@@ -257,17 +268,15 @@ def _(model_select):
 
 
 @app.cell
-def _(mo, model, running_wasm):
+def _(mo, model, running_wasm, test_checkbox):
     def get_data_path() -> str | None:
+        file_name = model + ("-test" if test_checkbox.value else "") + ".parquet"
         notebook_loc = mo.notebook_location()
         if running_wasm:
-            return str(notebook_loc / "public" / f"{model}.csv") if notebook_loc is not None else None
+            return str(notebook_loc / "public" / file_name) if notebook_loc is not None else None
 
-        # avoid importing aare.paths, because it will then try to fetch it from pypi, which is a security risk.
-        # note that it already installs the super outdated plotly-express and tries to install plotly-graph-objects and polars-selectors!!
-        # https://github.com/marimo-team/marimo/issues/6366#issuecomment-3691495696
         metrics_folder = notebook_loc.parent / "data" / "metrics"
-        path = metrics_folder / "raw" / f"{model}.csv"
+        path = metrics_folder / "raw" / file_name
         return str(path) if path.exists() else None
 
     data_path = get_data_path()
@@ -280,12 +289,10 @@ def _(mo, model, running_wasm):
 def _(data_path, mo, pl, timedelta, tz):
     @mo.cache
     def load_raw(path: str, tz: str) -> pl.DataFrame:
-        raw_metrics = pl.read_csv(data_path)
+        raw_metrics = pl.read_parquet(data_path)
 
         raw_metrics = (
             raw_metrics.lazy()
-            # parse timestamps
-            .with_columns(pl.col("run_ts", "time").str.to_datetime(time_zone=tz))
             # add lag column
             .with_columns(lag=((pl.col("time") - pl.col("run_ts")) / timedelta(hours=1) + 1).cast(int))
             # add absolute error columns
@@ -314,6 +321,15 @@ def _(pl, raw_metrics):
         raw_metrics.select(pl.col("run_ts").unique(maintain_order=True).diff().mean()).item().total_seconds() / 3600
     )
     return eval_stride, max_horizon
+
+
+@app.cell
+def _(get_horizon_range, max_horizon, set_horizon_range):
+    _cur_horizon_range = get_horizon_range()
+    if max_horizon < _cur_horizon_range[1]:
+        _start = _cur_horizon_range[0] if _cur_horizon_range[0] < max_horizon else 1
+        set_horizon_range([_start, max_horizon])
+    return
 
 
 @app.cell
@@ -460,6 +476,12 @@ def _(go, pl):
         # trying to remove those leftover annotations here doesn't work because they aren't in the fig object at all...
 
     return (add_ignored_rects,)
+
+
+@app.cell
+def _(mo):
+    get_horizon_range, set_horizon_range = mo.state([1, 36])
+    return get_horizon_range, set_horizon_range
 
 
 if __name__ == "__main__":

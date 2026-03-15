@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from darts.models import GlobalNaiveSeasonal, GlobalNaiveAggregate
 
@@ -19,7 +20,8 @@ def main():
         "MEAN": GlobalNaiveAggregate(input_chunk_length=7 * 24, output_chunk_length=horizon),
     }
 
-    evaluation_pipeline_uni(models, params)
+    use_test = len(sys.argv) >= 2 and sys.argv[1] == "--test"
+    evaluation_pipeline_uni(models, params, use_test)
 
 
 if __name__ == "__main__":

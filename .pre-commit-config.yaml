@@ -32,6 +32,6 @@ repos:
         pass_filenames: true
         require_serial: true
 -   repo: https://github.com/iterative/dvc
-    rev: 3.66.1
+    rev: 3.67.0
     hooks:
     -   id: dvc-pre-commit

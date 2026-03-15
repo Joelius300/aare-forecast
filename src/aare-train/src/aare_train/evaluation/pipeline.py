@@ -14,8 +14,9 @@ from aare_train.paths import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER
 def evaluation_pipeline_uni(
     models: Mapping[str, ForecastingModel],
     params: Params,
+    use_test: bool = False,
 ) -> None:
-    """Evaluate all specified models on the validation data and write the results to the pre-defined folders."""
+    """Evaluate all specified models on the validation (or test) data and write the results to the pre-defined folders."""
     dataset = AareDataset.from_conf()
     general_params = params["general"]
     forecast_horizon = general_params["forecast_horizon"]
@@ -24,7 +25,8 @@ def evaluation_pipeline_uni(
     season = general_params["season_start"], general_params["season_end"]
     tz = general_params["timezone"]
 
-    val = prepare_ts_aare_temp(dataset.get_val())
+    data = dataset.get_test() if use_test else dataset.get_val()
+    val = prepare_ts_aare_temp(data)
     val_subs = extract_subseries(val)
 
     # mostly to suppress the torch notice, darts has bad support for this
@@ -37,5 +39,8 @@ def evaluation_pipeline_uni(
         metrics, samples, raw_metrics = evaluate_model(
             model, val_subs, forecast_horizon, stride, min_lookback_hours, tz=tz, month_filter=season, get_raw=True
         )
+
+        if use_test:
+            name += "-test"
 
         store_results(name, metrics, raw_metrics, samples, override=True)

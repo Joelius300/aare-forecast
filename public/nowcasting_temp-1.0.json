@@ -1,0 +1,58 @@
+{
+  "name": "nowcasting_temp",
+  "version": "1.0",
+  "model_cls": "darts.models.forecasting.sklearn_model.SKLearnModel",
+  "model_path": "nowcasting_temp-1.0.model.pkl",
+  "scalers_path": "nowcasting_temp-1.0.scaler.pkl",
+  "params_path": "nowcasting_temp-1.0.params.yaml",
+  "features": {
+    "targets": [
+      "temp_bern"
+    ],
+    "future": [
+      "tt_bern",
+      "tt_bern_log",
+      "tt_bern_cube",
+      "tt_bern_sqrt",
+      "tt_bern_ma3"
+    ]
+  },
+  "hparams": {
+    "regularization": "none",
+    "lag_max": 24,
+    "lag_step": 6
+  },
+  "hparams_internal": {
+    "lags": [
+      -1,
+      -24,
+      -18,
+      -12,
+      -6
+    ],
+    "lags_past_covariates": null,
+    "lags_future_covariates": [
+      0,
+      -1,
+      -24,
+      -18,
+      -12,
+      -6
+    ],
+    "output_chunk_length": 1,
+    "output_chunk_shift": 0,
+    "add_encoders": null,
+    "multi_models": true,
+    "use_static_covariates": false,
+    "random_state": 42
+  },
+  "origin": {
+    "mlflow": {
+      "run_name": "mysterious-steed-490",
+      "exp_id": "2",
+      "run_id": "bb1615f52b4f44db8539e182cd4b68ea"
+    },
+    "train_time": "2026-03-14T16:32:49.096000+01:00",
+    "last_commit": "cd0355656d190f7a333155b08c8d0fc4ece50264"
+  }
+}

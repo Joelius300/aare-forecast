@@ -43,7 +43,7 @@ def _(default_model, mo, model_names):
     return (model_select,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     test_checkbox = mo.ui.checkbox(
         label="Whether to use test data for the evaluation (as opposed to validation data with even more bias)",
@@ -87,8 +87,18 @@ def _(mo):
 def _(horizon_range, hour_range, mo, model, model_metrics, month_range):
     months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mo.md(
-        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire evaluation data, 80% of forecasts have a MAE of {model_metrics['mae_q80']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 80% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q80']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
+        f"## Evaluation of {model} model\n\nOnly taking into account forecasts for the months **{months[month_range.value[0] - 1]} - {months[month_range.value[1] - 1]}** and hours **{hour_range.value[0]:02d}:00 - {hour_range.value[1]:02d}:00**, and only looking at predictions made **{horizon_range.value[0]} - {horizon_range.value[1]} hours** into the future, the absolute errors across all steps (hours) are averaged.\n\nThe median forecast has a mean absolute error (MAE) of **{model_metrics['mae']:.3f} °C**. Across the entire evaluation data, 80% of forecasts have a MAE of {model_metrics['mae_q80']:.3f} °C or less, and 95% have a MAE of {model_metrics['mae_q95']:.3f} °C or less.  \nIf only the maximum/peak temperature each day is relevant (regardless of timing), then the median forecast is off by **{model_metrics['madpd']:.3f} °C.** 80% of all forecasts have a daily peak difference (DPD) of {model_metrics['madpd_q80']:.3f} °C or less and 95% have a DPD of {model_metrics['madpd_q95']:.3f} °C or less."
     ).callout("success")
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    The charts below visualize the forecast errors in different dimensions. They show for example that the volatile summer temperatures are harder to predict and that predictions further into the future are less accurate (not surprising). The boxplots also show that the lowest errors have the highest density confirming that errors below the median are mostly concentrated to really low errors while larger errors are more spread out up to extreme outliers.
+
+    The grayed out areas labeled 'ignored' are times excluded by the filter above. They are shown but not included in the metric calculations.
+    """)
     return
 
 
@@ -130,7 +140,7 @@ def _(
 
     quantile_line_chart(
         _df,
-        title="Forecast error over validation period",
+        title="Forecast error over evaluation period",
         subtitle="Prediction interval shows quantiles for errors within each forecast. 80% of all errors lie within shaded area, 50% within the inner shading. Weekly smoothing applied.",
         yaxis_label="Absolute Forecast Error [°C]",
     )
@@ -188,7 +198,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     add_ignored_rects,
     all_run_ts,
@@ -238,6 +248,39 @@ def _(mo, pl, raw_metrics):
     return all_run_ts, fc_i
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Below is the model file which shows when it was trained, what input variables and lags it uses, and some more hparams.
+    """)
+    return
+
+
+@app.cell
+async def _(baseline_models, get_meta_path, model):
+    if model in baseline_models:
+        _meta = "No meta file for baseline models"
+    else:
+        try:
+            _meta_path = get_meta_path()
+
+            if "http" in _meta_path:
+                from pyodide.http import pyfetch
+
+                _response = await pyfetch(_meta_path)
+                _meta = await _response.json()
+            else:
+                import json
+
+                with open(_meta_path) as _meta_file:
+                    _meta = json.load(_meta_file)
+        except Exception:
+            _meta = f"Could not load meta file of {model}"
+
+    _meta
+    return
+
+
 @app.cell
 def _():
     import sys
@@ -248,7 +291,16 @@ def _():
 
 @app.cell
 def _():
+    # separately so markdown shows up faster
+    import marimo as mo
+
+    return (mo,)
+
+
+@app.cell
+def _():
     import itertools
+    import pathlib
     from datetime import timedelta
     import plotly
     import plotly.express as px
@@ -256,7 +308,7 @@ def _():
     import polars as pl
     import polars.selectors as cs
 
-    return cs, go, itertools, pl, plotly, px, timedelta
+    return cs, go, itertools, pathlib, pl, plotly, px, timedelta
 
 
 @app.cell
@@ -275,7 +327,7 @@ def _(itertools):
         for model, version in zip(itertools.repeat(model_key), versions)
     ] + baseline_models
     default_model = "nowcasting_temp-1.0"
-    return default_model, model_names, tz
+    return baseline_models, default_model, model_names, tz
 
 
 @app.cell
@@ -285,17 +337,7 @@ def _(model_select):
 
 
 @app.cell
-def _(mo, model, running_wasm, test_checkbox):
-    def get_data_path() -> str | None:
-        file_name = model + ("-test" if test_checkbox.value else "") + ".parquet"
-        notebook_loc = mo.notebook_location()
-        if running_wasm:
-            return str(notebook_loc / "public" / file_name) if notebook_loc is not None else None
-
-        metrics_folder = notebook_loc.parent / "data" / "metrics"
-        path = metrics_folder / "raw" / file_name
-        return str(path) if path.exists() else None
-
+def _(get_data_path):
     data_path = get_data_path()
     if not data_path:
         raise ValueError("Could not locate data file!")
@@ -303,31 +345,8 @@ def _(mo, model, running_wasm, test_checkbox):
 
 
 @app.cell
-def _(data_path, mo, pl, timedelta, tz):
-    @mo.cache
-    def load_raw(path: str, tz: str) -> pl.DataFrame:
-        raw_metrics = pl.read_parquet(data_path)
-
-        raw_metrics = (
-            raw_metrics.lazy()
-            # add lag column
-            .with_columns(lag=((pl.col("time") - pl.col("run_ts")) / timedelta(hours=1) + 1).cast(int))
-            # add absolute error columns
-            .with_columns(ae=pl.col("err").abs(), adpd=pl.col("dpd").abs())
-            # add unique integer id for each forecast
-            .with_columns(pl.col("run_ts").rle_id().alias("fc_i"))
-            .collect()
-        )
-
-        # add start and end time for each forecast run
-        raw_metrics = raw_metrics.join(
-            raw_metrics.group_by("run_ts").agg(pl.min("time").alias("start_time"), pl.max("time").alias("end_time")),
-            on="run_ts",
-        )
-
-        return raw_metrics
-
-    raw_metrics = load_raw(data_path, tz)
+async def _(data_path, load_raw, tz):
+    raw_metrics = await load_raw(data_path, tz)
     return (raw_metrics,)
 
 
@@ -392,6 +411,8 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
         xaxis_label: str | None = None,
     ) -> go.Figure:
         x = df[x_col]
+        weak_quant_color = "rgb(109, 210, 189)"
+        strong_quant_color = "rgb(88, 170, 153)"
         fig = go.Figure(
             [
                 go.Scatter(
@@ -399,7 +420,7 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
                     x=x,
                     y=df[f"{val_col}_q{upper_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0, color="rgb(109, 210, 189)"),
+                    line=dict(width=0, color=weak_quant_color),
                     showlegend=False,
                 ),
                 go.Scatter(
@@ -407,7 +428,7 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
                     x=x,
                     y=df[f"{val_col}_q{lower_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0, color="rgb(109, 210, 189)"),
+                    line=dict(width=0, color=weak_quant_color),
                     showlegend=False,
                     fill="tonexty",
                 ),
@@ -416,7 +437,7 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
                     x=x,
                     y=df[f"{val_col}_q{inner_upper_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0, color="rgb(88, 170, 153)"),
+                    line=dict(width=0, color=strong_quant_color),
                     showlegend=False,
                 ),
                 go.Scatter(
@@ -424,10 +445,11 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
                     x=x,
                     y=df[f"{val_col}_q{inner_lower_quant * 100}"],
                     mode="lines",
-                    line=dict(width=0, color="rgb(88, 170, 153)"),
+                    line=dict(width=0, color=strong_quant_color),
                     showlegend=False,
                     fill="tonexty",
                 ),
+                # last so it's drawn on top of the quantile regions. must re-set color to first trace's color.
                 go.Scatter(
                     name=val_col,
                     x=x,
@@ -465,13 +487,6 @@ def _(add_ignored_rects, get_invalid_periods, go, pl, plotly):
         return fig
 
     return (quantile_line_chart,)
-
-
-@app.cell
-def _():
-    import marimo as mo
-
-    return (mo,)
 
 
 @app.cell
@@ -513,6 +528,81 @@ def _(go, pl):
         # trying to remove those leftover annotations here doesn't work because they aren't in the fig object at all...
 
     return (add_ignored_rects,)
+
+
+@app.cell
+def _(data_path, mo, pl, running_wasm, timedelta):
+    @mo.cache
+    async def load_raw(path: str, tz: str) -> pl.DataFrame:
+        if not running_wasm:
+            raw_metrics = pl.read_parquet(data_path)
+        else:
+            import pyarrow
+            import pyarrow.parquet as pq
+            from pyodide.http import pyfetch
+
+            # polars is not compiled with parquet support in wasm builds, so use this workaround.
+            # https://github.com/pola-rs/polars/issues/20876
+            response = await pyfetch(data_path)
+            table = pq.read_table(pyarrow.BufferReader(await response.bytes()))
+            raw_metrics = pl.from_arrow(table)
+
+        raw_metrics = (
+            raw_metrics.lazy()
+            # add lag column
+            .with_columns(lag=((pl.col("time") - pl.col("run_ts")) / timedelta(hours=1) + 1).cast(int))
+            # add absolute error columns
+            .with_columns(ae=pl.col("err").abs(), adpd=pl.col("dpd").abs())
+            # add unique integer id for each forecast
+            .with_columns(pl.col("run_ts").rle_id().alias("fc_i"))
+            .collect()
+        )
+
+        # add start and end time for each forecast run
+        raw_metrics = raw_metrics.join(
+            raw_metrics.group_by("run_ts").agg(pl.min("time").alias("start_time"), pl.max("time").alias("end_time")),
+            on="run_ts",
+        )
+
+        return raw_metrics
+
+    return (load_raw,)
+
+
+@app.cell
+def _(mo, model, pathlib, running_wasm, test_checkbox):
+    def get_assets_dir() -> pathlib.PurePath:
+        notebook_loc = mo.notebook_location()
+        if running_wasm:
+            return notebook_loc / "public" if notebook_loc is not None else None
+
+        return notebook_loc.parent / "data"
+
+    def get_data_path() -> str | None:
+        file_name = model + ("-test" if test_checkbox.value else "") + ".parquet"
+        asset_dir = get_assets_dir()
+        if asset_dir is None:
+            raise ValueError("Could not get asset dir")
+
+        if running_wasm:
+            return str(asset_dir / file_name)
+
+        path = asset_dir / "metrics" / "raw" / file_name
+        return str(path) if path.exists() else None
+
+    def get_meta_path() -> str | None:
+        file_name = model + ".json"
+        asset_dir = get_assets_dir()
+        if asset_dir is None:
+            raise ValueError("Could not get asset dir")
+
+        if running_wasm:
+            return str(asset_dir / file_name)
+
+        path = asset_dir / "models" / model / file_name
+        return str(path) if path.exists() else None
+
+    return get_data_path, get_meta_path
 
 
 @app.cell

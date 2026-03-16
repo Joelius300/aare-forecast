@@ -1,7 +1,8 @@
 # MVP Design
 
-**Hinweis:** Das ist das originale MVP design, die aktuelle Umsetzung sieht leicht anders aus (z.B. kein .NET).
-Die Dokumentation für den produktiven MVP folgt.
+> **Hinweis:** Das ist das originale MVP design nach den ersten Gesprächen mit aare.guru;
+> die aktuelle Umsetzung sieht leicht anders aus (z.B. kein .NET).
+> Die Dokumentation für den produktiven MVP folgt.
 
 ## Anforderungen für Integration (priorisiert)
 

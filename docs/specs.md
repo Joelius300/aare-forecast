@@ -1,5 +1,8 @@
 ## Motivation
 
+> Note: This was the initial spec document I wrote for myself when starting the project
+> long before I got in touch with aare.guru.
+
 At the moment, only the current values are visible in the aare.guru app/website.
 Users of aare.guru should be able to view a rough forecast of the discharge and temperature in the coming days.
 

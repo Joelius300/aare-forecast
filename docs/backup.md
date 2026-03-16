@@ -38,3 +38,9 @@ When working with \copy and timescaledb don't forget to use a subquery and not j
 ```
 \copy (select * from forecast) to 'forecast.csv'
 ```
+
+Don't forget to unexpose the postgres database again before closing the dokku shell!
+
+```bash
+postgres:unexpose aare-oraku-forecast
+```

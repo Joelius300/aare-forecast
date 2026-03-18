@@ -36,7 +36,7 @@ psql -h "$DOKKU_HOST" -p ... -U user -d aare_oraku_forecast
 
 When working with \copy and timescaledb don't forget to use a subquery and not just a table name.
 ```
-\copy (select * from forecast) to 'forecast.csv'
+\copy (select * from forecast) to 'forecast.csv' with csv header
 ```
 
 Don't forget to unexpose the postgres database again before closing the dokku shell!

@@ -94,7 +94,7 @@ def parse_args():
 
     args = parser.parse_args()
     name, version = (
-        args.model.split(MODEL_NAME_SEP, maxsplit=2) if (MODEL_NAME_SEP in args.model) else (args.model, None)
+        args.model.split(MODEL_NAME_SEP, maxsplit=1) if (MODEL_NAME_SEP in args.model) else (args.model, None)
     )
 
     if args.stride is None:

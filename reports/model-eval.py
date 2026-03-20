@@ -1,6 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
+#     "marimo>=0.21.1",
 #     "plotly[express]",
 #     "polars",
 #     "tzdata",
@@ -314,9 +315,13 @@ def _():
 @app.cell
 def _(itertools):
     tz = "Europe/Zurich"
+    # todo if not running wasm, populate this list with files from disk?
     models = {
         "nowcasting_temp": [
             "1.0",
+        ],
+        "LR-dev": [
+            "live-proto",
         ],
     }
     baseline_models = ["LOCF", "SNAIVE", "MEAN"]
@@ -372,7 +377,8 @@ def _(get_horizon_range, max_horizon, set_horizon_range):
 def _(horizon_range, hour_range, month_range, pl, raw_metrics):
     horizon_filter = (pl.col("lag") >= horizon_range.value[0]) & (pl.col("lag") <= horizon_range.value[1])
     hour_filter = (pl.col("time").dt.hour() >= hour_range.value[0]) & (pl.col("time").dt.hour() <= hour_range.value[1])
-    month_filter = (
+    # no need to filter month if 1-12 is allowed (gets rid of annoying edge case with forecasts across the year border)
+    month_filter = pl.lit(month_range.value[0] == 1 and month_range.value[1] == 12) | (
         (pl.col("start_time").dt.month() >= month_range.value[0])
         & (pl.col("end_time").dt.month() <= month_range.value[1])
         & (pl.col("start_time").dt.month() <= pl.col("end_time").dt.month())

@@ -190,12 +190,17 @@ def _evaluate_model(
 
     hf_df = hf_to_table(hf, tz, run_ts_delta)
     hf_df = join_true_data(hf_df, val, tz)
-    hf_df["err"] = get_err(hf_df)
-    hf_df["dpd"] = get_dpd(hf_df)
-    metric_df = get_metrics(hf_df)
+    add_base_errors(hf_df)
+    metric_df = get_run_metrics(hf_df)
     metric_df = join_start_end(metric_df, hf_df)
 
     return get_median_and_samples(hf, metric_df, metric, month_filter), hf_df
+
+
+def add_base_errors(hf_df: DataFrame):
+    """Add 'err' and 'dpd' error metrics to a dataframe with 'pred', 'actual', 'run_ts' and 'time' columns (in-place)."""
+    hf_df["err"] = get_err(hf_df)
+    hf_df["dpd"] = get_dpd(hf_df)
 
 
 def get_median_and_samples(
@@ -307,8 +312,8 @@ def get_err(hf_df: pd.DataFrame):
     return hf_df["actual"] - hf_df["pred"]
 
 
-def get_metrics(hf_df: pd.DataFrame):
-    """Calculate MAE, RMSE and MADPD per forecast."""
+def get_run_metrics(hf_df: pd.DataFrame):
+    """Calculate MAE, RMSE and MADPD per forecast (run)."""
     x = hf_df[["run_ts", "err", "dpd"]].copy()
     x["err_sq"] = x["err"] ** 2
     x[["err", "dpd"]] = x[["err", "dpd"]].abs()

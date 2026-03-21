@@ -1,9 +1,9 @@
 # Backup
 
-Deployment/dokku backups are handled, this is only about the data.
-Can also be used to get a local copy of the data for analysis.
+Backups are handled by the dokku instance, this is only about manually getting the data
+just to be sure or to analyze it locally.
 
-## Manual backup
+## Manual backup / data extraction
 
 Enter dokku shell
 
@@ -27,11 +27,11 @@ In another terminal on the host, use psql and/or pg_dump to get the data.
 Must adjust port and user here and provide password when prompted.
 
 ```bash
-pg_dump -h "$DOKKU_HOST" -p ... -U user -d aare_oraku_forecast -Fc -Z 9 -f aare_oraku_forecast.dump
+pg_dump -h "$DOKKU_HOST" -p port -U user -d aare_oraku_forecast -Fc -Z 9 -f aare_oraku_forecast.dump
 ```
 
 ```bash
-psql -h "$DOKKU_HOST" -p ... -U user -d aare_oraku_forecast
+psql -h "$DOKKU_HOST" -p port -U user -d aare_oraku_forecast
 ```
 
 When working with \copy and timescaledb don't forget to use a subquery and not just a table name.

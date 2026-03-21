@@ -45,6 +45,18 @@ def _(default_model, mo, model_names):
 
 
 @app.cell(hide_code=True)
+def _(mo, model):
+    _out = None
+    if model == "LR-dev-live-proto":
+        _out = mo.md(
+            "This model is special and you probably don't care for it. It was the prototype model that ran with real forecast data. When the test data checkbox is checked, you can analyze the evaluation with **measured** air temperature. If you uncheck it, it will _not_ use validation data, but instead it will show real historical forecast made with **forecasted** air temperature. This allows comparison between real historical forecasts and simulated forecasts on test data for the same time period."
+        ).callout("info")
+
+    _out
+    return
+
+
+@app.cell(hide_code=True)
 def _(mo):
     test_checkbox = mo.ui.checkbox(
         label="Whether to use test data for the evaluation (as opposed to validation data with even more bias)",

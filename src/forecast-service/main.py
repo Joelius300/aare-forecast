@@ -38,10 +38,24 @@ from oraku_forecast.version import __version__
 logger = logging.getLogger(__name__)
 
 
-async def main():
+async def main_wrapped():
     args = parse_cli_args()
     setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-service")
 
+    try:
+        await main_unwrapped(args)
+    except Exception as e:
+        # unless loki is the problem, log the error so it's easier to see what failed
+        try:
+            logger.error("Forecast run failed catastrophically", exc_info=e)
+        except:  # noqa: E722
+            pass
+
+        # reraise for the app/container to crash
+        raise
+
+
+async def main_unwrapped(args: CliArgs):
     run_ts = datetime.now(UTC)
 
     # load model and all required accessories into memory
@@ -209,4 +223,4 @@ async def persist_forecast(run_ts: datetime, forecast: pd.DataFrame, table: Time
 
 
 if __name__ == "__main__":
-    uvloop.run(main())
+    uvloop.run(main_wrapped())

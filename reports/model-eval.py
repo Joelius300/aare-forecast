@@ -106,7 +106,7 @@ def _(get_horizon_range, max_horizon, mo, set_horizon_range):
 
 @app.cell(hide_code=True)
 def _(mo):
-    hour_range = mo.ui.range_slider(0, 23, step=1, debounce=True, label="Hours to include", value=[0, 23])
+    hour_range = mo.ui.range_slider(0, 23, step=1, debounce=True, label="Hours to include", value=[7, 21])
     hour_range
     return (hour_range,)
 
@@ -640,7 +640,7 @@ def _(mo, model, pathlib, running_wasm, test_checkbox):
 
 @app.cell
 def _(mo):
-    get_horizon_range, set_horizon_range = mo.state([1, 36])
+    get_horizon_range, set_horizon_range = mo.state([1, 14])
     return get_horizon_range, set_horizon_range
 
 

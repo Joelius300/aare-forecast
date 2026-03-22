@@ -187,7 +187,7 @@ requires-dist = [{ name = "python-logging-loki-v2", specifier = ">=1.1.1" }]
 
 [[package]]
 name = "aare-oraku-api"
-version = "0.3.2"
+version = "0.3.3"
 source = { editable = "src/forecast-api" }
 dependencies = [
     { name = "aare" },
@@ -222,7 +222,7 @@ dev = [{ name = "fastapi-cli", extras = ["standard-no-fastapi-cloud-cli"], speci
 
 [[package]]
 name = "aare-oraku-forecast"
-version = "0.2.3"
+version = "0.3.0"
 source = { editable = "src/forecast-service" }
 dependencies = [
     { name = "aare" },

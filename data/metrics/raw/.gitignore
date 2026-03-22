@@ -7,3 +7,5 @@
 /MEAN.parquet
 /TIMESFM.parquet
 /LR-dev.parquet
+/LR-dev-live-proto.parquet
+/LR-dev-live-proto-test.parquet

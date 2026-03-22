@@ -84,7 +84,6 @@ def parse_args():
     parser.add_argument(
         "--name",
         help="Model name (use case) name (default: model_type)",
-        required=True,
     )
     parser.add_argument(
         "--version",

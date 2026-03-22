@@ -1,0 +1,5 @@
+outs:
+- md5: 91117e732aba32ac8afab26f8c54df9c
+  size: 4702792
+  hash: md5
+  path: LR-dev-live-proto-test.parquet

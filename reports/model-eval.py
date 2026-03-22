@@ -21,10 +21,25 @@ def _(mo):
 
     This notebook shows the accuracy of different Aare Oraku models and allows comparisons with baselines.
 
-    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. Most users of aare.guru will only look at the forecasts during the daytime in summer. Which forecast horizon (how many hours into the future) people are interested in probably depends on many factors; with the slider you can evaluate different views. Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
+    Use the dropdown to select which model to evaluate. Use the sliders to tune how the models are evaluated, respectively which forecasts or parts of forecasts are considered when calculating the metrics. 
+    Most users of aare.guru will only look at the forecasts during the daytime in summer.
+    Which forecast horizon (how many hours into the future) people are interested in probably depends on many factors; with the slider you can evaluate different views.
+    Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
-    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. During inference (on aare.guru), this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. How well the model performs with external forecast inputs we don't know yet, but it's very likely that it will be worse than this evaluation shows. How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model. To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated. At the same time, all historical forecasts including all external inputs are stored for future evaluation.
-    If you uncheck the test dataset and instead look at the validation data, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias. The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
+    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data. 
+    During inference (on aare.guru), this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models. 
+    How well the model performs with external forecast inputs we can't know yet, but it's very likely that it will be worse than this evaluation shows.
+    How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model.
+    A [preliminary analysis of real forecasts](https://github.com/Joelius300/aare-forecast/blob/main/notebooks/21_measurement-vs-forecast-eval.ipynb) showed that they might be 15-25% worse than test forecasts of the same model
+    during the same period. This is for the full 4-day forecasts, restricting evaluation to just the data shown in the
+    aare.guru main page, it drops to ~10%. Relative to the actual temperature, it's only ~1% worse on average.
+    
+    If you uncheck the test dataset and instead look at the validation data, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias.
+    The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
+    Luckily, the simple models used in the MVP are not overtuned and show very low differences between validation and test set.
+    
+    To make sure the Aare Oraku forecasts are accurate enough, they are continually monitored and evaluated.
+    At the same time, all historical forecasts including all external inputs are stored for future evaluation.
     """)
     return
 

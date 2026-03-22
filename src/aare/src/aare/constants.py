@@ -13,15 +13,14 @@ LOC_BIEL = 2029  # Brügg, Aegerten
 LOC_BRGG = 2016  # Brugg
 # Olten does not exist in hydro network unfortunately, custom temp sensor for app
 
-# location codes (meteo/smn)
+# location codes (meteo/smn) / sometimes difficult to choose, these are the same as aare.guru
 LOC_BERN_SMN = "BER"
 LOC_THUN_SMN = "THU"
 LOC_INT_SMN = "INT"
-LOC_BRNZ_SMN = "BRZ"
-# TODO figure out which station aare.guru uses for those (Cressier? Grenchen?)
-LOC_HAGN_SMN = None  # Cressier?
-LOC_BIEL_SMN = None  # Grenchen?
-LOC_BRGG_SMN = None  # Buchs (AG), Lägern, Beznau?
+LOC_BRNZ_SMN = "MER"  # Meiringen instead of Brienz because that is close and has much more data
+LOC_HAGN_SMN = "CRM"  # Cressier
+LOC_BIEL_SMN = "GRE"  # Grenchen
+LOC_BRGG_SMN = "BEZ"  # Beznau
 
 # column names for raw influx hydro data (legacy)
 TIME = "_time"

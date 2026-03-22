@@ -29,6 +29,7 @@ class SourceRegistry:
             "bafu_flow": {
                 "source": BafuFlowSource(
                     "https://www.hydrodaten.admin.ch/plots/q_forecast/{loc}_q_forecast_de.json",
+                    # all but BRNZ (Brienz, 2019), which doesn't have flow forecasts
                     [LOC_BERN, LOC_THUN, LOC_INT, LOC_HAGN, LOC_BIEL, LOC_BRGG],
                     timedelta(minutes=5),
                 ),

@@ -16,7 +16,7 @@ class MeteoTestSource(ExternalSource):
     """Fetch forecasts from Meteotest (internal Meteotest service)"""
 
     # dict with name translation from meteotest names to our internal names (see locations.py).
-    # if an name is explicitly mapped to None, it does not have a mapping (yet).
+    # if a name is explicitly mapped to None, it does not have a mapping (yet).
     NAME_TRANSLATIONS = {
         "AARAU": None,
         "BERN": "BERN",

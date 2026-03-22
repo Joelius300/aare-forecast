@@ -17,6 +17,12 @@ just build-api v0.2.0
 just deploy-api v0.2.0
 ```
 
+### Uploading model
+
+```bash
+just upload-model nowcasting_temp-1.0
+```
+
 ## Executing dokku commands
 
 Either open an interactive shell/prompt with
@@ -58,3 +64,5 @@ conn.close()
 ```bash
 ssh -t "dokku@$DOKKU_HOST" postgres:connect aare-oraku-forecast
 ```
+
+See also [backup.md](backup.md) for how to use local psql to download/export data.

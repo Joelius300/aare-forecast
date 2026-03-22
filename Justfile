@@ -69,6 +69,12 @@ deploy-api tag='latest':
 [parallel]
 deploy-latest: deploy-service deploy-api
 
+# upload model dir to dokku mount
+[group('deploy')]
+upload-model model:
+  # every single one of those trailing and missing slashes must be exactly as they are!
+  rsync -avz data/models/{{model}}/ root@$DOKKU_HOST:/{{model}}
+
 [group('run')]
 [working-directory: 'src/forecast-api']
 api:

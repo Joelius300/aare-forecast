@@ -222,7 +222,7 @@ dev = [{ name = "fastapi-cli", extras = ["standard-no-fastapi-cloud-cli"], speci
 
 [[package]]
 name = "aare-oraku-forecast"
-version = "0.3.0"
+version = "0.3.1"
 source = { editable = "src/forecast-service" }
 dependencies = [
     { name = "aare" },

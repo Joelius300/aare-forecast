@@ -1,6 +1,6 @@
 [project]
 name = "aare-oraku-forecast"
-version = "0.3.0"
+version = "0.3.1"
 description = "Forecast service to fetch external data and persist forecasts to a DB"
 requires-python = ">=3.12"
 dependencies = [

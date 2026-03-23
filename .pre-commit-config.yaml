@@ -1,37 +1,43 @@
 repos:
--   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-    rev: v0.9.0
+  - repo: local
     hooks:
-    -   id: pre-commit-update
+      - id: update-hooks
+        language: system
+        name: update-hooks
+        entry: prek auto-update --cooldown-days 1
+        always_run: true
+        pass_filenames: false
+        priority: 0
         fail_fast: true
--   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.12
-    hooks:
-    -   id: uv-lock
-    -   id: uv-export
--   repo: local
-    hooks:
         # -   id: pyright-local
         # language: system
         # name: pyright-local
         # entry: uv run basedpyright
         # types_or: [python, pyi, jupyter]
         # pass_filenames: false
-    -   id: ruff-check-local
+      - id: ruff-check-local
         language: system
         name: ruff-check-local
         entry: uv run ruff check --force-exclude --fix
         types_or: [python, pyi, jupyter]
         pass_filenames: true
         require_serial: true
-    -   id: ruff-format-local
+        priority: 1
+      - id: ruff-format-local
         language: system
         name: ruff-format-local
         entry: uv run ruff format --force-exclude
         types_or: [python, pyi, jupyter]
         pass_filenames: true
         require_serial: true
--   repo: https://github.com/iterative/dvc
+        priority: 2
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.10.12
+    hooks:
+      - id: uv-lock
+        priority: 1
+  - repo: https://github.com/iterative/dvc
     rev: 3.67.0
     hooks:
-    -   id: dvc-pre-commit
+      - id: dvc-pre-commit
+        priority: 1

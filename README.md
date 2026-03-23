@@ -52,12 +52,12 @@ Or use
 just track
 ```
 
-If you want to work with the code instead of just running it, I suggest you install `nbstripout` (already in venv) and `pre-commit` (`uv tool install pre-commit`).
+If you want to work with the code instead of just running it, I suggest you install `nbstripout` (already in venv) and `prek` (`uv tool install prek`).
 To set them up, run the following.
 
 ```bash
 uv run nbstripout --install --attributes .gitattributes
-pre-commit install --install-hooks
+prek install -f
 ```
 
 ## Quellen & Links

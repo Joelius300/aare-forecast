@@ -3,7 +3,7 @@ import pandas as pd
 from aare.constants import LOC_BERN
 from aare_train.features.base.single_field_feature import SingleFieldFeature
 from aare_train.preparation import remove_period
-from aare_train.fetching.remote_existenz_store import FieldRequest
+from aare_influx.field_request import FieldRequest
 
 
 class Flow(SingleFieldFeature):

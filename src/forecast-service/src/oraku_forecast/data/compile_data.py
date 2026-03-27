@@ -12,7 +12,8 @@ from aare_train.fetching.feature_identifiers import FeatureIdentifiers
 from aare_train.features.base.feature import Feature
 from aare_train.features.registry import FEATURES
 from aare_train.preparation import resample
-from aare_train.fetching.remote_existenz_store import RemoteExistenzStore, FieldRequest
+from aare_influx.remote_existenz_store import RemoteExistenzStore
+from aare_influx.field_request import FieldRequest
 from oraku_forecast.data.inference_data import InferenceData
 from oraku_forecast.external_sources.translations import MEAS_TRANS
 

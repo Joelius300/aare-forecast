@@ -5,7 +5,7 @@ from darts import TimeSeries
 
 from aare_train.features.base.feature import Feature
 from aare_train.preparation import remove_outliers, interpolate_continuous
-from aare_train.fetching.remote_existenz_store import FieldRequest
+from aare_influx.field_request import FieldRequest
 from aare_train.darts_utils import to_ts
 
 logger = logging.getLogger(__name__)

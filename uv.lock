@@ -89,6 +89,7 @@ conflicts = [[
 members = [
     "aare",
     "aare-forecast",
+    "aare-influx",
     "aare-logging",
     "aare-oraku-api",
     "aare-oraku-forecast",
@@ -172,6 +173,21 @@ dev = [
     { name = "pypots", specifier = ">=0.19" },
     { name = "ruff", specifier = ">=0.9.5" },
     { name = "statsmodels", specifier = ">=0.14.4" },
+]
+
+[[package]]
+name = "aare-influx"
+version = "0.1.0"
+source = { editable = "src/aare-influx" }
+dependencies = [
+    { name = "aare" },
+    { name = "influxdb-client" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aare", editable = "src/aare" },
+    { name = "influxdb-client", specifier = ">=1.50.0" },
 ]
 
 [[package]]
@@ -275,8 +291,8 @@ version = "0.1.0"
 source = { editable = "src/aare-train" }
 dependencies = [
     { name = "aare" },
+    { name = "aare-influx" },
     { name = "darts", extra = ["torch"] },
-    { name = "influxdb-client" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pandas" },
@@ -306,9 +322,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aare", editable = "src/aare" },
+    { name = "aare-influx", editable = "src/aare-influx" },
     { name = "darts", extras = ["torch"], specifier = "~=0.42.1" },
     { name = "dvc", marker = "extra == 'dvc'", specifier = ">=3.58.0" },
-    { name = "influxdb-client", specifier = ">=1.48.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "pandas", specifier = ">=2.2.3" },

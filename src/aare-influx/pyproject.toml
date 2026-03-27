@@ -1,0 +1,16 @@
+[project]
+name = "aare-influx"
+version = "0.1.0"
+description = "Library to communicate with remote existenz influx data store"
+requires-python = ">=3.11"
+dependencies = [
+    "aare",
+    "influxdb-client>=1.50.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+aare = { workspace = true }

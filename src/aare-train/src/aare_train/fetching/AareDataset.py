@@ -1,7 +1,7 @@
 from typing_extensions import deprecated
 from aare.constants import LOC_BERN
 from aare_train.params import read_params
-from aare_train.fetching.remote_existenz_store import RemoteExistenzStore
+from aare_influx.remote_existenz_store import RemoteExistenzStore
 
 
 @deprecated("Very inflexible, prefer RemoteExistenzStore, Feature and FeatureSet.")

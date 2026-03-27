@@ -1,7 +1,7 @@
 from typing import override
 from aare_train.features.base.feature import Feature
 from aare_train.preparation import interpolate_continuous, remove_outliers, remove_period
-from aare_train.fetching.remote_existenz_store import FieldRequest
+from aare_influx.field_request import FieldRequest
 from aare_train.darts_utils import to_ts
 from darts import TimeSeries
 import numpy as np

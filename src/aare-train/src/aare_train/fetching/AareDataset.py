@@ -1,13 +1,12 @@
+from typing_extensions import deprecated
 from aare.constants import LOC_BERN
 from aare_train.params import read_params
 from aare_train.fetching.remote_existenz_store import RemoteExistenzStore
 
 
+@deprecated("Very inflexible, prefer RemoteExistenzStore, Feature and FeatureSet.")
 class AareDataset:
-    """
-    Direct access to the raw train, val and test data for the target of this project (water temperature in berne).
-    Very inflexible, prefer RemoteExistenzStore, Feature and FeatureSet.
-    """
+    """Direct access to the raw train, val and test data for the target of this project (water temperature in Bern)."""
 
     def __init__(
         self,

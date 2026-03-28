@@ -39,12 +39,12 @@ track: mlflow optuna
 [group('build')]
 build-service tag='latest':
   -uv version --package aare-oraku-forecast {{tag}}  # try setting version, ignore if failed
-  docker build -f src/forecast-service/Dockerfile . -t aare-oraku-forecast:{{tag}} -t aare-oraku-forecast:latest
+  docker build -f src/oraku-forecast/Dockerfile . -t aare-oraku-forecast:{{tag}} -t aare-oraku-forecast:latest
 
 [group('build')]
 build-api tag='latest':
   -uv version --package aare-oraku-api {{tag}}  # try setting version, ignore if failed
-  docker build -f src/forecast-api/Dockerfile . -t aare-oraku-api:{{tag}} -t aare-oraku-api:latest
+  docker build -f src/oraku-api/Dockerfile . -t aare-oraku-api:{{tag}} -t aare-oraku-api:latest
 
 [group('build')]
 [working-directory: 'reports']
@@ -76,13 +76,13 @@ upload-model model:
   rsync -avz data/models/{{model}}/ root@$DOKKU_HOST:/{{model}}
 
 [group('run')]
-[working-directory: 'src/forecast-api']
+[working-directory: 'src/oraku-api']
 api:
   uv run uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 
 [group('run')]
 forecast:
-  uv run src/forecast-service/main.py
+  uv run src/oraku-forecast/main.py
 
 # run forecast service via docker (only works on linux, with the docker compose running, and a model in model_mount) [set model with -m or --model]
 [group('run')]

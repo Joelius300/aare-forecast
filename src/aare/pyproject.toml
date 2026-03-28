@@ -8,3 +8,7 @@ dependencies = []
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# needed to sync with --no-install-project where sources cannot be explored, despite this being (one of) the default(s)
+[tool.hatch.build.targets.wheel]
+packages = ["src/aare"]

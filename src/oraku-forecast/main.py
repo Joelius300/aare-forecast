@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 async def main_wrapped():
     args = parse_cli_args()
-    setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-service")
+    setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-forecast")
 
     try:
         await main_unwrapped(args)

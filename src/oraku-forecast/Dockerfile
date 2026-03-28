@@ -17,13 +17,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/aare-train/pyproject.toml,target=src/aare-train/pyproject.toml \
     --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/aare-timescale/pyproject.toml,target=src/aare-timescale/pyproject.toml \
-    --mount=type=bind,source=src/forecast-service/pyproject.toml,target=src/forecast-service/pyproject.toml \
-    --mount=type=bind,source=src/forecast-api/pyproject.toml,target=src/forecast-api/pyproject.toml \
+    --mount=type=bind,source=src/aare-influx/pyproject.toml,target=src/aare-influx/pyproject.toml \
+    --mount=type=bind,source=src/oraku-forecast/pyproject.toml,target=src/oraku-forecast/pyproject.toml \
+    --mount=type=bind,source=src/oraku-api/pyproject.toml,target=src/oraku-api/pyproject.toml \
     uv sync --locked --no-install-project --no-dev --extra cpu --package=aare-oraku-forecast \
     && uv pip uninstall shap numba llvmlite networkx slicer pygit2 pygments cryptography
 
 # which files/dirs are copied is controlled by the .dockerignore file.
-# wouldn't need sources for forecast-api, but they carry almost no weight so whatever.
+# wouldn't need sources for oraku-api, but they carry almost no weight so whatever.
 COPY . /app
 
 # install packages from our code etc. and remove unneccessary (transitive) dependencies of darts
@@ -38,11 +39,11 @@ WORKDIR /app
 
 # copy the application and built venv from the builder
 COPY --from=builder --chown=app:app /app /app
-COPY src/forecast-service/deploy/app.json /app/app.json
-COPY src/forecast-service/deploy/Procfile /app/Procfile
+COPY src/oraku-forecast/deploy/app.json /app/app.json
+COPY src/oraku-forecast/deploy/Procfile /app/Procfile
 
 ENV PYTHONUNBUFFERED=1
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PROJECT_ROOT=/app
 
-CMD ["python", "/app/src/forecast-service/main.py"]
+CMD ["python", "/app/src/oraku-forecast/main.py"]

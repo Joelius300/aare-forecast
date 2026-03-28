@@ -1,0 +1,1 @@
+job: python /app/src/oraku-forecast/main.py

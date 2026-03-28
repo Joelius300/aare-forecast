@@ -1,7 +1,7 @@
 {
   "cron": [
     {
-      "command": "python /app/src/forecast-service/main.py",
+      "command": "python /app/src/oraku-forecast/main.py",
       "schedule": "*/15 * * * *"
     }
   ]

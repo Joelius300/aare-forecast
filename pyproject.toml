@@ -55,12 +55,6 @@ ignore = [
     "reports/",
 ]
 
-# fixes `lib` absolute imports, all "aare-*" packages are installed so no need
-executionEnvironments = [
-    { root = "src/forecast-service", pythonVersion = "3.12", extraPaths = ["src/forecast-service", ] },
-    { root = "src/forecast-api", pythonVersion = "3.12", extraPaths = ["src/forecast-api", ] },
-]
-
 # needed explicitly otherwise the overrides below are ignored
 [tool.uv]
 package = false
@@ -94,3 +88,4 @@ aare = { workspace = true }
 aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }
+aare-influx = { workspace = true }

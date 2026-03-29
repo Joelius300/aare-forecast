@@ -17,6 +17,8 @@ DEFAULT_SINCE = datetime(2026, 1, 1, tzinfo=UTC)
 
 logger = logging.getLogger(__name__)
 
+TABLE_NAME_PREFIX = "mirror_"
+
 
 async def main():
     args = parse_cli_args()
@@ -24,22 +26,16 @@ async def main():
 
     run_ts = datetime.now(UTC)
     requests = [FieldRequest.from_str(f) for f in args.fields]
-
-    # Group by (measurement, location_orig) — one influx query per group
-    groups: dict[tuple[str, str], list[FieldRequest]] = defaultdict(list)
-    for fr in requests:
-        groups[(fr.measurement, str(fr.location_orig))].append(fr)
-
     store = RemoteExistenzStore()
 
     async with init_db_pool(args.connection_string) as pool:
-        # Ensure all tables and columns exist, grouped by measurement
+        # ensure all tables and columns exist, grouped by measurement
         measurements_fields: dict[str, list[FieldRequest]] = defaultdict(list)
         for fr in requests:
             measurements_fields[fr.measurement].append(fr)
 
         for measurement, meas_fields in measurements_fields.items():
-            table_name = f"mirror_{measurement}"
+            table_name = TABLE_NAME_PREFIX + measurement
             async with pool.connection() as conn:
                 await conn.execute(
                     sql.SQL("""
@@ -58,9 +54,13 @@ async def main():
                         )
                     )
 
+        # TODO this part below is wrong! Refactor it to 1) only group by measurement resp. per postgres table and fetch
+        #  all latest times for that table in a single query. 2) Query all fields together without grouping and filter
+        #  out data that's already present in the database by first manipulating the df before calling copy_from_df.
+        #  The overhead of fetching more data than necessary is nicer than making more, individual calls to influx.
         # Mirror each (measurement, location) group
         for (measurement, location_orig), fields in groups.items():
-            table_name = f"mirror_{measurement}"
+            table_name = TABLE_NAME_PREFIX + measurement
             location = location_orig.upper()
 
             # Query latest mirrored timestamp for this location

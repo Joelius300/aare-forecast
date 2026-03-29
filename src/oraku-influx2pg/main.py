@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from collections import defaultdict
 import logging
+from typing import cast
 
 import psycopg
 import uvloop
@@ -23,8 +24,9 @@ TABLE_NAME_PREFIX = "mirror_"
 EXPECTED_FREQ = "1h"  # not supporting anything else right now
 
 
-async def _upsert_df(conn: psycopg.AsyncConnection, df: pd.DataFrame, table_name: str, col_names: list[str]):
-    """Copy df into a temp table then upsert into the target on (time, location) conflict."""
+async def _upsert_df(conn: psycopg.AsyncConnection, df: pd.DataFrame, table_name: str, val_cols: list[str]):
+    """Copy df into a temp table then upsert into the target on (time, location) conflict (also updating run_ts)."""
+    # this fancy method is something claude came up with, and I'm glad it did. I'm not that deep in the postgres game.
     temp_name = f"_tmp_{table_name}"
     await conn.execute(
         sql.SQL("CREATE TEMP TABLE {tmp} (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP").format(
@@ -32,10 +34,12 @@ async def _upsert_df(conn: psycopg.AsyncConnection, df: pd.DataFrame, table_name
         )
     )
 
-    # TODO currently this breaks when the df doesn't contain all columns the table contains. See if copy_from_df should be updated to include columns.
-    #  The way of TimescaleTable won't work because we don't know what columns the table currently has.
     await copy_from_df(conn, df, temp_name)
-    update_cols = [sql.Identifier(c) for c in ["run_ts"] + col_names]
+    # update run_ts and all provided value columns. time, location must stay the same (otherwise no conflict would occur).
+    # location_upstream is also updated to avoid desync if we ever changed the mapping from our to upstream locations.
+    update_cols = [sql.Identifier(c) for c in ["run_ts", "location_upstream"] + val_cols]
+    # "EXCLUDED." references the row that would have been inserted but led to the conflict.
+    # just "col" or "table.col" would be the value that is already there in the existing row.
     update_set = sql.SQL(", ").join(sql.SQL("{col} = EXCLUDED.{col}").format(col=col) for col in update_cols)
     await conn.execute(
         sql.SQL("INSERT INTO {table} SELECT * FROM {tmp} ON CONFLICT (time, location) DO UPDATE SET {updates}").format(
@@ -64,7 +68,7 @@ async def main():
         for measurement, meas_fields in measurements_fields.items():
             table_name = TABLE_NAME_PREFIX + measurement
 
-            # create tables and or add columns. Do not drop columns we don't store anymore.
+            # create tables and or add columns. do not drop columns we don't store anymore, they just stay untouched.
             # in this context, there's only one row per time, like in influx. run_ts is just to know when the data was fetched.
             async with pool.connection() as conn:
                 await conn.execute(
@@ -94,7 +98,7 @@ async def main():
             # fetch latest mirrored timestamp per location.
             # only count rows where ALL requested fields for that location are non-null.
             # when a new column is added (all NULLs), max_time returns NULL → DEFAULT_SINCE.
-            # is also nice because itl
+            # it can even handle a column being removed and re-added later; it will pick back up where it left off.
             loc_clauses: list[sql.Composed] = []
             for location_orig, fields in loc_fields.items():
                 not_null_checks = sql.SQL(" AND ").join(
@@ -117,15 +121,13 @@ async def main():
                 df_max = await copy_to_df(conn, query)
 
             since_per_loc: dict[str, datetime] = {}
-            for location_orig, _ in loc_fields.items():
+            for location_orig in loc_fields.keys():
                 rows = df_max[df_max["location"] == location_orig] if not df_max.empty else df_max
-                if rows.empty:
-                    since_per_loc[location_orig] = DEFAULT_SINCE
-                else:
-                    # TODO this is slightly different to fetch_forecast which uses datetime.fromisoformat, check that
-                    since_per_loc[location_orig] = pd.Timestamp(rows.iloc[0]["max_time"]).to_pydatetime() + timedelta(
-                        seconds=1
-                    )
+                since_per_loc[location_orig] = (
+                    datetime.fromisoformat(cast(str, rows.iloc[0]["max_time"])) + timedelta(seconds=1)
+                    if not rows.empty
+                    else DEFAULT_SINCE
+                )
 
             global_since = min(since_per_loc.values())
             logger.info(f"Fetching {measurement} since {global_since} (global min across locations and columns)")
@@ -143,7 +145,7 @@ async def main():
 
             # resample to drop the last timestamp influx returns, no clue why it does that...
             # this is equivalent to aare_train.preparation.resample; didn't want to split it yet, but.. TODO
-            df.set_index(TIME).resample(EXPECTED_FREQ).first().reset_index(TIME)
+            df = df.set_index(TIME).resample(EXPECTED_FREQ).first().reset_index(TIME)
             df = df.rename(columns={TIME: "time"})
 
             for location_orig, fields in loc_fields.items():
@@ -153,7 +155,7 @@ async def main():
                 col_names = [fr.name for fr in fields]
                 loc_df = df[["time"] + col_names].copy()
                 loc_df = loc_df.rename(columns={fr.name: fr.field for fr in fields})
-                loc_df = loc_df[loc_df["time"] > since]
+                loc_df = loc_df[loc_df["time"] > since]  # filter to upsert less data
 
                 if loc_df.empty:
                     logger.info(f"No new data for {measurement}@{location_orig}")
@@ -163,8 +165,6 @@ async def main():
                 loc_df["location_upstream"] = location_up
                 loc_df["run_ts"] = run_ts
                 field_names = [fr.field for fr in fields]
-                loc_df = loc_df[["time", "run_ts", "location"] + field_names]
-
                 async with pool.connection() as conn:
                     await _upsert_df(conn, loc_df, table_name, field_names)
 

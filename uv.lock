@@ -183,12 +183,14 @@ source = { editable = "src/aare-influx" }
 dependencies = [
     { name = "aare" },
     { name = "influxdb-client" },
+    { name = "pandas" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aare", editable = "src/aare" },
     { name = "influxdb-client", specifier = ">=1.50.0" },
+    { name = "pandas", specifier = ">=2.3.2" },
 ]
 
 [[package]]
@@ -303,11 +305,15 @@ name = "aare-timescale"
 version = "0.1.0"
 source = { editable = "src/aare-timescale" }
 dependencies = [
+    { name = "pandas" },
     { name = "psycopg", extra = ["binary", "pool"] },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" }]
+requires-dist = [
+    { name = "pandas", specifier = ">=2.3.2" },
+    { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
+]
 
 [[package]]
 name = "aare-train"

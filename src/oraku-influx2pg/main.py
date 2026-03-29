@@ -1,10 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from collections import defaultdict
-from dataclasses import dataclass
-from pathlib import Path
 import logging
 
-import configargparse
 import uvloop
 import pandas as pd
 from psycopg import sql
@@ -14,37 +11,11 @@ from aare_timescale.postgres import init_db_pool, copy_to_df, copy_from_df
 from aare_timescale.timescale import make_hypertable
 from aare_influx.remote_existenz_store import RemoteExistenzStore
 from aare_influx.field_request import FieldRequest
-
-logger = logging.getLogger(__name__)
+from oraku_influx2pg.args import parse_cli_args
 
 DEFAULT_SINCE = datetime(2026, 1, 1, tzinfo=UTC)
 
-
-@dataclass
-class CliArgs:
-    connection_string: str
-    fields: list[str]
-    logging_level: str
-    loki_url: str | None
-    loki_password: str | None
-
-
-def parse_cli_args() -> CliArgs:
-    default_config_file = Path(__file__).parent / "dev_config.yaml"
-    p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=[str(default_config_file)])
-    p.add_argument("-c", "--connection-string", required=True, type=str, help="Connection string for the timescale db")
-    p.add_argument(
-        "-f",
-        "--fields",
-        required=True,
-        nargs="+",
-        type=str,
-        help='FieldRequest strings, e.g. "hydro/temperature:mean_1h@bern"',
-    )
-    p.add_argument("--logging-level", default="INFO", type=str)
-    p.add_argument("--loki-url", default=None, type=str)
-    p.add_argument("--loki-password", default=None, type=str)
-    return CliArgs(**vars(p.parse_args()))  # pyright: ignore[reportAny]
+logger = logging.getLogger(__name__)
 
 
 async def main():

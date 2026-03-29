@@ -1,4 +1,3 @@
-connection-string: postgresql://user:password@localhost:5432/aare
-fields:
-  - hydro/temperature:mean_1h@bern
-  - smn/tt:mean_1h@bern
+logging-level: DEBUG
+connection-string: "host=127.0.0.1 dbname=aare_oraku user=postgres password=password"
+fields: [ "hydro/temperature:mean_1h@bern", "smn/tt:mean_1h@bern" ]

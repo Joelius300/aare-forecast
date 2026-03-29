@@ -29,7 +29,12 @@ async def copy_to_df(
 
 
 async def copy_from_df(conn: AsyncConnection, df: pd.DataFrame, table: str):
-    """Copy a pandas DataFrame into a Timescale table."""
+    """
+    Copy a pandas DataFrame into a Timescale table.
+
+    Only the columns present in the DataFrame are written; any table columns not
+    in the DataFrame receive their default value (typically NULL).
+    """
     # save dataframe to an in-memory buffer
     buffer = BytesIO()
     df.to_csv(cast(WriteBuffer[bytes], buffer), index=False, header=True)  # pyright: ignore[reportInvalidCast]
@@ -37,11 +42,15 @@ async def copy_from_df(conn: AsyncConnection, df: pd.DataFrame, table: str):
     buffer.seek(0)
     csv = buffer.getvalue()
 
+    col_list = sql.SQL(", ").join(sql.Identifier(c) for c in df.columns)
+
     async with conn.cursor() as cur:
         # for whatever ungodly reason, it will raise 'invalid input syntax for type timestamp with time zone'
         # if you omit the HEADERs, even though they are supposedly ignored completely, but idk man...
         async with cur.copy(
-            sql.SQL("COPY {table} FROM STDIN WITH CSV HEADER").format(table=sql.Identifier(table))
+            sql.SQL("COPY {table} ({cols}) FROM STDIN WITH CSV HEADER").format(
+                table=sql.Identifier(table), cols=col_list
+            )
         ) as copy:
             await copy.write(csv)
 

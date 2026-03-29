@@ -70,6 +70,11 @@ class TimescaleTable(ABC):
                 raise ValueError(missing_cols_msg)
 
             logger.warning(missing_cols_msg)
+
+            # note, since copy_from_df also specifies the df columns and their order, it's probably not needed to add
+            # these empty columns anymore. With None, it explicitly puts null, if you omit it, it will take the default
+            # which could be configured to something else per column, so there is a semantic difference in some cases.
+
             # add empty columns, for this we need a copy, otherwise the original df would get the additional columns too
             to_store = to_store.copy()
             # to_csv omits None and np.nan the same way so it shouldn't matter. None has dtype object, nan float64.

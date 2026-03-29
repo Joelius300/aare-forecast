@@ -1,3 +1,4 @@
 logging-level: DEBUG
 connection-string: "host=127.0.0.1 dbname=aare_oraku user=postgres password=password"
-fields: [ "hydro/temperature:mean_1h@bern", "smn/tt:mean_1h@bern" ]
+fields: [ "hydro/temperature:mean_1h@bern", "hydro/flow:mean_1h@bern", "smn/tt:mean_1h@bern", "smn/rr:sum_1h@bern", "smn/ss:sum_1h@bern" ]
+# fields: [ "hydro/temperature:mean_1h@bern" ]

@@ -5,6 +5,8 @@ import pandas as pd
 from pandas._typing import WriteBuffer
 from psycopg import AsyncConnection, sql
 from psycopg.abc import Params
+from psycopg.rows import TupleRow
+from psycopg_pool import AsyncConnectionPool
 
 
 async def copy_to_df(
@@ -42,3 +44,27 @@ async def copy_from_df(conn: AsyncConnection, df: pd.DataFrame, table: str):
             sql.SQL("COPY {table} FROM STDIN WITH CSV HEADER").format(table=sql.Identifier(table))
         ) as copy:
             await copy.write(csv)
+
+
+def init_db_pool(
+    connection_string: str, min_size=1, max_size=4, prepare_threshold: int | None = 3
+) -> AsyncConnectionPool:
+    """Initialize a postgres connection pool with some defaults for our small use cases."""
+    # Could also use AsyncNullConnectionPool because we probably don't really need pooling atm.
+    # With this config, it always keeps one connection open/ready and could/would use more if multiple are need at once.
+    # Defaults are too high, we don't need that much, so only use 1 worker for example.
+    conn_pool = AsyncConnectionPool(
+        connection_string,
+        open=False,
+        min_size=min_size,
+        max_size=max_size,
+        num_workers=1,
+        connection_class=AsyncConnection[TupleRow],  # needed to make pyright happy, but is already the default
+        timeout=10,  # 30s is way too much
+        # these kwargs are passed to the connection constructor
+        # set how many times a query needs to be seen for it to be prepared on the server side.
+        # COPY statements cannot be prepared, so they ignore this setting.
+        kwargs=dict(prepare_threshold=prepare_threshold),
+    )
+
+    return conn_pool

@@ -16,12 +16,11 @@ from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
-from psycopg import AsyncConnection
-from psycopg.rows import TupleRow
 from psycopg_pool import AsyncConnectionPool
 
 from aare_logging.logging import setup_logging
 from aare_timescale.timescale_table import TimescaleTable
+from aare_timescale.postgres import init_db_pool
 from aare_train.compat.types import DataTransformers
 from aare_train.storage.metadata import AareModel
 from aare_train.storage.model import load_model
@@ -63,7 +62,7 @@ async def main_unwrapped(args: CliArgs):
     # set params file for read_params to the one that was used when training the model
     set_params_file(model_meta["params_path"])
 
-    async with await init_db_pool(args) as conn_pool:
+    async with init_db_pool(args.connection_string) as conn_pool:
         metadata_table = ForecastMetaTable(conn_pool)
         await metadata_table.ensure_table_exists()
         await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
@@ -85,22 +84,6 @@ async def main_unwrapped(args: CliArgs):
         await metadata_table.update_metadata(run_ts, status, error, finished_at)
 
     logger.info(f"Finished run in {finished_at - run_ts} (+ {run_ts - import_start_ts} imports)")
-
-
-async def init_db_pool(args: CliArgs) -> AsyncConnectionPool:
-    # TODO consolidate with init_db_pool of api into aare-timescale package
-    # could also use AsyncNullConnectionPool because we probably don't really need pooling atm.
-    # with this config, it always keeps one connection open/ready and could/would use more if multiple are need at once.
-    conn_pool = AsyncConnectionPool(
-        args.connection_string,
-        min_size=1,  # keep one open at all times
-        max_size=4,
-        # shouldn't need more workers to manage those connections (big default on min_size, num_workers, ..)
-        num_workers=1,
-        connection_class=AsyncConnection[TupleRow],  # needed to make pyright happy, but is already the default
-    )
-
-    return conn_pool
 
 
 async def make_forecast(

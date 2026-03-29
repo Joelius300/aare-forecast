@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from aare_logging.logging import setup_logging
+from aare_timescale.postgres import init_db_pool
 from oraku_api.access_log_filter import AccessLogFilter
-from oraku_api.dba import init_db_pool
 from oraku_api.oraku_settings import settings
 from oraku_api.routers.boilerplate import router as boilerplate_router
 from oraku_api.routers.forecast import router as forecast_router
@@ -35,15 +35,12 @@ async def lifespan(_app: FastAPI):
     db_pool = init_db_pool(settings.connection_string)
     latest_caches = init_latest_caches(settings)
 
-    await db_pool.open()
-
-    yield {
-        "db_pool": db_pool,
-        "settings": settings,
-        "latest_caches": latest_caches,
-    }
-
-    await db_pool.close()
+    async with db_pool:
+        yield {
+            "db_pool": db_pool,
+            "settings": settings,
+            "latest_caches": latest_caches,
+        }
 
 
 app = FastAPI(

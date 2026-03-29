@@ -34,7 +34,11 @@ def parse_cli_args() -> CliArgs:
     p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=[str(default_config_file)])
     p.add_argument("-c", "--connection-string", required=True, type=str, help="Connection string for the timescale db")
     p.add_argument(
-        "-f", "--fields", required=True, nargs="+", type=str,
+        "-f",
+        "--fields",
+        required=True,
+        nargs="+",
+        type=str,
         help='FieldRequest strings, e.g. "hydro/temperature:mean_1h@bern"',
     )
     p.add_argument("--logging-level", default="INFO", type=str)
@@ -66,18 +70,22 @@ async def main():
         for measurement, meas_fields in measurements_fields.items():
             table_name = f"mirror_{measurement}"
             async with pool.connection() as conn:
-                await conn.execute(sql.SQL("""
+                await conn.execute(
+                    sql.SQL("""
                     CREATE TABLE IF NOT EXISTS {table} (
                         time timestamptz NOT NULL,
                         run_ts timestamptz NOT NULL,
                         location text NOT NULL
                     )
-                """).format(table=sql.Identifier(table_name)))
+                """).format(table=sql.Identifier(table_name))
+                )
                 await make_hypertable(conn, table_name)
                 for fr in meas_fields:
-                    await conn.execute(sql.SQL(
-                        "ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} real"
-                    ).format(table=sql.Identifier(table_name), col=sql.Identifier(fr.field)))
+                    await conn.execute(
+                        sql.SQL("ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} real").format(
+                            table=sql.Identifier(table_name), col=sql.Identifier(fr.field)
+                        )
+                    )
 
         # Mirror each (measurement, location) group
         for (measurement, location_orig), fields in groups.items():
@@ -86,9 +94,12 @@ async def main():
 
             # Query latest mirrored timestamp for this location
             async with pool.connection() as conn:
-                df_max = await copy_to_df(conn, sql.SQL(
-                    "SELECT MAX(time) AS max_time FROM {table} WHERE location = {loc}"
-                ).format(table=sql.Identifier(table_name), loc=sql.Literal(location)))
+                df_max = await copy_to_df(
+                    conn,
+                    sql.SQL("SELECT MAX(time) AS max_time FROM {table} WHERE location = {loc}").format(
+                        table=sql.Identifier(table_name), loc=sql.Literal(location)
+                    ),
+                )
 
             max_time = df_max.iloc[0]["max_time"]
             if pd.isna(max_time):

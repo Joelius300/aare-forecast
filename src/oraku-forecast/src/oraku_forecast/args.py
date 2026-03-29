@@ -1,5 +1,6 @@
 import argparse
 from dataclasses import dataclass
+from pathlib import Path
 
 import configargparse
 
@@ -17,7 +18,8 @@ class CliArgs:
 
 def parse_cli_args() -> CliArgs:
     """Parse CLI args, read ORAKU_* env variables and consider dev_config.yaml for config vars."""
-    p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=["./dev_config.yaml"])
+    default_config_file = Path(__file__).parent.parent.parent / "dev_config.yaml"
+    p = configargparse.ArgParser(auto_env_var_prefix="oraku_", default_config_files=[default_config_file])
     p.add_argument("-c", "--connection-string", required=True, type=str, help="Connection string for the timescale db")
     p.add_argument("-m", "--model-path", required=True, type=str, help="Path to the model meta file (json)")
     p.add_argument("-n", "--horizon", default=96, type=int, help="Number of hours to forecast into the future")

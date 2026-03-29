@@ -16,6 +16,7 @@
 **/*.pyc
 **/Dockerfile
 **/.env
+**/dev_config.yaml
 **/README.md
 
 # these should already be ignored, this is just double wrapping from before
@@ -36,4 +37,3 @@ notebooks
 scripts
 data
 docs
-dev_config.yaml

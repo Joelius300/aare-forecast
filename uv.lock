@@ -279,7 +279,7 @@ provides-extras = ["gpu-auto", "gpu", "cpu"]
 
 [[package]]
 name = "aare-oraku-influx2pg"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "src/oraku-influx2pg" }
 dependencies = [
     { name = "aare" },

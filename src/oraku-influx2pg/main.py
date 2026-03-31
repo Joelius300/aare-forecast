@@ -70,7 +70,7 @@ async def create_measurement_table(measurement: str, fields: list[FieldRequest],
     table_name = TABLE_NAME_PREFIX + measurement
 
     # create tables and or add columns. do not drop columns we don't store anymore, they just stay untouched.
-    # in this context, there's only one row per time & loc, like in influx. run_ts is just to know when the data was fetched.
+    # in this context, there's only one row per time & loc, like in influx. mirrored_at is just to know when the data was fetched.
     async with pool.connection() as conn:
         await conn.execute(
             sql.SQL("""
@@ -134,14 +134,9 @@ async def get_latest_times(
 async def fetch_influx(
     store: RemoteExistenzStore, fields: Sequence[FieldRequest], since: datetime, until: datetime
 ) -> DataFrame | None:
-    try:
-        # TODO it would be nicer if store.query returned an empty df (or None), but that reaches deep, no time
-        df = store.query((since, until), fields)
-    except ValueError as e:
-        # make sure not to catch any actual errors by accident
-        if "no data" not in str(e):
-            raise
+    df = store.query((since, until), fields, return_empty=True)
 
+    if df.empty:
         return None
 
     # resample to drop the last timestamp influx returns, no clue why it does that...
@@ -169,11 +164,11 @@ async def upsert_measurement_location(
     loc_df = df[["time"] + list(df_name_map.keys())].copy()
     # rename original field_loc names to just field
     loc_df = loc_df.rename(columns=df_name_map)
-    # filter to upsert less data, maybe this measurement@loc doesn't have new data
+    # filter to upsert less data, maybe this measurement x loc doesn't have new data
     loc_df = loc_df[loc_df["time"] > since]
 
     if loc_df.empty:
-        logger.info(f"No new data for {table_name}@{location_orig}")
+        logger.info(f"No new data for {table_name} in {location_orig}")
         return
 
     loc_df["location"] = location_orig

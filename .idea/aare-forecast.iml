@@ -7,8 +7,16 @@
       <sourceFolder url="file://$MODULE_DIR$/src/aare-train/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/aare/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/aare-influx/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-logging" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-timescale" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/oraku-api/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/oraku-forecast" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/oraku-forecast/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-influx" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/aare-train" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/oraku-api" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/oraku-influx2pg" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/oraku-influx2pg/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
     </content>

@@ -47,6 +47,11 @@ build-api tag='latest':
   docker build -f src/oraku-api/Dockerfile . -t aare-oraku-api:{{tag}} -t aare-oraku-api:latest
 
 [group('build')]
+build-influx2pg tag='latest':
+  -uv version --package aare-oraku-influx2pg {{tag}}  # try setting version, ignore if failed
+  docker build -f src/oraku-influx2pg/Dockerfile . -t aare-oraku-influx2pg:{{tag}} -t aare-oraku-influx2pg:latest
+
+[group('build')]
 [working-directory: 'reports']
 build-report:
   uv run marimo export html-wasm model-eval.py -o model-eval-wasm-notebook --mode run
@@ -54,7 +59,7 @@ build-report:
 # build all docker images
 [group('build')]
 [parallel]
-build: build-service build-api
+build: build-service build-api build-influx2pg
 
 [group('deploy')]
 deploy-service tag='latest':
@@ -84,6 +89,10 @@ api:
 forecast:
   uv run src/oraku-forecast/main.py
 
+[group('run')]
+influx2pg:
+  uv run src/oraku-influx2pg/main.py
+
 # run forecast service via docker (only works on linux, with the docker compose running, and a model in model_mount) [set model with -m or --model]
 [group('run')]
 [arg("model", short="m", long)]
@@ -95,3 +104,6 @@ forecast-docker tag='latest' model='LR-dev':
 [arg("port", short="p")]
 api-docker tag='latest' port='5000':
   docker run --env ORAKU_CONNECTION_STRING="host=172.17.0.1 dbname=aare_oraku user=postgres password=password" --env ORAKU_LOGGING_LEVEL="DEBUG" -p 8080:{{port}} --rm aare-oraku-api:{{tag}}
+
+influx2pg-docker fields='["hydro/temperature:mean_1h@bern", "hydro/flow:mean_1h@bern", "smn/tt:mean_1h@bern"]' tag='latest':
+  docker run --env ORAKU_CONNECTION_STRING="host=172.17.0.1 dbname=aare_oraku user=postgres password=password" --env ORAKU_LOGGING_LEVEL="DEBUG" --env ORAKU_FIELDS="{{fields}}" --rm aare-oraku-influx2pg:{{tag}}

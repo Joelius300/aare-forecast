@@ -69,10 +69,14 @@ deploy-service tag='latest':
 deploy-api tag='latest':
   ./deploy/deploy-from-local.sh aare-oraku-api {{tag}}
 
+[group('deploy')]
+deploy-influx2pg tag='latest':
+  ./deploy/deploy-from-local.sh aare-oraku-influx2pg {{tag}}
+
 # deploy latest of service and api
 [group('deploy')]
 [parallel]
-deploy-latest: deploy-service deploy-api
+deploy-latest: deploy-service deploy-api deploy-influx2pg
 
 # upload model dir to dokku mount
 [group('deploy')]

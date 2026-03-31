@@ -55,9 +55,11 @@ ignore = [
     "reports/",
 ]
 
-# needed explicitly otherwise the overrides below are ignored
 [tool.uv]
+# needed explicitly otherwise the overrides below are ignored
 package = false
+# cooldown day to decrease supply chain risks; does not work with custom pytorch indices?
+# exclude-newer = "24 hours"
 
 # can only have this in the top-level pyproject.toml, package-specific one are ignored
 override-dependencies = [
@@ -70,7 +72,7 @@ override-dependencies = [
     "fontTools; sys_platform == 'never'",
     "aiohttp; sys_platform == 'never'",
     # many large packages we simply cannot remove like xarray, scipy, statsmodels, matplotlib
-    # because darts or its dependencies import them
+    # because darts or its dependencies import them.
     # these dependencies are only used during development, so they could be removed
     # in the final images, but not here because then uv sync always ignores them.
     # "networkx; sys_platform == 'never'",

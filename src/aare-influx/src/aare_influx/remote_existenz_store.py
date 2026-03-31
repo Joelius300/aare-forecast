@@ -2,7 +2,8 @@ import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from functools import reduce
-from typing import cast, Optional
+from typing import cast
+from typing_extensions import deprecated
 
 import pandas as pd
 from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImportUsage]
@@ -24,6 +25,7 @@ def _chain_equality(
     # must check for list or tuple here because strings are also sequences
     if len(values) == 1 and (isinstance(values[0], (list, tuple))):
         # unpack list so you don't have to on the caller's side
+        # noinspection PyArgumentList
         return _chain_equality(column, *values[0], separator, wrap_in_quotes)
 
     q = '"' if wrap_in_quotes else ""
@@ -34,11 +36,7 @@ Period = str | datetime | tuple[str | datetime, str | datetime]
 Locations = str | int | list[str | int] | None
 
 
-def _rename_col_after_pivot(df: pd.DataFrame, fields: Optional[list[FieldRequest]]):
-    # pivoting is done on field and loc, so the result will always contain only that. must manually rename.
-    if fields is None:
-        return df
-
+def _rename_col_after_pivot(df: pd.DataFrame, fields: list[FieldRequest]):
     mapper = {f"{field.field}_{field.location}": field.name for field in fields}
     return df.rename(mapper, axis="columns", errors="raise")
 
@@ -78,16 +76,12 @@ class RemoteExistenzStore:
     @staticmethod
     def _base_query(
         period: Period,
-        locations: Locations,
     ):
         start, stop = _normalize_period(period)
-
-        loc_filter = "" if not locations else f"|> filter(fn: {_chain_equality('loc', locations)})"
 
         return f"""baseData = () =>
     from(bucket: "existenzApi")
         |> range(start: {start}, stop: {stop})
-        {loc_filter}
 
 getField = (tables=<-, measurement, field, agg_fn, loc, freq=1h) =>
     tables
@@ -105,13 +99,12 @@ postProc = (tables=<-) =>
     def _ma(period: str):
         return f"|> timedMovingAverage(every: freq, period: {period})"
 
-    def _query_fields(
+    def _fields_query(
         self,
         period: Period,
         fields: list[FieldRequest],
-        locations: Locations = None,
     ):
-        query = self._base_query(period, locations)
+        query = self._base_query(period)
         for field in fields:
             query += (
                 f"{field.name} = baseData() "
@@ -127,14 +120,24 @@ postProc = (tables=<-) =>
         self,
         query: str,
         keep_loc: bool,
-        locations: Locations = None,
-        fields: list[FieldRequest] | None = None,
+        locations: Locations,
+        fields: list[FieldRequest] | None,
+        return_empty: bool,
     ):
+        # this function has to accommodate query_hydro and query, which is kinda awkward. could use a refactor.
         logger.debug("Executing Flux Query:\n{%s}", query)
         df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
         cols = df.columns if isinstance(df, pd.DataFrame) else df[0].columns
+        assert not (fields is not None and keep_loc), "keep_loc=True in a field context, unsupported"
+
         if len(cols) == 0:
-            raise ValueError(f"Got no data from influxdb: {df}")
+            if not return_empty:
+                raise ValueError(f"Got no data from influxdb: {df}")
+
+            assert fields is not None, "return_empty=True in a non-field context, unsupported"
+            cols = [TIME] + [f.name for f in fields]
+
+            return pd.DataFrame(columns=cols)
 
         unnecessary_cols = ["result", "table"]
         if (
@@ -149,8 +152,15 @@ postProc = (tables=<-) =>
                 lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df
             )
 
-        return _rename_col_after_pivot(df.drop(unnecessary_cols, axis=1), fields)
+        df = df.drop(unnecessary_cols, axis=1)
 
+        if fields is None:
+            # pivoting is done on field and loc, so the result will always contain only that. must manually rename.
+            return df
+
+        return _rename_col_after_pivot(df, fields)
+
+    @deprecated("Prefer query() with FieldRequest")
     def query_hydro(
         self,
         period: Period,
@@ -188,18 +198,24 @@ postProc = (tables=<-) =>
             f'  |> drop(columns: ["_start", "result", "_stop", "table", "_measurement"])'
         )
 
-        return self._query(query, keep_loc, locations)
+        return self._query(query, keep_loc, locations, fields=None, return_empty=False)
 
     def query(
         self,
         period: Period,
         fields: str | Iterable[str | FieldRequest],
-        keep_loc: bool = False,
+        return_empty: bool = False,
     ):
+        """
+        Query a list of fields from the influxdb for the specified period.
+
+        Will raise if influx does not return any data. Set return_empty=True to instead get an empty DataFrame with
+        possibly wrong columns (schema mismatch between success and failure).
+        """
         if isinstance(fields, str) or isinstance(fields, FieldRequest):
             fields = [fields]
 
         requests = [field if isinstance(field, FieldRequest) else FieldRequest.from_str(field) for field in fields]
-        query = self._query_fields(period, requests)
+        query = self._fields_query(period, requests)
 
-        return self._query(query, keep_loc, fields=requests)
+        return self._query(query, keep_loc=False, locations=None, fields=requests, return_empty=return_empty)

@@ -1,7 +1,9 @@
 from io import BytesIO
 from typing import LiteralString, cast
+from collections.abc import Sequence
 
 import pandas as pd
+import psycopg
 from pandas._typing import WriteBuffer
 from psycopg import AsyncConnection, sql
 from psycopg.abc import Params
@@ -56,7 +58,7 @@ async def copy_from_df(conn: AsyncConnection, df: pd.DataFrame, table: str):
 
 
 def init_db_pool(
-    connection_string: str, min_size=1, max_size=4, prepare_threshold: int | None = 3
+    connection_string: str, min_size: int = 1, max_size: int = 4, prepare_threshold: int | None = 3
 ) -> AsyncConnectionPool:
     """Initialize a postgres connection pool with some defaults for our small use cases."""
     # Could also use AsyncNullConnectionPool because we probably don't really need pooling atm.
@@ -77,3 +79,43 @@ def init_db_pool(
     )
 
     return conn_pool
+
+
+async def upsert_df(
+    conn: psycopg.AsyncConnection,
+    df: pd.DataFrame,
+    table_name: str,
+    conflict_cols: Sequence[str],
+    update_cols: Sequence[str],
+):
+    """
+    Copy df into a temp table then upsert into the target (only conflicting rows).
+    Usually you want to specify the primary key columns as conflict_col and all the value columns as update_cols.
+    Columns that are not mentioned in the update_cols will stay the same value and not change on conflict.
+    """
+    # this fancy method is something claude came up with, and I'm glad it did. I'm not that deep in the postgres game.
+    temp_name = f"_tmp_{table_name}"
+    await conn.execute(
+        sql.SQL("CREATE TEMP TABLE {tmp} (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP").format(
+            tmp=sql.Identifier(temp_name), table=sql.Identifier(table_name)
+        )
+    )
+
+    # copy data into temp table
+    await copy_from_df(conn, df, temp_name)
+
+    # upsert into actual table
+    # "EXCLUDED." references the row that would have been inserted but led to the conflict.
+    # just "col" or "table.col" would be the value that is already there in the existing row.
+    update_set = sql.SQL(", ").join(
+        sql.SQL("{col} = EXCLUDED.{col}").format(col=sql.Identifier(col)) for col in update_cols
+    )
+    conflict_set = sql.SQL(", ").join(sql.Identifier(c) for c in conflict_cols)
+    await conn.execute(
+        sql.SQL("INSERT INTO {table} SELECT * FROM {tmp} ON CONFLICT ({conflicts}) DO UPDATE SET {updates}").format(
+            table=sql.Identifier(table_name),
+            tmp=sql.Identifier(temp_name),
+            conflicts=conflict_set,
+            updates=update_set,
+        )
+    )

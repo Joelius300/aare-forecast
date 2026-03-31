@@ -27,6 +27,7 @@ EXPECTED_FREQ = "1h"  # not supporting anything else right now
 async def main():
     args = parse_cli_args()
     setup_logging(args.logging_level, args.loki_url, args.loki_password, "aare-oraku-influx2pg")
+    logger.info(f"Mirroring the following influx variables to pg: {args.fields}")
 
     store = RemoteExistenzStore()
     fields = [FieldRequest.from_str(f) for f in args.fields]
@@ -62,7 +63,7 @@ async def main():
                 since = since_per_loc[location_orig]
                 await upsert_measurement_location(df, table_name, location_orig, mirrored_at, loc_fields, since, pool)
 
-    logger.info(f"Mirror run finished in {datetime.now(UTC) - mirrored_at}")
+    logger.info(f"Mirroring finished in {datetime.now(UTC) - mirrored_at}")
 
 
 async def create_measurement_table(measurement: str, fields: list[FieldRequest], pool: AsyncConnectionPool) -> str:

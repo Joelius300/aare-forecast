@@ -20,6 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/aare-influx/pyproject.toml,target=src/aare-influx/pyproject.toml \
     --mount=type=bind,source=src/oraku-forecast/pyproject.toml,target=src/oraku-forecast/pyproject.toml \
     --mount=type=bind,source=src/oraku-api/pyproject.toml,target=src/oraku-api/pyproject.toml \
+    --mount=type=bind,source=src/oraku-influx2pg/pyproject.toml,target=src/oraku-influx2pg/pyproject.toml \
     uv sync --locked --no-install-project --no-dev --no-editable --package=aare-oraku-api
 
 # which files/dirs are copied is controlled by the .dockerignore file.

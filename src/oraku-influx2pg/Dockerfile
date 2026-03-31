@@ -9,9 +9,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=src/aare/pyproject.toml,target=src/aare/pyproject.toml \
+    --mount=type=bind,source=src/aare-train/pyproject.toml,target=src/aare-train/pyproject.toml \
     --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/aare-timescale/pyproject.toml,target=src/aare-timescale/pyproject.toml \
     --mount=type=bind,source=src/aare-influx/pyproject.toml,target=src/aare-influx/pyproject.toml \
+    --mount=type=bind,source=src/oraku-forecast/pyproject.toml,target=src/oraku-forecast/pyproject.toml \
+    --mount=type=bind,source=src/oraku-api/pyproject.toml,target=src/oraku-api/pyproject.toml \
     --mount=type=bind,source=src/oraku-influx2pg/pyproject.toml,target=src/oraku-influx2pg/pyproject.toml \
     uv sync --locked --no-install-project --no-dev --package=aare-oraku-influx2pg
 

@@ -32,12 +32,12 @@ repos:
         require_serial: true
         priority: 2
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.2
+    rev: 0.11.6
     hooks:
       - id: uv-lock
         priority: 1
   - repo: https://github.com/iterative/dvc
-    rev: 3.67.0
+    rev: 3.67.1
     hooks:
       - id: dvc-pre-commit
         priority: 1

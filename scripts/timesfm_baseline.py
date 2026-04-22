@@ -4,9 +4,9 @@
 #     "aare-train[gpu-auto]",
 #     "dvc",
 #     "influxdb-client",
-#     "pandas",
+#     "pandas<3.0.0",
 #     "numpy>=2.0.0",
-#     "timesfm[torch]<=2.0.0",
+#     "timesfm[torch]<2.0.0",
 # ]
 #
 # [tool.uv.sources]

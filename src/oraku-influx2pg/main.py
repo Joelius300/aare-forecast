@@ -141,6 +141,7 @@ async def fetch_influx(
 
     # resample to drop the last timestamp influx returns, no clue why it does that...
     # this is equivalent to aare_train.preparation.resample; didn't want to split it yet, but.. TODO
+    # todo use minute filter in existenz store instead of resample?
     df = df.set_index(TIME).resample(EXPECTED_FREQ).first().reset_index(TIME)
     df = df.rename(columns={TIME: "time"})
 

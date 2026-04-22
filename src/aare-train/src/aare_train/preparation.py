@@ -15,6 +15,8 @@ from aare_train.darts_utils import to_ts
 def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
     # resample to add nan points where data is missing. also removes the trailing data point if 18:00 and 18:55 for example.
     # doing this manually gives a bit more control and avoid having to send this data over the air from the influx server.
+    # todo explicitly set closed and label to declare that points will be labeled by the leftmost bucket point (start)
+    #   the default of pandas resample is the opposite of aggregateWindow in influx.
     return df.set_index(TIME).resample(freq).first().reset_index(TIME)
 
 

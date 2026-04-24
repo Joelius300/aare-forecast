@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Iterable, Sequence
 from datetime import datetime
-from functools import reduce
 from typing import cast
 from typing_extensions import deprecated
 
@@ -10,6 +9,7 @@ from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImpo
 
 from aare.constants import TIME
 from aare_influx.field_request import FieldRequest
+from aare_train.utils import join_many
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +82,11 @@ class RemoteExistenzStore:
         return f"""baseData = () =>
     from(bucket: "existenzApi")
         |> range(start: {start}, stop: {stop})
-
-getField = (tables=<-, measurement, field, agg_fn, loc, freq=1h) =>
+        
+getField = (tables=<-, measurement, field, loc) =>
     tables
         |> filter(fn: (r) => r._measurement == measurement and r._field == field and r.loc == loc)
-        |> aggregateWindow(fn: agg_fn, every: freq, createEmpty: false)
-
+        
 postProc = (tables=<-) =>
     tables
         |> pivot(rowKey: ["_time"], columnKey: ["_field", "loc"], valueColumn: "_value")
@@ -99,17 +98,37 @@ postProc = (tables=<-) =>
     def _ma(period: str):
         return f"|> timedMovingAverage(every: freq, period: {period})"
 
-    def _fields_query(
+    @staticmethod
+    def _get_resampler(field: FieldRequest):
+        if field.agg_fn == "exact":
+            # if field.freq != "1h":
+            #     raise ValueError("Only supporting 'exact' for 1h atm")
+            # !! requires 'import "date"'
+            # return "filter(fn: (r) => date.minute(t: r._time) == 0)"
+            raise NotImplementedError("Currently not in use, so disallowed :)")
+
+        agg_sampler = f"aggregateWindow(fn: {field.agg_fn}, every: {field.freq}, createEmpty: false"
+        # if we agg with first, we want the 10:00 to take 10:00 or 10:10 or ... but by default it would be
+        # 11:00 takes 10:00, 10:10, ... so it needs timeSrc. for last and mean, it will agg >=start, <end
+        # so 11:00 contains 10:00, 10:10, ..., 10:50 and no more. the point at 11:00 belongs to bucket 11:00-11:50
+        if field.agg_fn == "first":
+            agg_sampler += ', timeSrc: "_start"'
+        agg_sampler += ")"
+
+        return agg_sampler
+
+    def _build_fields_query(
         self,
         period: Period,
         fields: list[FieldRequest],
     ):
         query = self._base_query(period)
         for field in fields:
+            resampler = self._get_resampler(field)
             query += (
                 f"{field.name} = baseData() "
-                f'|> getField(measurement: "{field.measurement}", field: "{field.field}",'
-                f' loc: "{field.location}", agg_fn: {field.agg_fn}, freq: {field.freq}) '
+                f'|> getField(measurement: "{field.measurement}", field: "{field.field}", loc: "{field.location}")'
+                f"|> {resampler}"
                 f'|> postProc() |> yield(name: "{field.name}")\n'
             )
         # does yield have significant negative performance implications compared to union? -> couldn't find any yet.
@@ -125,8 +144,7 @@ postProc = (tables=<-) =>
         return_empty: bool,
     ):
         # this function has to accommodate query_hydro and query, which is kinda awkward. could use a refactor.
-        logger.debug("Executing Flux Query:\n{%s}", query)
-        df = cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))
+        df = self.query_raw(query)
         cols = df.columns if isinstance(df, pd.DataFrame) else df[0].columns
         assert not (fields is not None and keep_loc), "keep_loc=True in a field context, unsupported"
 
@@ -148,11 +166,9 @@ postProc = (tables=<-) =>
             unnecessary_cols.append("loc")
 
         if isinstance(df, list):
-            df = reduce(
-                lambda left, right: pd.merge(left, right.drop(unnecessary_cols, axis=1), on=TIME, how="outer"), df
-            )
-
-        df = df.drop(unnecessary_cols, axis=1)
+            df = join_many(*(d.drop(unnecessary_cols, axis=1) for d in df), on=TIME)
+        else:
+            df = df.drop(unnecessary_cols, axis=1)
 
         if fields is None:
             # pivoting is done on field and loc, so the result will always contain only that. must manually rename.
@@ -168,6 +184,7 @@ postProc = (tables=<-) =>
         fields: str | list[str] = "temperature",
         agg_freq: str = "1h",  # could also read from params
         agg_func: str = "mean",
+        # todo migrate everything important (baselines) away from this, this is just legacy now for notebooks
         agg_create_empty: bool = False,
         keep_loc: bool = False,
     ):
@@ -203,7 +220,7 @@ postProc = (tables=<-) =>
     def query(
         self,
         period: Period,
-        fields: str | Iterable[str | FieldRequest],
+        fields: str | FieldRequest | Iterable[str | FieldRequest],
         return_empty: bool = False,
     ):
         """
@@ -215,7 +232,12 @@ postProc = (tables=<-) =>
         if isinstance(fields, str) or isinstance(fields, FieldRequest):
             fields = [fields]
 
+        assert isinstance(fields, Iterable), "fields should be iterable now"
         requests = [field if isinstance(field, FieldRequest) else FieldRequest.from_str(field) for field in fields]
-        query = self._fields_query(period, requests)
+        query = self._build_fields_query(period, requests)
 
         return self._query(query, keep_loc=False, locations=None, fields=requests, return_empty=return_empty)
+
+    def query_raw(self, query: str) -> pd.DataFrame | list[pd.DataFrame]:
+        logger.debug("Executing Flux Query:\n{%s}", query)
+        return cast(pd.DataFrame | list[pd.DataFrame], self.client.query_api().query_data_frame(query))  # pyright: ignore[reportUnknownMemberType]

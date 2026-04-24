@@ -7,7 +7,7 @@ class FieldRequest:
     """
     A request for a field from the InfluxDB. Has a string rep:
 
-    hydro/temperature:mean_1h@bern
+    hydro/temperature:first_1h@bern
 
     smn/rr:sum_1d@thun
     """

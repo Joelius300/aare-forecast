@@ -176,7 +176,7 @@ postProc = (tables=<-) =>
 
         return _rename_col_after_pivot(df, fields)
 
-    @deprecated("Prefer query() with FieldRequest")
+    @deprecated("Prefer query() with FieldRequest; this gives you hourly means by default!")
     def query_hydro(
         self,
         period: Period,
@@ -184,7 +184,6 @@ postProc = (tables=<-) =>
         fields: str | list[str] = "temperature",
         agg_freq: str = "1h",  # could also read from params
         agg_func: str = "mean",
-        # todo migrate everything important (baselines) away from this, this is just legacy now for notebooks
         agg_create_empty: bool = False,
         keep_loc: bool = False,
     ):

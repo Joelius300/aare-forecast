@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import override
+from typing_extensions import override
 
 from aare_train.evaluation.eval_metric import EvalMetric
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers

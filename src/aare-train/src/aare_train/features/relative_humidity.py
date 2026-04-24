@@ -6,4 +6,4 @@ class RelativeHumidity(SingleFieldFeature):
     NAME = "rh"
 
     def __init__(self, loc: str | int):
-        super().__init__(self.loc_name(loc), FieldRequest("smn", "rh", "1h", "mean", loc))
+        super().__init__(self.loc_name(loc), FieldRequest("smn", "rh", "1h", "first", loc))

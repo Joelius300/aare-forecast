@@ -23,7 +23,7 @@ def parse_cli_args() -> CliArgs:
         required=True,
         nargs="+",
         type=str,
-        help='FieldRequest strings, e.g. "hydro/temperature:mean_1h@bern"',
+        help='FieldRequest strings, e.g. "hydro/temperature:first_1h@bern"',
     )
     p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
     p.add_argument("--loki-url", default=None, type=str, help="Base URL for the loki instance")

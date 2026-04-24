@@ -1,4 +1,4 @@
-from typing import override
+from typing_extensions import override
 from aare_train.features.base.feature import Feature
 from aare_train.preparation import interpolate_continuous, remove_outliers, remove_period
 from aare_influx.field_request import FieldRequest
@@ -12,6 +12,7 @@ class Wind(Feature):
     NAME = "wind"
 
     def __init__(self, loc: str):
+        # TODO think about agg_fn
         self.dir_field = FieldRequest("smn", "dd", "1h", "mean", loc)
         self.mag_field = FieldRequest("smn", "ff", "1h", "mean", loc)
         super().__init__(self.loc_name(loc), [self.dir_field, self.mag_field])

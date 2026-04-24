@@ -2,6 +2,7 @@ from typing import TypedDict, Literal, Any, NotRequired
 
 
 class GeneralParams(TypedDict):
+    target: str
     frequency: str  # this is used everywhere and integrated so tightly, that it cannot simply be changed
     forecast_horizon: int
     timezone: str

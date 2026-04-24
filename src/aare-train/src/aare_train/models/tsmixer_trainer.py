@@ -1,4 +1,4 @@
-from typing import override, Any
+from typing_extensions import override, Any
 
 from aare_train.models.base_trainer import BaseTrainer, ModelType
 from aare_train.fetching.feature_identifiers import FeatureIdentifiers

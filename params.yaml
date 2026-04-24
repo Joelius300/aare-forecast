@@ -1,6 +1,7 @@
 # values from EDA
 general:
   frequency: 1h  # this is used everywhere and integrated so tightly, that it cannot simply be changed
+  target: "temp_bern"
   forecast_horizon: 96
   timezone: "Europe/Zurich"
   # month borders of the swimming season, both sides inclusive. used for eval (and later sample weights?)

@@ -2,6 +2,9 @@
 # ignore 'imports not at top of file' for this file
 
 from datetime import UTC, datetime
+from pathlib import Path
+
+from psycopg import sql
 
 # run duration of the service should ignore the time needed to import packages, but we still want to log it
 import_start_ts = datetime.now(UTC)
@@ -55,7 +58,13 @@ async def main_wrapped():
 
 
 async def main_unwrapped(args: CliArgs):
-    run_ts = datetime.now(UTC)
+    simulation = False
+    now = datetime.now(UTC)
+    run_ts = now
+    if args.simulate_runts:
+        simulation = True
+        run_ts = args.simulate_runts
+        logger.info(f"Simulating run at {run_ts} using existing covariate data.")
 
     # load model and all required accessories into memory
     model_meta, model, scalers = load_model(args.model_path)
@@ -64,14 +73,24 @@ async def main_unwrapped(args: CliArgs):
 
     async with init_db_pool(args.connection_string) as conn_pool:
         metadata_table = ForecastMetaTable(conn_pool)
-        await metadata_table.ensure_table_exists()
-        await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
+        if not simulation:
+            await metadata_table.ensure_table_exists()
+            await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
 
         status = "success"
         error = None
         try:
             # do the hard part :)
-            await make_forecast(run_ts, model_meta, model, scalers, conn_pool, args.horizon, args.num_samples)
+            await make_forecast(
+                run_ts,
+                model_meta,
+                model,
+                scalers,
+                conn_pool,
+                args.horizon,
+                args.num_samples,
+                actual_now=now if simulation else None,
+            )
         except Exception as e:
             # only catches errors during fetching and forecasting, mostly because fetching has external factors.
             # issues with the database or loading the model will only be visible in the app/container logs.
@@ -81,9 +100,10 @@ async def main_unwrapped(args: CliArgs):
 
         finished_at = datetime.now(UTC)
 
-        await metadata_table.update_metadata(run_ts, status, error, finished_at)
+        if not simulation:
+            await metadata_table.update_metadata(run_ts, status, error, finished_at)
 
-    logger.info(f"Finished run in {finished_at - run_ts} (+ {run_ts - import_start_ts} imports)")
+    logger.info(f"Finished run in {finished_at - now} (+ {now - import_start_ts} imports)")
 
 
 async def make_forecast(
@@ -94,38 +114,40 @@ async def make_forecast(
     conn_pool: AsyncConnectionPool,
     horizon: int,
     num_samples: int,
+    actual_now: datetime | None,
 ):
     """Pull external sources, feed them to the model, and persist the returned forecast."""
     # configure and pull external sources
-    sources = SourceRegistry().configure_sources(conn_pool)
-    external_data = await load_external_data(sources, run_ts)
+    sources = SourceRegistry.configure_sources(conn_pool)
+    external_data = await load_external_data(sources, run_ts, use_cached=actual_now is not None)
 
-    # compile inference data data from internal (influx) and external data
+    # compile inference data from internal (influx) and external data
     data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
     data = scale_inference_data(data, scalers)
 
     # actually make and store forecast with loaded model
     forecast = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
-    await persist_forecast(run_ts, forecast, ForecastTable(conn_pool))
+    await persist_forecast(run_ts, forecast, ForecastTable(conn_pool), actual_now)
 
 
-async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd.DataFrame]:
+async def load_external_data(sources: Sources, run_ts: datetime, use_cached: bool) -> dict[str, pd.DataFrame]:
     """
     Pull from all registered external sources, persist their data in the database in the intermediate format, then
     prepare the outputs so they're aligned with our models (naming and such) and return that.
     """
-    source_names: list[str] = []
     fetch_tasks: list[Awaitable[pd.DataFrame | BaseException]] = []
 
     for source_name, source in sources.items():
-        source_names.append(source_name)
-        fetch_tasks.append(_fetch_cache_external(source_name, **source, run_ts=run_ts))
+        if not use_cached:
+            fetch_tasks.append(_fetch_and_cache_external(source_name, **source, run_ts=run_ts))
+        else:
+            fetch_tasks.append(_fetch_external_from_cache(source["table"], run_ts))
 
     # fetching external sources and persisting them can all be done concurrently, await all together
     results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
     external_data: dict[str, pd.DataFrame] = {}
-    for source_name, result in zip(source_names, results):
+    for (source_name, source), result in zip(sources.items(), results):
         if isinstance(result, BaseException):
             if isinstance(result, BaseExceptionGroup):  # TaskGroup wraps error(s) in exception group
                 error = f"{result}: {' | '.join(str(e) for e in result.exceptions)}"
@@ -136,12 +158,15 @@ async def load_external_data(sources: Sources, run_ts: datetime) -> dict[str, pd
             continue
 
         assert isinstance(result, pd.DataFrame), "result is neither a dataframe nor an exception"
-        external_data[source_name] = result
+
+        # prepare external data before returning it
+        prepared = source["source"].prepare(result)
+        external_data[source_name] = prepared
 
     return external_data
 
 
-async def _fetch_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
+async def _fetch_and_cache_external(name: str, source: ExternalSource, table: TimescaleTable, run_ts: datetime):
     """Fetch data, cache it in the db, then transform and return it ready for the model."""
     async with asyncio.TaskGroup() as tg:  # similar to asyncio.gather, just nicer syntax for this use-case
         fetch_task = tg.create_task(source.fetch())  # fetch from external source
@@ -165,9 +190,14 @@ async def _fetch_cache_external(name: str, source: ExternalSource, table: Timesc
     await table.insert(df)
     logger.debug(f"Inserted {len(df)} rows into {table.table_name}")
 
-    prepared = source.prepare(df)
+    return df
 
-    return prepared
+
+async def _fetch_external_from_cache(table: TimescaleTable, run_ts: datetime):
+    return await table.select(
+        # postgres does not allow abs() on type INTERVAL so use between
+        where=sql.SQL("""("run_ts" - {}) BETWEEN interval '-1 second' AND interval '1 second'""").format(run_ts)
+    )
 
 
 def predict(
@@ -197,12 +227,33 @@ def predict(
     return pred.to_dataframe().reset_index(names="time")
 
 
-async def persist_forecast(run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable):
-    """Store the forecast in the timescale database."""
-    await table.ensure_table_exists()
+async def persist_forecast(
+    run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable, actual_now: datetime | None
+):
     to_store = forecast.copy()
     to_store["run_ts"] = run_ts
-    await table.insert(to_store)
+
+    if actual_now is None:
+        await _persist_forecast_db(to_store, table)
+    else:
+        to_store["actual_now"] = actual_now
+        _persist_forecast_file(run_ts, actual_now, to_store)
+
+
+async def _persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
+    """Store the forecast in the timescale database."""
+    await table.ensure_table_exists()
+    await table.insert(forecast)
+
+
+def _persist_forecast_file(run_ts: datetime, actual_now: datetime, forecast: pd.DataFrame):
+    dir = Path("simulated_runs")
+    dir.mkdir(parents=True, exist_ok=True)
+    forecast.to_csv(
+        dir
+        / f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}_run_{run_ts.replace(microsecond=0).isoformat()}.csv",
+        index=False,
+    )
 
 
 if __name__ == "__main__":

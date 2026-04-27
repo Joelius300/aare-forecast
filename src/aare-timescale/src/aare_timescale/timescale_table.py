@@ -4,10 +4,10 @@ from collections.abc import Sequence
 
 from aare_timescale.timescale import make_hypertable
 import pandas as pd
-from psycopg import AsyncConnection
+from psycopg import AsyncConnection, sql
 from psycopg_pool import AsyncConnectionPool
 
-from aare_timescale.postgres import copy_from_df
+from aare_timescale.postgres import copy_from_df, copy_to_df
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,35 @@ class TimescaleTable(ABC):
     async def make_hypertable(self, conn: AsyncConnection, time_col: str = "time", chunk_interval: int = 7):
         """Make table into a hypertable if necessary."""
         await make_hypertable(conn, self.table_name, time_col, chunk_interval)
+
+    async def select(
+        self,
+        columns: Sequence[str] | None = None,
+        *,
+        where: sql.SQL | sql.Composed | None = None,
+        sort_by: str | None = "time",
+        time_cols: Sequence[str] = ("run_ts", "time"),
+    ) -> pd.DataFrame:
+        """Select from table with very simple options. to be extended if necessary."""
+
+        cols = columns or self.columns
+        assert cols is not None
+        query = sql.SQL("""select {cols} from {table} {where} {sort}""").format(
+            cols=sql.SQL(", ").join([sql.Identifier(c) for c in cols]),
+            table=sql.Identifier(self.table_name),
+            where="" if not where else sql.SQL("WHERE ") + where,
+            sort="" if not sort_by else sql.SQL("ORDER BY {0}").format(sql.Identifier(sort_by)),
+        )
+        logger.debug(f"Selecting from '{self.table_name}' with query: {query.as_string()}")
+
+        async with self.connection_pool.connection() as conn:
+            df = await copy_to_df(conn, query)
+
+        for c in time_cols:
+            if c in df.columns:
+                df[c] = pd.to_datetime(df[c])
+
+        return df
 
     def _align_columns(self, df: pd.DataFrame):
         expected_cols = set(self.columns)

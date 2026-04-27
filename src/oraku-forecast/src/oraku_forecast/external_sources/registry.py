@@ -21,7 +21,8 @@ Sources = dict[str, SourceTuple]
 
 
 class SourceRegistry:
-    def configure_sources(self, connection_pool: AsyncConnectionPool) -> Sources:
+    @staticmethod
+    def configure_sources(connection_pool: AsyncConnectionPool) -> Sources:
         # TODO can/should read from configs? params is a bad fit because that's tied to the model! own yaml file maybe
         return {
             # the flow forecast source is special because we actually publish this via the forecast API as well, so it's

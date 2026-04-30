@@ -1,4 +1,5 @@
 import argparse
+from collections.abc import Sequence
 from datetime import datetime
 import logging
 
@@ -15,7 +16,7 @@ class CliArgs:
     connection_string: str
     model_path: str
     horizon: int
-    simulate_runts: datetime | None
+    simulate_runts: Sequence[datetime] | None
     num_samples: int
     logging_level: str
     loki_url: str | None
@@ -34,7 +35,9 @@ def parse_cli_args() -> CliArgs:
         "--simulate-runts",
         default=None,
         type=datetime.fromisoformat,
-        help="Simulate a run at run_ts. Will pull external data (covariates) from postgres db it usually saves to. Will be stored in TODO??",
+        nargs="*",
+        help="Simulate a run at run_ts. Will pull external data (covariates) from postgres db it usually saves to. "
+        + "Will be stored in a parquet file with the current time. Interpreted as local time if no timezone is specified.",
     )
     p.add_argument("--num-samples", default=128, type=int, help="Number of samples to take for probabilistic forecasts")
     p.add_argument("--logging-level", default="INFO", type=str, help="Logging level for logging module")
@@ -43,8 +46,11 @@ def parse_cli_args() -> CliArgs:
 
     args_namespace: argparse.Namespace = p.parse_args()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
     args = CliArgs(**vars(args_namespace))  # pyright: ignore[reportAny]
-    if args.simulate_runts is not None and args.simulate_runts.tzinfo is None:
-        logger.warning("Interpreting simulation run_ts as local time, since no timezone was provided!")
-        args.simulate_runts = args.simulate_runts.astimezone()
+
+    if args.simulate_runts:
+        # interpreting simulation run_ts as local time, when no timezone was provided
+        args.simulate_runts = [
+            run_ts if run_ts.tzinfo is not None else run_ts.astimezone() for run_ts in args.simulate_runts
+        ]
 
     return args

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from psycopg import sql
 
+
 # run duration of the service should ignore the time needed to import packages, but we still want to log it
 import_start_ts = datetime.now(UTC)
 
@@ -60,11 +61,9 @@ async def main_wrapped():
 async def main_unwrapped(args: CliArgs):
     simulation = False
     now = datetime.now(UTC)
-    run_ts = now
     if args.simulate_runts:
         simulation = True
-        run_ts = args.simulate_runts
-        logger.info(f"Simulating run at {run_ts} using existing covariate data.")
+        logger.info("Simulating runs using existing external (=covariate) data.")
 
     # load model and all required accessories into memory
     model_meta, model, scalers = load_model(args.model_path)
@@ -72,38 +71,93 @@ async def main_unwrapped(args: CliArgs):
     set_params_file(model_meta["params_path"])
 
     async with init_db_pool(args.connection_string) as conn_pool:
-        metadata_table = ForecastMetaTable(conn_pool)
-        if not simulation:
+        # initialize metadata store on db if not in a simulation. could be extended to log simulation metadata too.
+        metadata_table = ForecastMetaTable(conn_pool) if not simulation else None
+        if metadata_table is not None:
             await metadata_table.ensure_table_exists()
-            await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
-
-        status = "success"
-        error = None
-        try:
-            # do the hard part :)
-            await make_forecast(
-                run_ts,
-                model_meta,
-                model,
-                scalers,
-                conn_pool,
-                args.horizon,
-                args.num_samples,
-                actual_now=now if simulation else None,
-            )
-        except Exception as e:
-            # only catches errors during fetching and forecasting, mostly because fetching has external factors.
-            # issues with the database or loading the model will only be visible in the app/container logs.
-            status = "failure"
-            error = str(e)
-            logger.exception("Couldn't finish the forecast run.", exc_info=True)
-
-        finished_at = datetime.now(UTC)
 
         if not simulation:
-            await metadata_table.update_metadata(run_ts, status, error, finished_at)
+            run_ts = now
+            # insert partial run metadata record
+            if metadata_table is not None:
+                await metadata_table.insert_metadata(run_ts, model_meta, args, __version__)
 
-    logger.info(f"Finished run in {finished_at - now} (+ {now - import_start_ts} imports)")
+            # create forecast and catch errors (should not raise)
+            forecast, error, status = await forecast_once(
+                args, conn_pool, model, model_meta, run_ts, scalers, use_cached_external=False
+            )
+
+            # persist forecast if successful
+            if forecast is not None:
+                assert error is None
+                await persist_forecast_db(forecast, ForecastTable(conn_pool))
+
+            # complete run metadata with finish time and success status
+            finished_at = datetime.now(UTC)
+            if metadata_table is not None:
+                await metadata_table.update_metadata(run_ts, status, error, finished_at)
+        else:
+            assert args.simulate_runts, "simulation without simulated run_ts??"
+            forecasts: list[pd.DataFrame] = []
+            for run_ts in args.simulate_runts:
+                # use cached covariates for simulating forecast
+                forecast, error, _ = await forecast_once(
+                    args, conn_pool, model, model_meta, run_ts, scalers, use_cached_external=True
+                )
+                if forecast is not None:
+                    assert error is None
+                    forecasts.append(forecast)
+                else:
+                    logger.warning(f"Could not simulate forecast for run_ts '{run_ts}': {error}")
+
+            # combine all forecasts into a single table
+            if not forecasts:
+                raise ValueError("Could not simulate a single of the provided run_ts.")
+
+            forecast = pd.concat(forecasts)
+
+            # persist to a single parquet file
+            persist_forecast_file(now, forecast)
+
+    logger.info(f"Finished run in {datetime.now(UTC) - now} (+ {now - import_start_ts} imports)")
+
+
+async def forecast_once(
+    args: CliArgs,
+    conn_pool: AsyncConnectionPool,
+    model: GlobalForecastingModel,
+    model_meta: AareModel,
+    run_ts: datetime,
+    scalers: DataTransformers | None,
+    use_cached_external: bool,
+):
+    status = "success"
+    error = None
+    forecast = None
+
+    try:
+        # calculate forecast with loaded model
+        forecast = await make_forecast(
+            run_ts,
+            model_meta,
+            model,
+            scalers,
+            conn_pool,
+            args.horizon,
+            args.num_samples,
+            use_cached_external,
+        )
+
+        forecast["run_ts"] = run_ts
+    except Exception as e:
+        # only catches errors during fetching and forecasting, mostly because fetching has external factors.
+        # issues with the database or loading the model will only be visible in the app/container logs.
+        # the error here is intended to be stored in the model run metadata.
+        status = "failure"
+        error = str(e)
+        logger.exception("Couldn't finish the forecast run.", exc_info=True)
+
+    return forecast, error, status
 
 
 async def make_forecast(
@@ -114,20 +168,19 @@ async def make_forecast(
     conn_pool: AsyncConnectionPool,
     horizon: int,
     num_samples: int,
-    actual_now: datetime | None,
+    use_cached_external: bool,
 ):
-    """Pull external sources, feed them to the model, and persist the returned forecast."""
+    """Pull external sources, feed them to the model, and return forecast."""
     # configure and pull external sources
     sources = SourceRegistry.configure_sources(conn_pool)
-    external_data = await load_external_data(sources, run_ts, use_cached=actual_now is not None)
+    external_data = await load_external_data(sources, run_ts, use_cached_external)
 
     # compile inference data from internal (influx) and external data
     data = get_inference_data(model_meta["features"], model.extreme_lags, external_data, run_ts)
     data = scale_inference_data(data, scalers)
 
-    # actually make and store forecast with loaded model
-    forecast = predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
-    await persist_forecast(run_ts, forecast, ForecastTable(conn_pool), actual_now)
+    # actually make forecast with loaded model
+    return predict(model, data, scalers.get("series") if scalers else None, horizon, num_samples)
 
 
 async def load_external_data(sources: Sources, run_ts: datetime, use_cached: bool) -> dict[str, pd.DataFrame]:
@@ -194,6 +247,8 @@ async def _fetch_and_cache_external(name: str, source: ExternalSource, table: Ti
 
 
 async def _fetch_external_from_cache(table: TimescaleTable, run_ts: datetime):
+    # currently has a 1 sec tolerance on the run_ts. sweet spot between convenience (not specifying milliseconds)
+    # and accuracy (runs are never started this close to each other so collision shouldn't happen).
     return await table.select(
         # postgres does not allow abs() on type INTERVAL so use between
         where=sql.SQL("""("run_ts" - {}) BETWEEN interval '-1 second' AND interval '1 second'""").format(run_ts)
@@ -227,31 +282,17 @@ def predict(
     return pred.to_dataframe().reset_index(names="time")
 
 
-async def persist_forecast(
-    run_ts: datetime, forecast: pd.DataFrame, table: TimescaleTable, actual_now: datetime | None
-):
-    to_store = forecast.copy()
-    to_store["run_ts"] = run_ts
-
-    if actual_now is None:
-        await _persist_forecast_db(to_store, table)
-    else:
-        to_store["actual_now"] = actual_now
-        _persist_forecast_file(run_ts, actual_now, to_store)
-
-
-async def _persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
+async def persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
     """Store the forecast in the timescale database."""
     await table.ensure_table_exists()
     await table.insert(forecast)
 
 
-def _persist_forecast_file(run_ts: datetime, actual_now: datetime, forecast: pd.DataFrame):
+def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame):
     dir = Path("simulated_runs")
     dir.mkdir(parents=True, exist_ok=True)
-    forecast.to_csv(
-        dir
-        / f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}_run_{run_ts.replace(microsecond=0).isoformat()}.csv",
+    forecast.to_parquet(
+        dir / f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}.parquet",
         index=False,
     )
 

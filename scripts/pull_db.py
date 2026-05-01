@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 import subprocess
 
-from aare_timescale.postgres import copy_from_df, copy_to_df
 import psycopg
 from psycopg import sql
 import uvloop
@@ -52,6 +51,7 @@ class CliArgs:
     tables: list[str]
     since: datetime
     clear: bool
+    verbose: bool
     dokku_host: str = ""
     should_update_timestamp: bool = False
 
@@ -60,6 +60,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Pull from remote/prod db into your local/staging one")
     parser.add_argument("--db-name", help="Name of remote postgres db on dokku", default="aare-oraku-forecast")
     parser.add_argument("--expose-port", help="Port remote db is exposed on", default=None)
+    parser.add_argument("--source-db-user", help="User for the source db", default="reader")
+    parser.add_argument("--source-db-password", help="Password for the source db user", default="mängischlängtläse")
     parser.add_argument(
         "--destination-db",
         help="Connection string for destination db",
@@ -80,8 +82,12 @@ def parse_args():
         default=False,
         action="store_true",
     )
-    parser.add_argument("--source-db-user", help="User for the source db", default="reader")
-    parser.add_argument("--source-db-password", help="Password for the source db user", default="mängischlängtläse")
+    parser.add_argument(
+        "--verbose",
+        help="More logs",
+        default=False,
+        action="store_true",
+    )
 
     args_namespace: argparse.Namespace = parser.parse_args()
     args = CliArgs(**vars(args_namespace))  # pyright: ignore[reportAny]
@@ -96,22 +102,27 @@ def parse_args():
 
     args.should_update_timestamp = False
     if not args.since:
+        # read from .last_db_sync if not explicitly specified. update the file after completion.
         args.should_update_timestamp = True
         args.since = datetime.fromisoformat(last_sync_file.read_text()) if last_sync_file.exists() else DEFAULT_SINCE
+    else:
+        # interpret as local time if not specified
+        args.since = args.since if args.since.tzinfo is not None else args.since.astimezone()
 
     return args
 
 
 async def main():
-    logging.basicConfig(level="DEBUG")
     args = parse_args()
+    logging.basicConfig(level="INFO" if not args.verbose else "DEBUG")
     if args.clear:
         logger.warning(
-            f"Are you sure that you want to delete all data where run_ts >= {args.since.isoformat()} "
+            f"Are you sure that you want first to delete all data where run_ts >= {args.since.isoformat()} "
             + f"in the tables {', '.join(args.tables)} of database '{args.destination_db}'?"
         )
+
         if input("Sure? (y/N)").lower() != "y":
-            print("cancelling")
+            logger.info("aborting")
             return
 
     with ExposePostgresPort(args.dokku_host, args.db_name, args.expose_port):
@@ -139,29 +150,42 @@ async def copy_data(
 async def copy_table(
     source_db: psycopg.AsyncConnection, dest_db: psycopg.AsyncConnection, table: str, since: datetime, clear: bool
 ):
-    logger.debug("Start copying table '{table}'")
+    logger.debug(f"Start syncing table '{table}'")
+    table_since_params = dict(table=sql.Identifier(table), since=since)
     if clear:
-        logger.debug(f"Clearing table 'table' after {since}")
-        await dest_db.execute(
-            "DELETE FROM {table} WHERE run_ts >= {since}", dict(table=sql.Identifier(table), since=since)
+        logger.info(f"Clearing table '{table}' after {since}")
+        await dest_db.execute(sql.SQL("DELETE FROM {table} WHERE run_ts >= {since}").format(**table_since_params))
+
+    count = await (
+        await source_db.execute(
+            sql.SQL("SELECT count(*) FROM {table} WHERE run_ts >= {since}").format(**table_since_params)
         )
+    ).fetchone()
+    count = count[0] if count else None
+    assert isinstance(count, int) and count >= 0, f"got invalid count: {count}"
+    if count == 0:
+        logger.info(f"No new data in table '{table}, skipping")
+        return
+
+    logger.info(f"Pulling {count} rows from '{table}' on source db.")
 
     # sorting by first and second column -> run_ts & time or run_ts and whatever. just so it's prettier.
-    data = await copy_to_df(
-        source_db,
-        sql.SQL("""
-        SELECT * FROM {table}
-        WHERE run_ts >= {since}
-        ORDER BY 1, 2
-        """).format(table=sql.Identifier(table), since=since),
-    )
-    logger.debug(f"Pulled {len(data)} rows with {len(data.columns)} columns from the source db (table '{table}').")
-    # could also use binary COPY TO STDOUT, loop through the chunks and write them to the binary COPY FROM STDIN
-    # for better performance esp. if there is a lot of data. this is just super simple, debuggable and lenient.
-    # TODO I didn't think it mattered but it took 5min to sync 4 months worth of data, that's really bad.
-    # https://www.psycopg.org/psycopg3/docs/basic/copy.html#example-copying-a-table-across-servers
-    await copy_from_df(dest_db, data, table)
-    logger.debug(f"Inserted {len(data)} rows into '{table}' on destination db.")
+    async with source_db.cursor().copy(
+        sql.SQL("""COPY (
+            SELECT * FROM {table}
+            WHERE run_ts >= {since}
+            ORDER BY 1, 2
+        ) TO STDOUT (FORMAT BINARY)
+        """).format(**table_since_params),
+    ) as source_copy:
+        async with dest_db.cursor().copy(
+            sql.SQL("COPY {table} FROM STDIN (FORMAT BINARY)").format(table=sql.Identifier(table))
+        ) as dest_copy:
+            async for chunk in source_copy:
+                # for this to work, the tables must be exactly identical (down to order and type)
+                await dest_copy.write(chunk)
+
+    logger.info(f"Inserted {count} rows into '{table}' on destination db.")
 
 
 if __name__ == "__main__":

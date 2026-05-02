@@ -1,6 +1,6 @@
 from io import BytesIO
-from typing import LiteralString, cast
-from collections.abc import Sequence
+from typing import TYPE_CHECKING, LiteralString, cast, Any
+from collections.abc import Sequence, Mapping
 
 import pandas as pd
 import psycopg
@@ -8,26 +8,46 @@ from pandas._typing import WriteBuffer
 from psycopg import AsyncConnection, sql
 from psycopg.abc import Params
 from psycopg.rows import TupleRow
+from psycopg.sql import Composed, SQL
 from psycopg_pool import AsyncConnectionPool
 
+if TYPE_CHECKING:
+    import polars as pl
 
 async def copy_to_df(
     conn: AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Params | None = None
 ) -> pd.DataFrame:
     """Copy a postgres query into a pandas DataFrame."""
+    with BytesIO() as bio:
+        await _copy_to_csv(conn, params, query, bio)
+        bio.seek(0)
+
+        return pd.read_csv(bio)
+
+
+async def copy_to_df_pl(
+        conn: AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Params | None = None
+) -> "pl.DataFrame":
+    """Copy a postgres query into a polars DataFrame."""
+    import polars as pl
+    with BytesIO() as bio:
+        await _copy_to_csv(conn, params, query, bio)
+        bio.seek(0)
+
+        return pl.read_csv(bio)
+
+
+async def _copy_to_csv(conn: AsyncConnection, params: Sequence[Any] | Mapping[str, Any] | None,
+                       query: LiteralString | SQL | Composed, bio: BytesIO) -> None:
     if isinstance(query, str):
         query = sql.SQL(query)
     async with conn.cursor() as cur:
-        with BytesIO() as bio:
-            # make sure the query doesn't end with ; somehow, maybe it's automatic?
-            async with cur.copy(
+        # make sure the query doesn't end with ; somehow, maybe it's automatic?
+        async with cur.copy(
                 sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query), params
-            ) as copy:
-                async for data in copy:
-                    bio.write(data)
-            bio.seek(0)
-
-            return pd.read_csv(bio)
+        ) as copy:
+            async for data in copy:
+                bio.write(data)
 
 
 async def copy_from_df(conn: AsyncConnection, df: pd.DataFrame, table: str):

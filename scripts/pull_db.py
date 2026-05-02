@@ -182,7 +182,8 @@ async def copy_table(
             sql.SQL("COPY {table} FROM STDIN (FORMAT BINARY)").format(table=sql.Identifier(table))
         ) as dest_copy:
             async for chunk in source_copy:
-                # for this to work, the tables must be exactly identical (down to order and type)
+                # for this to work, the tables must be exactly identical (down to order and type).
+                # also the same postgres and timescale version if possible.
                 await dest_copy.write(chunk)
 
     logger.info(f"Inserted {count} rows into '{table}' on destination db.")

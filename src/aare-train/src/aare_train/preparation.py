@@ -1,15 +1,17 @@
 from datetime import datetime
-from typing import Optional, Literal
+from typing import TYPE_CHECKING, Optional, Literal
 
 import numpy as np
 import pandas as pd
-from darts import TimeSeries
 from typing_extensions import deprecated
 
 from aare.constants import TEMP, TIME
 from aare_train.params import read_params
 from aare_train.utils import between, fill_with_hard_limit
-from aare_train.darts_utils import to_ts
+
+if TYPE_CHECKING:
+    from darts import TimeSeries
+
 
 
 def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:
@@ -192,12 +194,14 @@ def interpolate_aare_temp(df: pd.DataFrame, drop_filled=False, columns: str | li
 
 
 @deprecated("Work with WaterTempBern feature")
-def prepare_ts_aare_temp(raw: pd.DataFrame) -> TimeSeries:
+def prepare_ts_aare_temp(raw: pd.DataFrame) -> "TimeSeries":
     """
     Run all the preparation steps on the raw data and return a clean TimeSeries.
 
     WARNING: Might still contain gaps and must be split with extract_subseries.
     """
+    from aare_train.darts_utils import to_ts
+
     ts = resample(raw)
     ts = remove_faulty_periods_aare_temp(ts)
     ts = remove_outliers_aare_temp(ts)

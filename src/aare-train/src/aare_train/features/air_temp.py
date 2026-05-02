@@ -6,4 +6,4 @@ class AirTemp(SingleFieldFeature):
     NAME = "tt"
 
     def __init__(self, loc: str | int):
-        super().__init__(self.loc_name(loc), FieldRequest("smn", "tt", "1h", "first", loc))
+        super().__init__(self.loc_name(loc), FieldRequest("smn", "tt", "1h", "mean", loc))

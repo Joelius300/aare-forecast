@@ -10,7 +10,7 @@ class Flow(SingleFieldFeature):
     NAME = "flow"
 
     def __init__(self, loc: str | int):
-        super().__init__(self.loc_name(loc), FieldRequest("hydro", "flow", "1h", "first", loc))
+        super().__init__(self.loc_name(loc), FieldRequest("hydro", "flow", "1h", "mean", loc))
 
     def _remove_faulty_periods(self, df: pd.DataFrame) -> pd.DataFrame:
         # the periods below are for just for bern. once we want flow from other locations, rethink this.

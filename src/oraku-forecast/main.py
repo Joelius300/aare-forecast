@@ -69,6 +69,7 @@ async def main_unwrapped(args: CliArgs):
     model_meta, model, scalers = load_model(args.model_path)
     # set params file for read_params to the one that was used when training the model
     set_params_file(model_meta["params_path"])
+    logger.info(f"Loaded model, scalers and params from '{args.model_path}'")
 
     async with init_db_pool(args.connection_string) as conn_pool:
         # initialize metadata store on db if not in a simulation. could be extended to log simulation metadata too.
@@ -117,7 +118,7 @@ async def main_unwrapped(args: CliArgs):
             forecast = pd.concat(forecasts)
 
             # persist to a single parquet file
-            persist_forecast_file(now, forecast)
+            persist_forecast_file(now, forecast, model_meta)
 
     logger.info(f"Finished run in {datetime.now(UTC) - now} (+ {now - import_start_ts} imports)")
 
@@ -288,11 +289,16 @@ async def persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
     await table.insert(forecast)
 
 
-def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame):
+def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame, model_meta: AareModel):
     dir = Path("simulated_runs")
     dir.mkdir(parents=True, exist_ok=True)
     forecast.to_parquet(
-        dir / f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}.parquet",
+        dir
+        / (
+            f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}"
+            "_"
+            f"{model_meta['name']}-{model_meta['version']}.parquet"
+        ),
         index=False,
     )
 

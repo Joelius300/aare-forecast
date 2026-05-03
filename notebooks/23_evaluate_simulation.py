@@ -14,6 +14,7 @@ def _():
 @app.cell
 def _():
     from datetime import datetime, timedelta, UTC
+    import subprocess
 
     import numpy as np
     import pandas as pd
@@ -23,6 +24,7 @@ def _():
     import psycopg
     import psycopg_pool
     from psycopg import sql
+    import pytz
 
     from aare.constants import TIME, TEMP
     from aare_influx.field_request import FieldRequest
@@ -31,7 +33,7 @@ def _():
     from aare_train.preparation import resample
     from aare_train.utils import join_many
 
-    return copy_to_df_pl, cs, datetime, pl, psycopg_pool, px
+    return copy_to_df_pl, cs, datetime, pl, psycopg_pool, px, pytz, subprocess
 
 
 @app.cell(hide_code=True)
@@ -84,16 +86,41 @@ async def _(copy_to_df_pl, cs, pl, pool, since, tz):
         forecasts = await copy_to_df_pl(
             _conn, "SELECT * FROM forecast WHERE run_ts >= %(since)s ORDER BY run_ts, time", dict(since=since)
         )
-        forecasts = forecasts.with_columns(cs.string().str.to_datetime(time_zone=tz)).with_columns(
-            pl.col("run_ts").dt.truncate("1h").alias("run_ts_hour")
+        forecasts = (
+            forecasts.with_columns(cs.string().str.to_datetime(time_zone=tz))
+            .with_columns(pl.col("run_ts").dt.truncate("1h").alias("run_ts_hour"))
+            .set_sorted(["run_ts", "time"])
         )
     forecasts.shape
     return (forecasts,)
 
 
 @app.cell
-def _(forecasts, pl):
-    hist_run_ts = forecasts.select(pl.col("run_ts").unique())
+async def _(copy_to_df_pl, pl, pool, since, tz):
+    async with pool.connection() as _conn:
+        forecast_meta = await copy_to_df_pl(
+            _conn, "SELECT * FROM forecast_meta WHERE run_ts >= %(since)s ORDER BY run_ts", dict(since=since)
+        )
+        forecast_meta = (
+            forecast_meta.with_columns(pl.col("run_ts", "finished_at").str.to_datetime(time_zone=tz))
+            .with_columns(pl.col("run_ts").dt.truncate("1h").alias("run_ts_hour"))
+            .set_sorted("run_ts")
+        )
+    forecast_meta.shape
+    return (forecast_meta,)
+
+
+@app.cell
+def _(forecast_meta):
+    forecast_meta.filter(model_name="nowcasting_temp", model_version="1.0")
+    return
+
+
+@app.cell
+def _(forecast_meta, pl):
+    # same query with forecasts = only successful. with forecast_meta also failures.
+    # can of course only compare runs of the same model, oops.
+    hist_run_ts = forecast_meta.filter(model_name="nowcasting_temp", model_version="1.0").select(pl.col("run_ts").unique())
     hist_run_ts
     return (hist_run_ts,)
 
@@ -201,17 +228,8 @@ def _(mo):
 
 
 @app.cell
-def _():
-    import subprocess
-
-    subprocess.run("pwd", capture_output=True)
-    return (subprocess,)
-
-
-@app.cell
 def _(cs, hist_run_ts, pl):
-    # start with 100, see how long it takes :)
-    # tested with 100 runs first, results in 0.65s per run, so for 12000 runs it would take 130min
+    # first tested with 100 runs first, results in 0.65s per run, so for 12000 runs it would take 130min
     # to reduce the simulation time, only simulate one per hour (the first one) since we know the covariate
     # inputs don't change during the hour.
     simulation_run_ts = (
@@ -228,7 +246,11 @@ def _(cs, hist_run_ts, pl):
 
 @app.cell
 def _(simulation_run_ts, subprocess):
-    subprocess.run("uv run src/oraku-forecast/main.py --logging-level INFO --simulate-runts".split() + simulation_run_ts)
+    if False:
+        proc = subprocess.Popen(
+            "uv run src/oraku-forecast/main.py --logging-level INFO --model-path data/models/nowcasting_temp-1.0-diffpatch/nowcasting_temp-1.0.json --simulate-runts".split()
+            + simulation_run_ts
+        )
     return
 
 
@@ -266,11 +288,29 @@ def _(mo):
 
 
 @app.cell
-def _(cs, forecasts, pl, simulated_forecasts_a):
+def _(cs, pl, tz):
+    # simulation with nowcasting_temp-1.0 (like prod)
+    simulated_forecasts_prod = pl.read_parquet("simulated_runs/2026-05-03T09:43:30.parquet").with_columns(
+        cs.datetime().dt.convert_time_zone(tz).dt.cast_time_unit("us")
+    )
+    return (simulated_forecasts_prod,)
+
+
+@app.cell
+def _(cs, pl, tz):
+    # simulation with patched nowcasting_temp-1.0 to increase diff_threshold for water temperature
+    simulated_forecasts_diffpatch = pl.read_parquet(
+        "simulated_runs/2026-05-03T10:35:20_nowcasting_temp-1.0-diffpatch.parquet"
+    ).with_columns(cs.datetime().dt.convert_time_zone(tz).dt.cast_time_unit("us"))
+    return (simulated_forecasts_diffpatch,)
+
+
+@app.cell
+def _(forecasts, pl, simulated_forecasts_prod):
     actual_compare = (
-        forecasts.select(cs.exclude("run_ts_hour"))
-        .join(simulated_forecasts_a, on=("run_ts", "time"), suffix="_simulated")
-        .with_columns(diff=(pl.col("temp_bern") - pl.col("temp_bern_simulated")).abs())
+        forecasts.select("run_ts", "time", temp_bern_prod="temp_bern")
+        .join(simulated_forecasts_prod, on=("run_ts", "time"), suffix="_simulated")
+        .with_columns(diff=(pl.col("temp_bern_prod") - pl.col("temp_bern_simulated")).abs())
     )
     actual_compare
     return (actual_compare,)
@@ -279,6 +319,34 @@ def _(cs, forecasts, pl, simulated_forecasts_a):
 @app.cell
 def _(actual_compare):
     actual_compare.describe()
+    return
+
+
+@app.cell
+def _(
+    actual_compare,
+    cs,
+    datetime,
+    pl,
+    px,
+    pytz,
+    simulated_forecasts_diffpatch,
+    tz,
+):
+    # shortest horizon forecasts (always <1h between run_ts and time). also filter to roughly when nowcasting_temp-1.0 was deployed.
+    _best_forecasts = (
+        actual_compare.filter(pl.col("run_ts") > datetime(2026, 3, 22, tzinfo=pytz.timezone(tz)))
+        .join(
+            simulated_forecasts_diffpatch.select("run_ts", "time", temp_bern_diffpatch="temp_bern"), on=["run_ts", "time"]
+        )
+        .sort(["time", "run_ts"])
+        .group_by_dynamic("time", every="1h")
+        .agg(cs.all().last())
+    )
+
+    px.line(_best_forecasts, x="time", y=["temp_bern_prod", "temp_bern_simulated", "temp_bern_diffpatch"]).update_layout(
+        hovermode="x"
+    )
     return
 
 

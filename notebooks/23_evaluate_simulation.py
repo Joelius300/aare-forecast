@@ -41,7 +41,7 @@ def _(mo):
     mo.md(r"""
     # Evaluating real vs simulated forecasts in bulk
 
-    Using marimo for nicer interactivity.
+    Using marimo for nicer interactivity, but this is still just an experimental (unreproducible) playground notebook.
     """)
     return
 
@@ -241,15 +241,16 @@ def _(cs, hist_run_ts, pl):
         .to_list()
     )
     simulation_run_ts
-    return (simulation_run_ts,)
+    return
 
 
 @app.cell
-def _(simulation_run_ts, subprocess):
+def _(hist_run_ts, pl, subprocess):
     if False:
         proc = subprocess.Popen(
-            "uv run src/oraku-forecast/main.py --logging-level INFO --model-path data/models/nowcasting_temp-1.0-diffpatch/nowcasting_temp-1.0.json --simulate-runts".split()
-            + simulation_run_ts
+            "uv run src/oraku-forecast/main.py --logging-level INFO --model-path data/models/nowcasting_temp-1.0/nowcasting_temp-1.0.json --simulate-runts".split()
+            # + simulation_run_ts  # <-- subsampled, see above
+            + hist_run_ts.select(pl.col("run_ts").dt.to_string()).to_series().to_list()  # <-- all extracted run_ts
         )
     return
 
@@ -283,6 +284,8 @@ def _(pl, simulated_forecasts_a, simulated_forecasts_b):
 def _(mo):
     mo.md(r"""
     Oh no, both simulations today have the exact same outputs. Until now it seemed that same inputs could result in different outputs since run_ts at 00:15 and 00:30 had different values for the same hour despite confirming that meteotest values aren't updated in between those runs. Fuuuuuck. Maybe it's GPU vs CPU? Regardless we can't waste too much time on this...
+
+    Ah turns out I was running with a default model of LR-dev, which is trained on FIRST features, not MEAN. Still, analysis below shows that there are differences between the prod forecasts and the simulated ones, but they are much smaller ~0.005°C on average and max 0.045°C. The difference increases with longer horizons due to compounding effects. The big question is why the hell are there no differences when you simulate the same thing twice but tbh I don't have time for that right now and the simulation is close enough to be useful for now.
     """)
     return
 
@@ -290,17 +293,38 @@ def _(mo):
 @app.cell
 def _(cs, pl, tz):
     # simulation with nowcasting_temp-1.0 (like prod)
-    simulated_forecasts_prod = pl.read_parquet("simulated_runs/2026-05-03T09:43:30.parquet").with_columns(
-        cs.datetime().dt.convert_time_zone(tz).dt.cast_time_unit("us")
-    )
+    simulated_forecasts_prod = pl.read_parquet(
+        "simulated_runs/2026-05-03T12:34:25_nowcasting_temp-1.0.parquet"
+        # "simulated_runs/2026-05-03T11:06:45_nowcasting_temp-1.0.parquet"
+    ).with_columns(cs.datetime().dt.convert_time_zone(tz).dt.cast_time_unit("us"))
+    simulated_forecasts_prod.shape
     return (simulated_forecasts_prod,)
+
+
+@app.cell
+def _(pl, simulated_forecasts_prod):
+    # check if there is also inter-hour variance despite constant inputs. if not, this would confirm that there is some fundamental difference between the way forecasts are made, possible due to gpu vs cpu and it's likely that the simulation is working correctly. if there is variance, this could still be true, but it's more likely that the simulation isn't working correctly (than if there isn't variance).
+    (
+        simulated_forecasts_prod.with_columns(pl.col("run_ts").dt.truncate("1h").alias("run_ts_hour")).sort(
+            ["run_ts_hour", "time", "run_ts"]
+        )
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+ 
+    """)
+    return
 
 
 @app.cell
 def _(cs, pl, tz):
     # simulation with patched nowcasting_temp-1.0 to increase diff_threshold for water temperature
     simulated_forecasts_diffpatch = pl.read_parquet(
-        "simulated_runs/2026-05-03T10:35:20_nowcasting_temp-1.0-diffpatch.parquet"
+        "simulated_runs/2026-05-03T11:05:43_nowcasting_temp-1.0-diffpatch.parquet"
     ).with_columns(cs.datetime().dt.convert_time_zone(tz).dt.cast_time_unit("us"))
     return (simulated_forecasts_diffpatch,)
 
@@ -309,11 +333,25 @@ def _(cs, pl, tz):
 def _(forecasts, pl, simulated_forecasts_prod):
     actual_compare = (
         forecasts.select("run_ts", "time", temp_bern_prod="temp_bern")
-        .join(simulated_forecasts_prod, on=("run_ts", "time"), suffix="_simulated")
+        .join(simulated_forecasts_prod.select("run_ts", "time", temp_bern_simulated="temp_bern"), on=("run_ts", "time"))
         .with_columns(diff=(pl.col("temp_bern_prod") - pl.col("temp_bern_simulated")).abs())
     )
     actual_compare
     return (actual_compare,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Good and bad news.
+
+    The simulated forecasts at 00:15, 00:30 and 00:45 are all very close and most likely only differ because of rounding error and small differences when transfering the data via postgres and also potentially cpu vs gpu. The diff seems to always be <0.000001°C.
+
+    However, the first forecast so at 00:00, has a higher diff in the range of 0.005 in the higher horizons. This is a strong indicator that the simulation logic does something wrong, e.g. fetches different covariates than expected.
+
+    **TODO investigate!!**
+    """)
+    return
 
 
 @app.cell
@@ -335,7 +373,7 @@ def _(
 ):
     # shortest horizon forecasts (always <1h between run_ts and time). also filter to roughly when nowcasting_temp-1.0 was deployed.
     _best_forecasts = (
-        actual_compare.filter(pl.col("run_ts") > datetime(2026, 3, 22, tzinfo=pytz.timezone(tz)))
+        actual_compare.filter(pl.col("run_ts") > datetime(2026, 3, 18, tzinfo=pytz.timezone(tz)))
         .join(
             simulated_forecasts_diffpatch.select("run_ts", "time", temp_bern_diffpatch="temp_bern"), on=["run_ts", "time"]
         )
@@ -347,6 +385,11 @@ def _(
     px.line(_best_forecasts, x="time", y=["temp_bern_prod", "temp_bern_simulated", "temp_bern_diffpatch"]).update_layout(
         hovermode="x"
     )
+    return
+
+
+@app.cell
+def _():
     return
 
 

@@ -312,14 +312,6 @@ def _(pl, simulated_forecasts_prod):
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
- 
-    """)
-    return
-
-
 @app.cell
 def _(cs, pl, tz):
     # simulation with patched nowcasting_temp-1.0 to increase diff_threshold for water temperature
@@ -404,6 +396,8 @@ def _(mo):
       - nomau simulation la loufe mitm nowcasting-temp-1.0 und luege obs di gliche wärte git (sött!)
       - när mit nowcasting-temp-1.0-diffpatch simuliere und luege obs 1. besser wird und 2. haut plotte mit de angere zum luege obs di momente hät gfixt wos so blödi, fauschi egge het gä.
       - när mit LR-dev oder wasoimmer la loufe mit de gliche hparams wie nowcasting-temp-1.0 aber code und input uf FIRST statt MEAN
+
+    -> continued work in 24_compare_simulations.ipynb
     """)
     return
 

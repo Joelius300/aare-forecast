@@ -2,16 +2,13 @@
 # ignore 'imports not at top of file' for this file
 
 from datetime import UTC, datetime
-from pathlib import Path
-
-from psycopg import sql
-
 
 # run duration of the service should ignore the time needed to import packages, but we still want to log it
 import_start_ts = datetime.now(UTC)
 
 from collections.abc import Awaitable
 import logging
+from pathlib import Path
 import asyncio
 
 import uvloop
@@ -20,6 +17,7 @@ from darts import TimeSeries
 from darts.dataprocessing import Pipeline
 from darts.dataprocessing.transformers import InvertibleDataTransformer
 from darts.models.forecasting.forecasting_model import GlobalForecastingModel
+from psycopg import sql
 from psycopg_pool import AsyncConnectionPool
 
 from aare_logging.logging import setup_logging
@@ -98,6 +96,11 @@ async def main_unwrapped(args: CliArgs):
             if metadata_table is not None:
                 await metadata_table.update_metadata(run_ts, status, error, finished_at)
         else:
+            # note on simulation:
+            # - as shown in notebooks 23, simulation with the same input data is largely accurate with minor precision loss (<0.000001°C)
+            # - however, since influxdb data is not archived/snapshotted like external data, INPUT DATA CAN DIFFER!
+            #   for "mean" aggregated features, this leads to diffs up to 0.005°C. for "first" aggregated features this is likely worse!
+            #   if necessary, could subtract the known ingestion delay when fetching in simulation mode. for the future, archive influxdb too.
             assert args.simulate_runts, "simulation without simulated run_ts??"
             forecasts: list[pd.DataFrame] = []
             for run_ts in args.simulate_runts:
@@ -290,7 +293,7 @@ async def persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
 
 
 def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame, model_meta: AareModel):
-    dir = Path("simulated_runs")
+    dir = Path("data/simulated_runs")
     dir.mkdir(parents=True, exist_ok=True)
     forecast.to_parquet(
         dir

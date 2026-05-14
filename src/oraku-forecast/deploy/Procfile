@@ -1,1 +1,1 @@
-job: python /app/src/oraku-forecast/main.py
+predict: python /app/src/oraku-forecast/main.py

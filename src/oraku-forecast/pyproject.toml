@@ -30,5 +30,10 @@ aare-timescale = { workspace = true }
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+dev = [
+    "tqdm>=4.67.3",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/oraku_forecast"]

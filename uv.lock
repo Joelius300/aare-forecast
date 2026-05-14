@@ -272,6 +272,11 @@ gpu-auto = [
     { name = "aare-train", extra = ["gpu-auto"], marker = "(extra == 'extra-10-aare-train-cpu' and extra == 'extra-10-aare-train-gpu') or (extra == 'extra-10-aare-train-cpu' and extra == 'extra-10-aare-train-gpu-auto') or (extra == 'extra-10-aare-train-gpu' and extra == 'extra-10-aare-train-gpu-auto') or (extra == 'extra-10-aare-train-gpu-auto' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "tqdm" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "aare", editable = "src/aare" },
@@ -285,6 +290,9 @@ requires-dist = [
     { name = "uvloop", specifier = ">=0.21.0" },
 ]
 provides-extras = ["gpu-auto", "gpu", "cpu"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "tqdm", specifier = ">=4.67.3" }]
 
 [[package]]
 name = "aare-oraku-influx2pg"

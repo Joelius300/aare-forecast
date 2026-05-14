@@ -101,9 +101,11 @@ async def main_unwrapped(args: CliArgs):
             # - however, since influxdb data is not archived/snapshotted like external data, INPUT DATA CAN DIFFER!
             #   for "mean" aggregated features, this leads to diffs up to 0.005°C. for "first" aggregated features this is likely worse!
             #   if necessary, could subtract the known ingestion delay when fetching in simulation mode. for the future, archive influxdb too.
+            from tqdm import tqdm
+
             assert args.simulate_runts, "simulation without simulated run_ts??"
             forecasts: list[pd.DataFrame] = []
-            for run_ts in args.simulate_runts:
+            for run_ts in tqdm(args.simulate_runts, desc="Simulating runs"):
                 # use cached covariates for simulating forecast
                 forecast, error, _ = await forecast_once(
                     args, conn_pool, model, model_meta, run_ts, scalers, use_cached_external=True
@@ -121,7 +123,7 @@ async def main_unwrapped(args: CliArgs):
             forecast = pd.concat(forecasts)
 
             # persist to a single parquet file
-            persist_forecast_file(now, forecast, model_meta)
+            persist_forecast_file(now, forecast, model_meta, args.simulation_file)
 
     logger.info(f"Finished run in {datetime.now(UTC) - now} (+ {now - import_start_ts} imports)")
 
@@ -292,18 +294,19 @@ async def persist_forecast_db(forecast: pd.DataFrame, table: TimescaleTable):
     await table.insert(forecast)
 
 
-def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame, model_meta: AareModel):
-    dir = Path("data/simulated_runs")
-    dir.mkdir(parents=True, exist_ok=True)
-    forecast.to_parquet(
-        dir
-        / (
+def persist_forecast_file(actual_now: datetime, forecast: pd.DataFrame, model_meta: AareModel, output_path: str | None):
+    if output_path:
+        path = Path(output_path)
+    else:
+        dir = Path("data/simulated_runs")
+        path = dir / (
             f"{actual_now.astimezone().replace(microsecond=0, tzinfo=None).isoformat()}"
             "_"
             f"{model_meta['name']}-{model_meta['version']}.parquet"
-        ),
-        index=False,
-    )
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    forecast.to_parquet(path, index=False)
 
 
 if __name__ == "__main__":

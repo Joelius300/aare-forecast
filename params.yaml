@@ -12,7 +12,9 @@ features:
     outliers:
       low_cutoff: 2.5
       high_cutoff: 25
-      diff_threshold: 0.6  # 0.995 quantile
+      diff_threshold: 1.0  # 0.665 would be 99.5% quantile buuuut in spring there are a lot of legit 0.8-1.0 diffs
+      # TODO it would be smarter to use a dynamic cleanup; e.g. if diff is an IQR outlier given the previous 7 day diffs
+      #  also, a diff of exactly 0 is also very suspicious and should probably be cleaned up
     interpolate:
       # They work often, but sometimes fail badly.
       # Could try model based imputation for larger gaps (10-50h)

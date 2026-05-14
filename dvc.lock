@@ -23,7 +23,7 @@ stages:
     outs:
     - path: data/forecast_samples/LOCF.pkl
       hash: md5
-      md5: 2eb1a304a59e2b67c02cd0d535adfd47
+      md5: b773b64036fb5e19e1984cf887a2316c
       size: 10627
     - path: data/forecast_samples/MEAN.pkl
       hash: md5
@@ -31,32 +31,32 @@ stages:
       size: 15867
     - path: data/forecast_samples/SNAIVE.pkl
       hash: md5
-      md5: 2d04a0e425c8cbd252a9c58d398d1ec3
+      md5: 6b3cb09bb8d0afc05075a8c7e4fb01ca
       size: 10627
     - path: data/metrics/LOCF.json
       hash: md5
-      md5: eb279ec000a0ff7461396794117e67a0
-      size: 179
+      md5: 6b0420d606be3af83fc8783ccac37f1f
+      size: 176
     - path: data/metrics/MEAN.json
       hash: md5
-      md5: cc699266a9e5ae0ddf529e5c05ab4c68
-      size: 179
+      md5: 86b3c83295fdfe0a7888dbc994352639
+      size: 178
     - path: data/metrics/SNAIVE.json
       hash: md5
-      md5: a1590d66b935c8d38428a140f63a83e1
+      md5: 370d715ae74a595359336dad5d872f38
       size: 180
     - path: data/metrics/raw/LOCF.parquet
       hash: md5
-      md5: 7c1ebe02e19791b8b651c48478f67a89
-      size: 879665
+      md5: b445cbd88019f5b11c22137c380da9b8
+      size: 878666
     - path: data/metrics/raw/MEAN.parquet
       hash: md5
-      md5: 6e616ff3e1c5c8b8771b6d19e5cbbb4a
-      size: 1246570
+      md5: 1321ecf0eed0175797d70fcafe24e427
+      size: 1243691
     - path: data/metrics/raw/SNAIVE.parquet
       hash: md5
-      md5: 8abe26a91206bb9a797f05e15d4c1bf7
-      size: 931133
+      md5: d854c21c71f96a60a70453591c9a1b81
+      size: 927483
   timesfm-baseline:
     cmd: uv run --no-project --python 3.11 scripts/timesfm_baseline.py
     params:
@@ -70,16 +70,16 @@ stages:
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 546abaa4327a55efb679ea229584923c
+      md5: 4cbb4d46868c221c8171279d07767220
       size: 28399
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: b4a737af5c53e4569ac8ad62a5a655be
-      size: 177
+      md5: 5112aa740a256cbcf29bbba1d97f5cb1
+      size: 176
     - path: data/metrics/raw/TIMESFM.parquet
       hash: md5
-      md5: 0d2e0295460ae762f4fccffe56a2272d
-      size: 2077102
+      md5: c20eeec05f059dc2e0a1ae6f3a4ff0eb
+      size: 2076850
   train-eval-model:
     cmd: uv run scripts/train.py lr --targets temp_bern --future tt_bern 
       tt_bern_log tt_bern_cube tt_bern_sqrt tt_bern_ma3 --hparams 
@@ -88,13 +88,13 @@ stages:
     outs:
     - path: data/forecast_samples/LR-dev.pkl
       hash: md5
-      md5: a0b67201c7526266a829274bbd7fbf38
-      size: 30946
+      md5: 1c2e9d0bf4c919e957476a86d0831266
+      size: 31169
     - path: data/metrics/LR-dev.json
       hash: md5
-      md5: 6b539987b1464e4fb3efd680a2a88936
-      size: 182
+      md5: ee3f3e6089e6cc1b001ecc365f15d3ea
+      size: 181
     - path: data/metrics/raw/LR-dev.parquet
       hash: md5
-      md5: 24a48dd2379900b966bcd9a1e628e192
-      size: 3349537
+      md5: 1d95921d4f1ffd9a27752137a9b3fa07
+      size: 3349353

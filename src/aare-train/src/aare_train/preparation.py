@@ -7,11 +7,10 @@ from typing_extensions import deprecated
 
 from aare.constants import TEMP, TIME
 from aare_train.params import read_params
-from aare_train.utils import between, fill_with_hard_limit
+from aare.pd_utils import between, fill_with_hard_limit
 
 if TYPE_CHECKING:
     from darts import TimeSeries
-
 
 
 def _resample(df: pd.DataFrame, freq: str) -> pd.DataFrame:

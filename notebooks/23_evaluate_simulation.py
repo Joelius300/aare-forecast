@@ -13,25 +13,16 @@ def _():
 
 @app.cell
 def _():
-    from datetime import datetime, timedelta, UTC
+    from datetime import datetime
     import subprocess
 
-    import numpy as np
-    import pandas as pd
     import polars as pl
     import polars.selectors as cs
     import plotly.express as px
-    import psycopg
     import psycopg_pool
-    from psycopg import sql
     import pytz
 
-    from aare.constants import TIME, TEMP
-    from aare_influx.field_request import FieldRequest
-    from aare_influx.remote_existenz_store import RemoteExistenzStore
     from aare_timescale.postgres import copy_to_df_pl
-    from aare_train.preparation import resample
-    from aare_train.utils import join_many
 
     return copy_to_df_pl, cs, datetime, pl, psycopg_pool, px, pytz, subprocess
 
@@ -68,7 +59,9 @@ def _():
 
 @app.cell
 async def _(psycopg_pool):
-    pool = psycopg_pool.AsyncConnectionPool("host=127.0.0.1 dbname=aare_oraku user=postgres password=password", open=False)
+    pool = psycopg_pool.AsyncConnectionPool(
+        "host=127.0.0.1 dbname=aare_oraku user=postgres password=password", open=False
+    )
     await pool.open()
     return (pool,)
 
@@ -120,7 +113,9 @@ def _(forecast_meta):
 def _(forecast_meta, pl):
     # same query with forecasts = only successful. with forecast_meta also failures.
     # can of course only compare runs of the same model, oops.
-    hist_run_ts = forecast_meta.filter(model_name="nowcasting_temp", model_version="1.0").select(pl.col("run_ts").unique())
+    hist_run_ts = forecast_meta.filter(model_name="nowcasting_temp", model_version="1.0").select(
+        pl.col("run_ts").unique()
+    )
     hist_run_ts
     return (hist_run_ts,)
 
@@ -198,7 +193,6 @@ def _(cs, meteo, pl, px):
         .sort("run_ts")
         .collect()
     )
-
 
     px.line(changed_times, x="run_ts", y="changed")
     return
@@ -367,16 +361,17 @@ def _(
     _best_forecasts = (
         actual_compare.filter(pl.col("run_ts") > datetime(2026, 3, 18, tzinfo=pytz.timezone(tz)))
         .join(
-            simulated_forecasts_diffpatch.select("run_ts", "time", temp_bern_diffpatch="temp_bern"), on=["run_ts", "time"]
+            simulated_forecasts_diffpatch.select("run_ts", "time", temp_bern_diffpatch="temp_bern"),
+            on=["run_ts", "time"],
         )
         .sort(["time", "run_ts"])
         .group_by_dynamic("time", every="1h")
         .agg(cs.all().last())
     )
 
-    px.line(_best_forecasts, x="time", y=["temp_bern_prod", "temp_bern_simulated", "temp_bern_diffpatch"]).update_layout(
-        hovermode="x"
-    )
+    px.line(
+        _best_forecasts, x="time", y=["temp_bern_prod", "temp_bern_simulated", "temp_bern_diffpatch"]
+    ).update_layout(hovermode="x")
     return
 
 

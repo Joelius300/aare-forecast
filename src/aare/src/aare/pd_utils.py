@@ -2,7 +2,7 @@ from collections.abc import Sequence
 import functools
 import logging
 from datetime import tzinfo, datetime
-from typing import cast, overload, Callable, Any
+from typing import cast, overload, Callable
 
 import pandas as pd
 
@@ -179,23 +179,3 @@ def relocalize_times(col: pd.Series, tz: str | tzinfo):
 def join_many(*dfs: pd.DataFrame, on: str | Sequence[str]) -> pd.DataFrame:
     """Outer join many dataframes together by (a) common column(s)."""
     return functools.reduce(lambda left, right: pd.merge(left, right, on=on, how="outer"), dfs)
-
-
-def trav(json: Any, *path: str) -> Any:
-    """Traverse dict-like but with better error msg if a key is missing (raises Value- or KeyError)."""
-    cur = json
-    traversed: list[str] = []
-    for seg in path:
-        if cur is None:
-            raise ValueError(f"Object at '{'.'.join(traversed)}' is None, cannot traverse further to '{seg}'")
-        if not isinstance(cur, dict):
-            raise ValueError(
-                f"Passed json has reached a non-dict at '{'.'.join(traversed)}', but tried to keep going deeper with '{seg}'"
-            )
-        if seg not in cur:
-            raise KeyError(f"Key '{seg}' missing after '{'.'.join(traversed)}'")
-
-        cur = cur[seg]
-        traversed.append(seg)
-
-    return cur

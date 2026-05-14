@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Core code in lightweight package for all use cases (train, inference, api, etc.)"
 requires-python = ">=3.11"
 dependencies = []
+[project.optional-dependencies]
+pandas = ["pandas>=2.0.0,<3.0.0"]
 
 [build-system]
 requires = ["hatchling"]

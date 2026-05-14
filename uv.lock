@@ -110,6 +110,15 @@ name = "aare"
 version = "0.1.0"
 source = { editable = "src/aare" }
 
+[package.optional-dependencies]
+pandas = [
+    { name = "pandas" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pandas", marker = "extra == 'pandas'", specifier = ">=2.0.0,<3.0.0" }]
+provides-extras = ["pandas"]
+
 [[package]]
 name = "aare-forecast"
 version = "0.1.0"

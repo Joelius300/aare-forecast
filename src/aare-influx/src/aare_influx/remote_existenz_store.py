@@ -9,7 +9,7 @@ from influxdb_client import InfluxDBClient  # pyright: ignore [reportPrivateImpo
 
 from aare.constants import TIME
 from aare_influx.field_request import FieldRequest
-from aare_train.utils import join_many
+from aare.pd_utils import join_many
 
 logger = logging.getLogger(__name__)
 

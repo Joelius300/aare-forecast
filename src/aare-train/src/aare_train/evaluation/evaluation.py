@@ -20,7 +20,7 @@ from aare_train.evaluation.forecast_samples import ForecastSamples
 from aare_train.evaluation.eval_metric import EvalMetric
 from aare_train.evaluation.historical_forecasts import historical_forecasts
 from aare_train.paths import METRICS_FOLDER, FORECAST_SAMPLES_FOLDER
-from aare_train.utils import relocalize_times
+from aare.pd_utils import relocalize_times
 from aare_train.darts_utils import get_context_len
 
 logger = logging.getLogger(__name__)

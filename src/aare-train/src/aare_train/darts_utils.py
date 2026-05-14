@@ -11,7 +11,7 @@ from darts.utils.ts_utils import retain_period_common_to_all
 
 from aare.constants import TIME
 from aare_train.compat.types import ExtremeLags
-from aare_train.utils import ensure_frame
+from aare.pd_utils import ensure_frame
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 [project]
 name = "aare-oraku-influx2pg"
-version = "1.1.0"
+version = "1.1.1"
 description = "Service to mirror data from the existenz InfluxDB into our PostgreSQL/TimescaleDB"
 requires-python = ">=3.12"
 dependencies = [

@@ -94,6 +94,7 @@ members = [
     "aare-oraku-api",
     "aare-oraku-forecast",
     "aare-oraku-influx2pg",
+    "aare-plotly",
     "aare-timescale",
     "aare-train",
 ]
@@ -128,6 +129,7 @@ source = { virtual = "." }
 dev = [
     { name = "aare" },
     { name = "aare-logging" },
+    { name = "aare-plotly" },
     { name = "aare-timescale" },
     { name = "aare-train", extra = ["dvc"] },
     { name = "aare-train", extra = ["gpu-auto"], marker = "(extra == 'extra-10-aare-train-cpu' and extra == 'extra-10-aare-train-gpu') or (extra != 'extra-10-aare-train-gpu' and extra == 'extra-10-aare-train-gpu-auto') or (extra != 'extra-10-aare-train-cpu' and extra == 'extra-10-aare-train-gpu-auto') or (extra != 'extra-10-aare-train-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-10-aare-train-gpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-10-aare-train-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-10-aare-train-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu') or (extra != 'extra-10-aare-train-cpu' and extra == 'extra-19-aare-oraku-forecast-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto') or (extra != 'extra-10-aare-train-cpu' and extra == 'extra-19-aare-oraku-forecast-gpu' and extra == 'extra-19-aare-oraku-forecast-gpu-auto')" },
@@ -160,6 +162,7 @@ dev = [
 dev = [
     { name = "aare", editable = "src/aare" },
     { name = "aare-logging", editable = "src/aare-logging" },
+    { name = "aare-plotly", editable = "src/aare-plotly" },
     { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "aare-train", extras = ["gpu-auto", "dvc"], editable = "src/aare-train" },
     { name = "basedpyright", specifier = ">=1.36.1" },
@@ -315,6 +318,21 @@ requires-dist = [
     { name = "aare-timescale", editable = "src/aare-timescale" },
     { name = "configargparse", specifier = ">=1.7.1" },
     { name = "uvloop", specifier = ">=0.21.0" },
+]
+
+[[package]]
+name = "aare-plotly"
+version = "0.1.0"
+source = { editable = "src/aare-plotly" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "plotly" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "narwhals", specifier = ">2.0.0" },
+    { name = "plotly", specifier = ">=6.0.0" },
 ]
 
 [[package]]

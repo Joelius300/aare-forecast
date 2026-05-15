@@ -11,6 +11,7 @@ dev = [
     "aare-train[gpu-auto,dvc]",
     "aare-logging",
     "aare-timescale",
+    "aare-plotly",
     "basedpyright>=1.36.1",
     "gunicorn>=23.0.0",
     "httpx>=0.28.1",
@@ -91,3 +92,4 @@ aare-train = { workspace = true }
 aare-logging = { workspace = true }
 aare-timescale = { workspace = true }
 aare-influx = { workspace = true }
+aare-plotly = { workspace = true }

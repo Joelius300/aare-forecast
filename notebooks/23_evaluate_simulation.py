@@ -30,7 +30,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Evaluating real vs simulated forecasts in bulk
+    # Evaluating real vs simulated forecasts
 
     Using marimo for nicer interactivity, but this is still just an experimental (unreproducible) playground notebook.
     """)
@@ -246,6 +246,7 @@ def _(hist_run_ts, pl, subprocess):
             # + simulation_run_ts  # <-- subsampled, see above
             + hist_run_ts.select(pl.col("run_ts").dt.to_string()).to_series().to_list()  # <-- all extracted run_ts
         )
+        assert proc is not None
     return
 
 

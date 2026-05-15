@@ -99,7 +99,16 @@ postProc = (tables=<-) =>
         return f"|> timedMovingAverage(every: freq, period: {period})"
 
     @staticmethod
-    def _get_resampler(field: FieldRequest):
+    def _get_resampler(field: FieldRequest) -> str | None:
+        if field.agg_fn == "raw":
+            if field.freq != "?":
+                logger.warning(
+                    f"Specified raw data for '{field}', but included an expected frequency '{field.field}'. "
+                    + "Frequency is ignored for raw requests, use '?' as freq to disable this warning."
+                )
+
+            return None
+
         if field.agg_fn == "exact":
             # if field.freq != "1h":
             #     raise ValueError("Only supporting 'exact' for 1h atm")
@@ -126,10 +135,10 @@ postProc = (tables=<-) =>
         for field in fields:
             resampler = self._get_resampler(field)
             query += (
-                f"{field.name} = baseData() "
-                f'|> getField(measurement: "{field.measurement}", field: "{field.field}", loc: "{field.location}")'
-                f"|> {resampler}"
-                f'|> postProc() |> yield(name: "{field.name}")\n'
+                f"{field.name} = baseData()\n"
+                + f'|> getField(measurement: "{field.measurement}", field: "{field.field}", loc: "{field.location}")\n'
+                + (f"|> {resampler}\n" if resampler else "")
+                + f'|> postProc() |> yield(name: "{field.name}")\n'
             )
         # does yield have significant negative performance implications compared to union? -> couldn't find any yet.
 

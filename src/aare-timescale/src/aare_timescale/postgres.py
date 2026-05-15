@@ -14,6 +14,7 @@ from psycopg_pool import AsyncConnectionPool
 if TYPE_CHECKING:
     import polars as pl
 
+
 async def copy_to_df(
     conn: AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Params | None = None
 ) -> pd.DataFrame:
@@ -26,10 +27,11 @@ async def copy_to_df(
 
 
 async def copy_to_df_pl(
-        conn: AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Params | None = None
+    conn: AsyncConnection, query: LiteralString | sql.SQL | sql.Composed, params: Params | None = None
 ) -> "pl.DataFrame":
     """Copy a postgres query into a polars DataFrame."""
     import polars as pl
+
     with BytesIO() as bio:
         await _copy_to_csv(conn, params, query, bio)
         bio.seek(0)
@@ -37,15 +39,17 @@ async def copy_to_df_pl(
         return pl.read_csv(bio)
 
 
-async def _copy_to_csv(conn: AsyncConnection, params: Sequence[Any] | Mapping[str, Any] | None,
-                       query: LiteralString | SQL | Composed, bio: BytesIO) -> None:
+async def _copy_to_csv(
+    conn: AsyncConnection,
+    params: Sequence[Any] | Mapping[str, Any] | None,
+    query: LiteralString | SQL | Composed,
+    bio: BytesIO,
+) -> None:
     if isinstance(query, str):
         query = sql.SQL(query)
     async with conn.cursor() as cur:
         # make sure the query doesn't end with ; somehow, maybe it's automatic?
-        async with cur.copy(
-                sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query), params
-        ) as copy:
+        async with cur.copy(sql.SQL("COPY ({query}) TO STDOUT WITH CSV HEADER").format(query=query), params) as copy:
             async for data in copy:
                 bio.write(data)
 

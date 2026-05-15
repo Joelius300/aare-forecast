@@ -10,6 +10,8 @@ class FieldRequest:
     hydro/temperature:first_1h@bern
 
     smn/rr:sum_1d@thun
+
+    hydro/temperature:raw_?@bern
     """
 
     def __init__(

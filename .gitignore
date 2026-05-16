@@ -177,3 +177,5 @@ tensorboard
 mlruns.db
 /simulated_runs
 /data/.last_db_sync
+/data/simulated_runs
+/debugging

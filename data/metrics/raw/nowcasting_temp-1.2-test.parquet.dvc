@@ -1,0 +1,5 @@
+outs:
+- md5: f97b3972ca3920708654bee3a802f97d
+  size: 44531164
+  hash: md5
+  path: nowcasting_temp-1.2-test.parquet

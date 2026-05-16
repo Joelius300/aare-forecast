@@ -1,0 +1,5 @@
+outs:
+- md5: a193bb3d5493617b4cd1a1c4eedef366
+  size: 750601
+  hash: md5
+  path: LOCF-test.parquet

@@ -1,0 +1,6 @@
+/actual_raw.parquet
+/live_forecast_meta_nowcasting_temp-1.0.parquet
+/live_forecast_nowcasting_temp-1.0.parquet
+/sim_forecast_nowcasting_temp-1.0.parquet
+/sim_forecast_nowcasting_temp-1.1_ingestion-delay.parquet
+/sim_forecast_nowcasting_temp-1.1.parquet

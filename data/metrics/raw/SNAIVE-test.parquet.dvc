@@ -1,0 +1,5 @@
+outs:
+- md5: 0fbbbc4b46e035ea8b5ca707a3da9dc8
+  size: 789181
+  hash: md5
+  path: SNAIVE-test.parquet

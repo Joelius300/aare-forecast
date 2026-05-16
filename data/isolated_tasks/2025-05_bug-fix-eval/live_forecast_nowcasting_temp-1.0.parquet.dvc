@@ -1,0 +1,5 @@
+outs:
+- md5: af41c99600525a8947ec864ada5f48f8
+  size: 3012981
+  hash: md5
+  path: live_forecast_nowcasting_temp-1.0.parquet

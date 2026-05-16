@@ -1,0 +1,5 @@
+outs:
+- md5: 765dd61ada650b0661caa52a5d3eb5f3
+  size: 10674
+  hash: md5
+  path: SNAIVE-test.pkl

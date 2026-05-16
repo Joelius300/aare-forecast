@@ -7,3 +7,10 @@
 /ARIMA_time-tt_fc.pkl
 /ARIMA_tt_fc.pkl
 /LR-dev.pkl
+/LOCF-test.pkl
+/MEAN-test.pkl
+/SNAIVE-test.pkl
+/nowcasting_temp-1.0-test.pkl
+/nowcasting_temp-1.2.pkl
+/nowcasting_temp-1.2-test.pkl
+/nowcasting_temp-1.0.pkl

@@ -1,0 +1,5 @@
+outs:
+- md5: 06259abdcc2e1b0483a2b46ca41a561f
+  size: 1070274
+  hash: md5
+  path: MEAN-test.parquet

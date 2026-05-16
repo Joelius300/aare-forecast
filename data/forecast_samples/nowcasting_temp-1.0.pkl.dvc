@@ -1,0 +1,5 @@
+outs:
+- md5: 52d482a85045c5ecd8a1fb55e12ef905
+  size: 30946
+  hash: md5
+  path: nowcasting_temp-1.0.pkl

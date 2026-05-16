@@ -9,3 +9,10 @@
 /LR-dev.parquet
 /LR-dev-live-proto.parquet
 /LR-dev-live-proto-test.parquet
+/nowcasting_temp-1.2.parquet
+/nowcasting_temp-1.2-test.parquet
+/nowcasting_temp-1.0.parquet
+/nowcasting_temp-1.0-test.parquet
+/LOCF-test.parquet
+/SNAIVE-test.parquet
+/MEAN-test.parquet

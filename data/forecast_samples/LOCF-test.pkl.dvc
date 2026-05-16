@@ -1,0 +1,5 @@
+outs:
+- md5: 6adf75a2e19e60a447d9099582b68d85
+  size: 10627
+  hash: md5
+  path: LOCF-test.pkl

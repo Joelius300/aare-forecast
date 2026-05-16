@@ -1,0 +1,5 @@
+outs:
+- md5: 1b5190ae33539eb45cadab13dd6416d0
+  size: 15870
+  hash: md5
+  path: MEAN-test.pkl

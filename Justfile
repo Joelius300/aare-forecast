@@ -84,6 +84,11 @@ upload-model model:
   # every single one of those trailing and missing slashes must be exactly as they are!
   rsync -avz data/models/{{model}}/ root@$DOKKU_HOST:/{{model}}
 
+# set model path config on forecast service; must first upload it
+[group('deploy')]
+deploy-model model:
+  ssh "dokku@$DOKKU_HOST" config:set aare-oraku-forecast ORAKU_MODEL_PATH=/models/{{model}}/{{model}}.json --no-restart
+
 [group('run')]
 [working-directory: 'src/oraku-api']
 api:

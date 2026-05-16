@@ -154,7 +154,7 @@ def _prepare_series(features: list[Feature], df: pd.DataFrame) -> TimeSeries:
 def _pull_influx(
     influx_store: RemoteExistenzStore,
     run_ts: datetime,
-    target_fields: list[FieldRequest],
+    fields: list[FieldRequest],
     min_lag: int,
     extra_past_hours: int = EXTRA_PAST_HOURS,
 ) -> pd.DataFrame:
@@ -164,7 +164,7 @@ def _pull_influx(
     hours_back = abs(min_lag) + extra_past_hours
     period = run_ts - timedelta(hours=hours_back), run_ts  # (start, end)
 
-    return influx_store.query(period, target_fields)
+    return influx_store.query(period, fields)
 
 
 def scale_inference_data(data: InferenceData, scalers: DataTransformers | None) -> InferenceData:

@@ -389,7 +389,7 @@ dev = [
 requires-dist = [
     { name = "aare", editable = "src/aare" },
     { name = "aare-influx", editable = "src/aare-influx" },
-    { name = "darts", extras = ["torch"], specifier = "~=0.42.1" },
+    { name = "darts", extras = ["torch"], specifier = "~=0.44.0" },
     { name = "dvc", marker = "extra == 'dvc'", specifier = ">=3.58.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
     { name = "numpy", specifier = ">=2.0.0" },
@@ -1386,7 +1386,7 @@ wheels = [
 
 [[package]]
 name = "darts"
-version = "0.42.1"
+version = "0.44.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "holidays" },
@@ -1408,9 +1408,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "xarray" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/4b/e9265a314e723b14884efd7ca1d32a448fae7e4390c580ff0a7a82d2ca5c/darts-0.42.1.tar.gz", hash = "sha256:9411bd482b931c99193a694bc91f1b54622de9f38d5930c256050e7b7bb73fac", size = 651654, upload-time = "2026-03-07T14:21:22.433Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/78/3d603cf436208a343c89cb61aaea1d4a7e289de6fa0ef89996a31ec2c53d/darts-0.44.1.tar.gz", hash = "sha256:6d5bdcf1cfa98e29a0fa692e05c6c4660f998887b6c1c4fe6b6f3765808da883", size = 666262, upload-time = "2026-05-05T14:20:59.484Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/98/d5481bf65a8ccaa5285a9bcf26474f8c150c5a779e6fb1d2293add735dab/darts-0.42.1-py3-none-any.whl", hash = "sha256:b935eb5a59b0b0b1b7962f78777ff555b4a74fa034b1ad2dbef4a2797ca89bc5", size = 758746, upload-time = "2026-03-07T14:21:20.294Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/c9/9596249ebe6c00ad717c74e010c282e5b3495bf583f21da32bb92768952e/darts-0.44.1-py3-none-any.whl", hash = "sha256:eb32897e9cd2833d98c6f33a9afbd160e234180332c9dabe74555d2786e8db2c", size = 780858, upload-time = "2026-05-05T14:20:57.462Z" },
 ]
 
 [package.optional-dependencies]

@@ -7,6 +7,7 @@
 #     "pandas<3.0.0",
 #     "numpy>=2.0.0",
 #     "timesfm[torch]<2.0.0",
+#     "pyarrow",
 # ]
 #
 # [tool.uv.sources]

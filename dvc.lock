@@ -70,16 +70,16 @@ stages:
     outs:
     - path: data/forecast_samples/TIMESFM.pkl
       hash: md5
-      md5: 4cbb4d46868c221c8171279d07767220
+      md5: 9191a60ee5d06d4acba188b0f36db4de
       size: 28399
     - path: data/metrics/TIMESFM.json
       hash: md5
-      md5: 5112aa740a256cbcf29bbba1d97f5cb1
-      size: 176
+      md5: d243607a743a43c325a973d6b180344d
+      size: 178
     - path: data/metrics/raw/TIMESFM.parquet
       hash: md5
-      md5: c20eeec05f059dc2e0a1ae6f3a4ff0eb
-      size: 2076850
+      md5: b2d01cbf83c1f248d806b8bb0bf3494b
+      size: 2175479
   train-eval-model:
     cmd: uv run scripts/train.py lr --targets temp_bern --future tt_bern 
       tt_bern_log tt_bern_cube tt_bern_sqrt tt_bern_ma3 --hparams 

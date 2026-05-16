@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "aare",
     "aare-influx",
-    "darts[torch]~=0.42.1",
+    "darts[torch]~=0.44.0",
     "matplotlib>=3.10.0",
     "numpy>=2.0.0",
     "pandas>=2.2.3",

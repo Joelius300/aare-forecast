@@ -104,6 +104,7 @@ async def _get_forecast(
     # it would be possible to support all horizons shorter than what's stored in the cache, but prob not worth it.
     ss_cacheable = ss_cacheable and horizon == settings.default_horizon and city == settings.default_city
 
+    # TODO improve server caching to handle irregular, schedule-based updates instead of fixed interval
     if ss_cacheable and default_latest_cache.fresh:
         run_ts, df = default_latest_cache.last_updated, default_latest_cache.data
         assert df is not None and run_ts is not None, "df or run_ts were None from cache!"
@@ -154,6 +155,7 @@ async def _get_forecast(
         # if the client didn't set a 'from' param, we can use client-side caching. see comments in function.
         # note: our expected_interval is of course only for our own runs (temperature forecasts), so flow forecasts
         # will be cached less aggressive than we could. To avoid complexity and because the interval is dynamic, KISS.
+        # TODO improve client caching to handle irregular, schedule-based updates instead of fixed interval
         set_client_caching(
             response, now, run_ts, default_latest_cache.expected_interval, default_latest_cache.tolerance
         )

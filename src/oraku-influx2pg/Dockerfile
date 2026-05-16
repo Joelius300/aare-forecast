@@ -13,6 +13,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=src/aare-logging/pyproject.toml,target=src/aare-logging/pyproject.toml \
     --mount=type=bind,source=src/aare-timescale/pyproject.toml,target=src/aare-timescale/pyproject.toml \
     --mount=type=bind,source=src/aare-influx/pyproject.toml,target=src/aare-influx/pyproject.toml \
+    --mount=type=bind,source=src/aare-plotly/pyproject.toml,target=src/aare-plotly/pyproject.toml \
     --mount=type=bind,source=src/oraku-forecast/pyproject.toml,target=src/oraku-forecast/pyproject.toml \
     --mount=type=bind,source=src/oraku-api/pyproject.toml,target=src/oraku-api/pyproject.toml \
     --mount=type=bind,source=src/oraku-influx2pg/pyproject.toml,target=src/oraku-influx2pg/pyproject.toml \

@@ -2,19 +2,19 @@
   "cron": [
     {
       "command": "python /app/src/oraku-forecast/main.py",
-      "schedule": "15 * * * *"
+      "schedule": "1 * * * *"
     },
     {
       "command": "python /app/src/oraku-forecast/main.py",
-      "schedule": "0 * * * *"
+      "schedule": "9 * * * *"
     },
     {
       "command": "python /app/src/oraku-forecast/main.py",
-      "schedule": "5 * * * *"
+      "schedule": "16 * * * *"
     },
     {
       "command": "python /app/src/oraku-forecast/main.py",
-      "schedule": "10 * * * *"
+      "schedule": "46 * * * *"
     }
   ]
 }

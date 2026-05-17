@@ -37,3 +37,6 @@ class BafuFlowTable(TimescaleTable):
             )
 
             await self.make_hypertable(conn)
+
+            # make bafu_flow nullable to handle weird cases upstream (e.g. daylight savings)
+            await conn.execute("ALTER TABLE bafu_flow ALTER COLUMN flow DROP NOT NULL;")

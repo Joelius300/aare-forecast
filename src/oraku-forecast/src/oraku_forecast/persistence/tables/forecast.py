@@ -4,6 +4,9 @@ from psycopg_pool import AsyncConnectionPool
 from aare_timescale.timescale_table import TimescaleTable
 
 
+# TODO one table per forecasted variable (currently only hydro/temperature)
+#  - column always named the same e.g. value or derived from variable name -> extendable to quantiles
+#  - location as a field
 class ForecastTable(TimescaleTable):
     def __init__(self, connection_pool: AsyncConnectionPool):
         super().__init__(connection_pool, "forecast", ["run_ts", "time", "temp_bern"])

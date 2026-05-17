@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Literal, override
 
 from aare.constants import RANDOM_SEED
@@ -24,6 +25,7 @@ class LRTrainer(BaseTrainer):
         *,
         lag_max: int = 24,
         lag_step: int = 6,
+        extra_lags: Sequence[int] | None = None,
         output_chunk_length: int = 1,
         regularization: RegularizationType = "none",
         alpha: float | None = None,
@@ -38,6 +40,8 @@ class LRTrainer(BaseTrainer):
         if regularization == "elastic" and l1_ratio is None:
             raise ValueError("l1_ratio must be specified for elastic regularization")
         lags_raw = list(range(-lag_max, -1, lag_step))
+        if extra_lags:
+            lags_raw.extend(extra_lags)
 
         hparams_sk_model = {}
         if regularization != "none":

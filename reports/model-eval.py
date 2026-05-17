@@ -26,13 +26,13 @@ def _(mo):
     Which forecast horizon (how many hours into the future) people are interested in probably depends on many factors; with the slider you can evaluate different views.
     Beware that you can introduce biases, especially when selecting very strict evaluation criteria.
 
-    It's important to note that this evaluation is very optimistic because all models that use external data as input like air temperature are evaluated on true measurement data.
+    It's important to note that this evaluation is optimistic because all models that use external data as input like air temperature are evaluated on true measurement data.
     During inference (on aare.guru), this external data comes from forecasting services like MeteoTest, so it will contain inaccuracies that are propagated to our models.
     How well the model performs with external forecast inputs we can't know yet, but it's very likely that it will be worse than this evaluation shows.
     How much worse it will be depends on the accuracy of the external forecast services and sensitivity of our model.
-    A [preliminary analysis of real forecasts](https://github.com/Joelius300/aare-forecast/blob/main/notebooks/21_measurement-vs-forecast-eval.ipynb) showed that they might be 15-25% worse than test forecasts of the same model
+    A [preliminary analysis of real forecasts](https://github.com/Joelius300/aare-forecast/blob/main/notebooks/21_measurement-vs-forecast-eval.ipynb) showed that they might be 8-12% worse than test forecasts of the same model
     during the same period. This is for the full 4-day forecasts, restricting evaluation to just the data shown in the
-    aare.guru main page, it drops to ~10%. Relative to the actual temperature, it's only ~1% worse on average.
+    aare.guru main page, it drops to ~10%. Relative to the actual temperature, it's less than 1% worse on average.
 
     If you uncheck the test dataset and instead look at the validation data, the evaluation will be even more optimistic because the validation set is used to tune the model and select the best one, which introduces a bias.
     The test set is designed to be evaluated only once a model is tuned and selected to avoid such biases and get the most realistic estimate for the real-world model accuracy.
@@ -54,11 +54,7 @@ def _(default_model, mo, model_names):
 @app.cell(hide_code=True)
 def _(mo, model):
     _out = None
-    if model == "LR-dev-live-proto":
-        _out = mo.md(
-            "This model is special and you probably don't care for it. It was the prototype model that ran with real forecast data. When the test data checkbox is checked, you can analyze the evaluation with **measured** air temperature. If you uncheck it, it will _not_ use validation data, but instead it will show real historical forecast made with **forecasted** air temperature. This allows comparison between real historical forecasts and simulated forecasts on test data for the same time period."
-        ).callout("info")
-    elif model == "nowcasting_temp-1.0":
+    if model == "nowcasting_temp-1.0":
         _out = mo.md(
             "The 1.0 model was trained with hourly mean water temperature as target and is therefore systematically misaligned. The evaluation was retroactively corrected to use the new target (point in time measurements) for error calculation."
         ).callout("info")
@@ -343,9 +339,6 @@ def _(itertools):
     # todo if not running wasm, populate this list with files from disk?
     models = {
         "nowcasting_temp": ["1.0", "1.2"],
-        "LR-dev": [
-            "live-proto",
-        ],
     }
     baseline_models = ["LOCF", "SNAIVE", "MEAN"]
 

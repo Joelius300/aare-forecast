@@ -1,6 +1,7 @@
 # MVP Design
 
-> **Hinweis:** Das ist das originale MVP design nach den ersten Gesprächen mit aare.guru;
+> [!NOTE]
+> Das ist das originale MVP design nach den ersten Gesprächen mit aare.guru;
 > die aktuelle Umsetzung sieht leicht anders aus (z.B. kein .NET).
 > Die Dokumentation für den produktiven MVP folgt.
 

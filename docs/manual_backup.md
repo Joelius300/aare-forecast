@@ -1,7 +1,7 @@
 # Backup
 
 Backups are handled by the dokku instance, this is only about manually getting the data
-just to be sure or to analyze it locally.
+just to be sure or to analyze it locally. See also the `scripts/pull_db.py` script.
 
 ## Manual backup / data extraction
 

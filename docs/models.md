@@ -58,3 +58,9 @@ These two changes improved the accuracy of the model as well.
 Same as v1.1, with the following differences:
 
 - update to darts v0.44.1
+
+### v1.3
+
+Same as 1.2, with the following differences:
+
+- include -2 (hours) as additional lag to improve accuracy on lower horizons. See notebook 29.

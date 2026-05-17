@@ -1,0 +1,58 @@
+{
+  "name": "nowcasting_temp",
+  "version": "1.2",
+  "model_cls": "darts.models.forecasting.sklearn_model.SKLearnModel",
+  "model_path": "nowcasting_temp-1.2.model.pkl",
+  "scalers_path": "nowcasting_temp-1.2.scaler.pkl",
+  "params_path": "nowcasting_temp-1.2.params.yaml",
+  "features": {
+    "targets": [
+      "temp_bern"
+    ],
+    "future": [
+      "tt_bern",
+      "tt_bern_log",
+      "tt_bern_cube",
+      "tt_bern_sqrt",
+      "tt_bern_ma3"
+    ]
+  },
+  "hparams": {
+    "regularization": "none",
+    "lag_max": 24,
+    "lag_step": 6
+  },
+  "hparams_internal": {
+    "lags": [
+      -1,
+      -24,
+      -18,
+      -12,
+      -6
+    ],
+    "lags_past_covariates": null,
+    "lags_future_covariates": [
+      0,
+      -1,
+      -24,
+      -18,
+      -12,
+      -6
+    ],
+    "output_chunk_length": 1,
+    "output_chunk_shift": 0,
+    "add_encoders": null,
+    "multi_models": true,
+    "use_static_covariates": false,
+    "random_state": 42
+  },
+  "origin": {
+    "mlflow": {
+      "run_name": "glamorous-elk-990",
+      "exp_id": "2",
+      "run_id": "7d9e86bdbf2e4a6aba4b35b15cf48100"
+    },
+    "train_time": "2026-05-16T16:18:17.834000+02:00",
+    "last_commit": "6c467ea7bb2b4cc8610ceeb50e8b05cb080d10a9"
+  }
+}

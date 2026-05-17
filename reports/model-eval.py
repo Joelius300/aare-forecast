@@ -555,6 +555,7 @@ def _(go, pl):
 
         # marimo x plotly update logic is fucked and sometimes annotations are left over and fuck up the chart.
         # trying to remove those leftover annotations here doesn't work because they aren't in the fig object at all...
+
     return (add_ignored_rects,)
 
 
@@ -606,7 +607,6 @@ def _(mo, model, pathlib, running_wasm, test_checkbox):
 
         return notebook_loc.parent / "data"
 
-
     def get_data_path() -> str | None:
         file_name = model + ("-test" if test_checkbox.value else "") + ".parquet"
         asset_dir = get_assets_dir()
@@ -618,7 +618,6 @@ def _(mo, model, pathlib, running_wasm, test_checkbox):
 
         path = asset_dir / "metrics" / "raw" / file_name
         return str(path) if path.exists() else None
-
 
     def get_meta_path() -> str | None:
         file_name = model + ".json"

@@ -338,7 +338,8 @@ def _(itertools):
     tz = "Europe/Zurich"
     # todo if not running wasm, populate this list with files from disk?
     models = {
-        "nowcasting_temp": ["1.0", "1.2"],
+        "nowcasting_temp": ["1.0", "1.2", "1.3"],
+        "LR": ["dev"],
     }
     baseline_models = ["LOCF", "SNAIVE", "MEAN"]
 
@@ -347,7 +348,7 @@ def _(itertools):
         for model_key, versions in models.items()
         for model, version in zip(itertools.repeat(model_key), versions)
     ] + baseline_models
-    default_model = "nowcasting_temp-1.2"
+    default_model = "nowcasting_temp-1.3"
     return baseline_models, default_model, model_names, tz
 
 

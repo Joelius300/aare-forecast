@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="Python 3.12 virtualenv at ~/projects/aare-forecast/.venv" />
+    <option name="sdkName" value="uv (aare-forecast)" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -20,5 +20,4 @@
       </profile-state>
     </entry>
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 virtualenv at ~/projects/aare-forecast/.venv" project-jdk-type="Python SDK" />
 </project>

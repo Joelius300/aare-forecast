@@ -240,6 +240,7 @@ postProc = (tables=<-) =>
         if isinstance(fields, str) or isinstance(fields, FieldRequest):
             fields = [fields]
 
+        # TODO allow filtering for months
         assert isinstance(fields, Iterable), "fields should be iterable now"
         requests = [field if isinstance(field, FieldRequest) else FieldRequest.from_str(field) for field in fields]
         query = self._build_fields_query(period, requests)

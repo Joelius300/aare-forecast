@@ -1,5 +1,4 @@
 import itertools
-from typing import Optional
 import darts
 from darts import TimeSeries
 from darts.utils.missing_values import extract_subseries
@@ -58,7 +57,7 @@ class FeatureSet:
 
     def _prepare(
         self, df: pd.DataFrame, min_len: int = 1
-    ) -> tuple[list[TimeSeries], Optional[list[TimeSeries]], Optional[list[TimeSeries]]]:
+    ) -> tuple[list[TimeSeries], list[TimeSeries] | None, list[TimeSeries] | None]:
         assert min_len >= 1, f"invalid min_len {min_len}"
         df = resample(df)
 
